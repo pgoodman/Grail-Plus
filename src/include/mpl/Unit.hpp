@@ -11,8 +11,7 @@
 
 namespace cftl {
 
-    /// type with an empty domain
-    typedef void Unit;
+    class Unit { };
 
 }
 

@@ -35,4 +35,4 @@ bin/%.o: src/%.cpp
 	${CXX} ${LD_FLAGS} $@ -o bin/$*
 
 clean:
-	-rm -rf *.o
+	-rm -rf bin/*.o

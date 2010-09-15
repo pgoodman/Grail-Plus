@@ -9,6 +9,8 @@
 #ifndef CFTL_MPL_MAX_HPP_
 #define CFTL_MPL_MAX_HPP_
 
+#include <cstddef>
+
 #include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 #include "src/include/preprocessor/FOLD_LEFT.hpp"
 #include "src/include/preprocessor/PACK.hpp"
@@ -27,7 +29,7 @@ namespace cftl {
     namespace {
 
         /// compute the maximum of two values at compile time.
-        template <const size_t v0, const size_t v1>
+        template <const std::size_t v0, const std::size_t v1>
         class Max2 {
         public:
             enum {
@@ -38,9 +40,9 @@ namespace cftl {
 
     /// Compute the maximum of 1 to CFTL_MAX_OVER_VALUES_LIMIT values at
     /// compile time.
-    template <const size_t v0
+    template <const std::size_t v0
               CFTL_ENUMERATE_VALUE_PARAMS(
-                  CFTL_MAX_OVER_VALUES_LIMIT, v, const size_t, = 0
+                  CFTL_MAX_OVER_VALUES_LIMIT, v, const std::size_t, = 0
               ) >
     class Max {
     public:
