@@ -27,4 +27,12 @@ ifeq (${CXX}, icc)
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS}
-OBJ_FILE = cftl
+
+all: bin/main.o
+
+bin/%.o: src/%.cpp
+	${CXX} ${CXX_FLAGS} -c $< -o $@
+	${CXX} ${LD_FLAGS} $@ -o bin/$*
+
+clean:
+	-rm -rf *.o
