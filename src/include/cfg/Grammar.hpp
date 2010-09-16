@@ -12,11 +12,14 @@
 #include "src/include/mpl/TotalOrder.hpp"
 
 namespace cftl {
+    namespace cfg {
 
-    template <typename A, typename Order=TotalOrder<A> >
-    class Grammar {
+        template <typename A, typename Order=TotalOrder<A> >
+        class Grammar {
 
-    };
+        };
+
+    }
 }
 
 #endif /* CFTL_CFG_GRAMMAR_HPP_ */

@@ -19,8 +19,12 @@
 #define CFTL_DEC_7 6
 #define CFTL_DEC_8 7
 #define CFTL_DEC_9 8
+#define CFTL_DEC_10 9
+#define CFTL_DEC_11 10
+#define CFTL_DEC_12 11
 
 /// pre-processor decrement function
-#define CFTL_DECREMENT(n) CFTL_DEC_ ## n
+#define CFTL_DECREMENT0(n) CFTL_DEC_ ## n
+#define CFTL_DECREMENT(n) CFTL_DECREMENT0(n)
 
 #endif /* CFTL_PREPROCESSOR_DECREMENT_HPP_ */

@@ -41,6 +41,12 @@
 #define CFTL_FOLD_LEFT_9(m, pd, cp) \
     CFTL_FOLD_LEFT_8(m, pd, CFTL_EVAL(m, (9, CFTL_UNPACK(pd), cp)))
 
+#define CFTL_FOLD_LEFT_10(m, pd, cp) \
+    CFTL_FOLD_LEFT_9(m, pd, CFTL_EVAL(m, (10, CFTL_UNPACK(pd), cp)))
+
+#define CFTL_FOLD_LEFT_11(m, pd, cp) \
+    CFTL_FOLD_LEFT_10(m, pd, CFTL_EVAL(m, (11, CFTL_UNPACK(pd), cp)))
+
 #define CFTL_FOLD_LEFT0(num_times, macro, packed_data, term_expr) \
     CFTL_FOLD_LEFT_ ## num_times(macro, packed_data, term_expr)
 

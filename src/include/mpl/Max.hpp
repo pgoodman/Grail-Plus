@@ -17,7 +17,7 @@
 
 /// the default number of types that can be summed over
 #ifndef CFTL_MAX_OVER_VALUES_LIMIT
-#define CFTL_MAX_OVER_VALUES_LIMIT 7
+#define CFTL_MAX_OVER_VALUES_LIMIT 10
 #endif
 
 /// the fold function for computing the max value of N numbers by computing
@@ -51,7 +51,7 @@ namespace cftl {
                 CFTL_MAX_OVER_VALUES_LIMIT,
                 CFTL_MAX_OF_2,
                 CFTL_PACK_0,
-                0
+                v0
             )
         };
     };

@@ -12,7 +12,7 @@
 /// macro that takes in the name of a function macro and a parenthesized,
 /// comma-separated list of values to pass to that function macro and then
 /// expands the passed-in macro with those values as parameters.
-#define CFTL_EVAL(macro, params) \
-    macro params
+#define CFTL_EVAL0(m, p) m p
+#define CFTL_EVAL(macro, params) CFTL_EVAL0(macro, params)
 
 #endif /* CFTL_EVAL_HPP_ */

@@ -25,5 +25,8 @@
 #define CFTL_REPEATR_7(m,d) m(7, d) CFTL_REPEATR_6(m, d)
 #define CFTL_REPEATR_8(m,d) m(8, d) CFTL_REPEATR_7(m, d)
 #define CFTL_REPEATR_9(m,d) m(9, d) CFTL_REPEATR_8(m, d)
+#define CFTL_REPEATR_10(m,d) m(10, d) CFTL_REPEATR_9(m, d)
+#define CFTL_REPEATR_11(m,d) m(11, d) CFTL_REPEATR_10(m, d)
+#define CFTL_REPEATR_10(m,d) m(12, d) CFTL_REPEATR_11(m, d)
 
 #endif /* CFTL_REPEAT_RIGHT_HPP_ */

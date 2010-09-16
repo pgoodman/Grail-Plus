@@ -11,8 +11,8 @@
 
 namespace cftl {
 
-    class Unit { };
-
+    //class Unit { };
+    typedef void Unit;
 }
 
 #endif /* CFTL_MPL_UNIT_HPP_ */
