@@ -102,15 +102,7 @@ namespace cftl {
         class SequenceTypeLength {
         public:
             enum {
-                VALUE = 1
-            };
-        };
-
-        template <>
-        class SequenceTypeLength<Unit> {
-        public:
-            enum {
-                VALUE = 0
+                VALUE = (0 == SizeOf<T>::VALUE ? 0 : 1)
             };
         };
     }
@@ -135,7 +127,10 @@ namespace cftl {
     class Sequence {
     public:
 
-        /// the length of the type sequence
+        /// the length of the type sequence. types can be ignored from the
+        /// length count by specializing SizeOf to have VALUE = 0, i.e. this
+        /// counts all types in the sequence that the programmer considers
+        /// to be able to contain values.
         class Length {
         public:
             enum {

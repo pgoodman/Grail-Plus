@@ -4,13 +4,14 @@
 
 ROOT_DIR = ./
 
-CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
+DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
+CXX = ${DEFAULT_CXX}
 CXX_WARN_FLAGS = -pedantic -pedantic-errors -Wall -Werror -Wextra
 CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long
 CXX_FLAGS = -O0 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
-# are we compiling with the gcc?
+# are we compiling with the g++?
 ifeq (${CXX}, g++)
 	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith -Wcast-qual \
 				      -Wwrite-strings \
@@ -24,6 +25,11 @@ ifeq (${CXX}, icc)
 	CXX_WARN_FLAGS =
 	CXX_FLAGS += -Kc++ -Wall -Werror -wd981
 	LD_FLAGS += -lstdc++
+endif
+
+# are we compiling with clang++?
+ifeq (${CXX}, ${DEFAULT_CXX})
+	CXX_FLAGS += -fcatch-undefined-behavior
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS}

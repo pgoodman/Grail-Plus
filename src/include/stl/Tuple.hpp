@@ -61,6 +61,15 @@ namespace cftl {
         };
     }
 
+    /// size of the hidden tuple unit type
+    template <>
+    class SizeOf<TupleUnit> {
+    public:
+        enum {
+            VALUE = 0
+        };
+    };
+
     /// forward-declaration of tuple type. the tuple type contains one of
     /// each of the types T0, ..., TN. All types in the tuple are expected
     /// to have default constructors. The tuple type does not effect an
@@ -111,8 +120,8 @@ namespace cftl {
             enum {
                 VALUE = sizeof(TuplePaddedType<
                     T,
-                    0 == (sizeof(T) % sizeof(unsigned))>
-                )
+                    0 == (sizeof(T) % sizeof(unsigned))
+                >)
             };
         };
 
@@ -137,7 +146,8 @@ namespace cftl {
             };
         };
 
-        /// print out an individual value from inside the tuple
+        /// print out an individual value from inside the tuple. this handles
+        /// printing all but the first value in the tuple.
         template <typename ValueType, typename TupleType, const unsigned i>
         class TupleTypePrinter {
         public:
@@ -172,7 +182,7 @@ namespace cftl {
             }
         };
 
-        /// base case of recursion
+        /// base case of recursion, print the first value.
         template <typename TupleType>
         class TuplePrintStorage<0, TupleType> {
         public:
@@ -181,15 +191,6 @@ namespace cftl {
             }
         };
     }
-
-    /// size of the hidden tuple unit type
-    template <>
-    class SizeOf<TupleUnit> {
-    public:
-        enum {
-            VALUE = 0
-        };
-    };
 
     /// forward declaration of stream function
     template <CFTL_TUPLE_TYPENAME_LIST >
