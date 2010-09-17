@@ -25,7 +25,7 @@ public:
     bool z;
     char a;
 
-    Foo(void) : x(99), y(11.6), z(false), a('a') {
+    Foo(void) : x(99), y(11.6f), z(false), a('a') {
         std::cout << "initialized Foo! \n";
     }
 };

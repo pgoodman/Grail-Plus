@@ -48,7 +48,7 @@
     } \
 
 #define CFTL_TUPLE_INITIALIZE_NTH(n, var) \
-    case n: Assign<typename mpl::VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
+    case n: Assign<T ## n, typename mpl::VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
 
 namespace cftl {
 
@@ -259,16 +259,18 @@ namespace cftl { namespace stl {
         };
 
         /// assignment type for arguments
-        template <typename ArgType, const unsigned i>
+        template <typename ArgType, typename PromotedType, const unsigned i>
         class Assign {
         public:
             static void apply(self_t &tuple, va_list &args) {
-                tuple.get<i>() = va_arg(args, ArgType);
+                tuple.get<i>() = static_cast<ArgType>(
+                    va_arg(args, PromotedType)
+                );
             }
         };
 
-        template <const unsigned i>
-        class Assign<TupleUnit, i> {
+        template <typename PromotedType, const unsigned i>
+        class Assign<TupleUnit, PromotedType, i> {
         public:
             static void apply(self_t &, va_list &) { }
         };
