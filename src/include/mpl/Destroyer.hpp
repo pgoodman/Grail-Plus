@@ -10,18 +10,20 @@
 #define CFTL_DESTROYER_HPP_
 
 namespace cftl {
+    namespace mpl {
 
-    /// Call the destructor of an object through a pointer.
-    template <typename T>
-    class Destroyer {
-    public:
-        static void destroy(T *memory) {
-            memory->~T();
-        }
-        static void destroy(void *memory) {
-            reinterpret_cast<T *>(memory)->~T();
-        }
-    };
+        /// Call the destructor of an object through a pointer.
+        template <typename T>
+        class Destroyer {
+        public:
+            static void destroy(T *memory) {
+                memory->~T();
+            }
+            static void destroy(void *memory) {
+                reinterpret_cast<T *>(memory)->~T();
+            }
+        };
+    }
 }
 
 #endif /* CFTL_DESTROYER_HPP_ */

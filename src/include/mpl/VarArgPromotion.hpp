@@ -11,7 +11,7 @@
 
 #include <cstdarg>
 
-namespace cftl {
+namespace cftl { namespace mpl {
 
     /// define type promotions for the variadic functions
     template <typename T>
@@ -39,6 +39,6 @@ namespace cftl {
     public:
         typedef unsigned type_t;
     };
-}
+}}
 
 #endif /* CFTL_MPL_VARARGPROMOTION_HPP_ */

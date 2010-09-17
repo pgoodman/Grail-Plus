@@ -9,7 +9,7 @@
 #ifndef CFTL_MPL_TOTALORDER_HPP_
 #define CFTL_MPL_TOTALORDER_HPP_
 
-namespace cftl {
+namespace cftl { namespace mpl {
 
     /// Less-than-or-equal operator for some type. Defines a total ordering
     /// for elements of that type.
@@ -28,6 +28,6 @@ namespace cftl {
             return left <= right;
         }
     };
-}
+}}
 
 #endif /* CFTL_MPL_TOTALORDER_HPP_ */

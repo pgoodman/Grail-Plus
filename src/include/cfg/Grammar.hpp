@@ -14,7 +14,7 @@
 namespace cftl {
     namespace cfg {
 
-        template <typename A, typename Order=TotalOrder<A> >
+        template <typename A, typename Order=mpl::TotalOrder<A> >
         class Grammar {
 
         };

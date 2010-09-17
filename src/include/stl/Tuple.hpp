@@ -6,8 +6,8 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_TUPLE_HPP_
-#define CFTL_TUPLE_HPP_
+#ifndef CFTL_STL_TUPLE_HPP_
+#define CFTL_STL_TUPLE_HPP_
 
 #include <iostream>
 #include <cstdarg>
@@ -19,6 +19,8 @@
 #include "src/include/mpl/Sequence.hpp"
 #include "src/include/mpl/SizeOf.hpp"
 #include "src/include/mpl/VarArgPromotion.hpp"
+
+#include "src/include/trait/Uncopyable.hpp"
 
 #ifndef CFTL_TUPLE_OVER_TYPES_LIMIT
 #define CFTL_TUPLE_OVER_TYPES_LIMIT 7
@@ -46,29 +48,35 @@
     } \
 
 #define CFTL_TUPLE_INITIALIZE_NTH(n, var) \
-    case n: Assign<typename VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
+    case n: Assign<typename mpl::VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
 
 namespace cftl {
 
     namespace {
 
         /// hidden unit type that cannot be used outside of this module.
-        class TupleUnit {
+        class TupleUnit : private trait::Uncopyable {
         private:
             TupleUnit(void) { }
-            TupleUnit(const TupleUnit &) { }
-            TupleUnit &operator=(const TupleUnit &) { return *this; }
         };
     }
 
-    /// size of the hidden tuple unit type
-    template <>
-    class SizeOf<TupleUnit> {
-    public:
-        enum {
-            VALUE = 0
+    namespace mpl {
+
+        /// size of the hidden tuple unit type; this makes it so that
+        /// Sequence::Length won't count TupleUnit towards the length of a
+        /// type sequence.
+        template <>
+        class SizeOf<TupleUnit> {
+        public:
+            enum {
+                VALUE = 0
+            };
         };
-    };
+    }
+}
+
+namespace cftl { namespace stl {
 
     /// forward-declaration of tuple type. the tuple type contains one of
     /// each of the types T0, ..., TN. All types in the tuple are expected
@@ -203,7 +211,7 @@ namespace cftl {
 
         /// basic useful typedefs
         typedef Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> self_t;
-        typedef Sequence<CFTL_TUPLE_TYPE_PARAM_LIST> sequence_t;
+        typedef mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST> sequence_t;
 
     private:
 
@@ -372,18 +380,19 @@ namespace cftl {
 
     template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
     inline
-    typename Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::template Index<i>::type_t &
+    typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
+    template Index<i>::type_t &
     get(Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
         return tuple.template get<i>();
     }
 
     template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
     inline
-    const typename Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
+    const typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
     template Index<i>::type_t &
     get(const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
         return tuple.template get<i>();
     }
-}
+}}
 
-#endif /* CFTL_TUPLE_HPP_ */
+#endif /* CFTL_STL_TUPLE_HPP_ */

@@ -24,7 +24,7 @@
 /// the value one pair at a time.
 #define CFTL_MAX_OF_2(n, _, rest) (Max2<v ## n, rest>::VALUE)
 
-namespace cftl {
+namespace cftl { namespace mpl {
 
     namespace {
 
@@ -55,6 +55,6 @@ namespace cftl {
             )
         };
     };
-}
+}}
 
 #endif /* CFTL_MPL_MAX_HPP_ */

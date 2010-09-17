@@ -45,7 +45,7 @@
 #define CFTL_SEQUENCE_TYPE_LENGTH(n, _) \
     + SequenceTypeLength<T ## n>::VALUE
 
-namespace cftl {
+namespace cftl { namespace mpl {
 
     namespace {
 
@@ -200,7 +200,7 @@ namespace cftl {
             typedef typename IndexImpl<InvalidType, i>::type_t type_t;
         };
     };
-}
+}}
 
 
 #endif /* CFTL_MPL_SEQUENCE_HPP_ */

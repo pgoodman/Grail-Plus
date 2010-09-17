@@ -21,9 +21,10 @@
 #include "src/include/mpl/Max.hpp"
 #include "src/include/mpl/Sequence.hpp"
 #include "src/include/mpl/SizeOf.hpp"
-
 #include "src/include/mpl/Destroyer.hpp"
 #include "src/include/mpl/Initializer.hpp"
+
+#include "src/include/trait/Uncopyable.hpp"
 
 /// the default number of types that can be summed over
 #ifndef CFTL_VARIANT_OVER_TYPES_LIMIT
@@ -46,11 +47,9 @@
 /// of sum type. these are anonymous so that the programmer cannot place
 /// a gap in-between two parameterized concrete types.
 #define CFTL_MAKE_VARIANT_UNIT(n, _) \
-    class VariantUnit ## n { \
+    class VariantUnit ## n : private trait::Uncopyable { \
     private: \
         VariantUnit ## n(void) { } \
-        VariantUnit ## n(const VariantUnit ## n &) { } \
-        void operator=(const VariantUnit ## n &) { } \
     };
 
 /// define the specializations of the unit types so that no work is done
@@ -78,7 +77,7 @@
 /// create the copy constructors and assignment operators
 #define CFTL_VARIANT_TYPE_METHOD(n, _) \
     Variant(const T ## n &val) : type_tag(TYPE_T ## n) { \
-        Initializer<T ## n>::initialize(&storage); \
+        mpl::Initializer<T ## n>::initialize(&storage); \
         *reinterpret_cast<T ## n *>(&storage) = val; \
     } \
     \
@@ -86,7 +85,7 @@
         if(TYPE_T ## n != type_tag) { \
             type_tag = TYPE_T ## n ; \
             destroy(); \
-            Initializer<T ## n>::initialize(&storage); \
+            mpl::Initializer<T ## n>::initialize(&storage); \
         } \
         *reinterpret_cast<T ## n *>(&storage) = val; \
         return *this; \
@@ -104,13 +103,13 @@
 /// used to build the switch statement so as to be able to properly destroy
 /// the held value
 #define CFTL_VARIANT_DESTROY_MEM(n, _) \
-    case TYPE_T ## n : Destroyer<T ## n>::destroy(&storage); break;
+    case TYPE_T ## n : mpl::Destroyer<T ## n>::destroy(&storage); break;
 
 /// used to build the switch statement to properly initialize and copy the
 /// memory.
 #define CFTL_VARIANT_COPY_MEM(n, p) \
     case TYPE_T ## n : \
-        Initializer<T ## n>::initialize(&storage); \
+        mpl::Initializer<T ## n>::initialize(&storage); \
         *reinterpret_cast<T ## n *>(&storage) = p; \
         break;
 
@@ -166,13 +165,19 @@ namespace cftl {
         )
     }
 
-    /// create the specializations of the sum types for Initializer and
-    /// Destroyer.
-    CFTL_REPEAT_LEFT(
-        CFTL_VARIANT_OVER_TYPES_LIMIT,
-        CFTL_MAKE_VARIANT_UNIT_SPEC,
-        void
-    )
+    namespace mpl {
+
+        /// create the specializations of the sum types for Initializer,
+        /// Destroyer, and SizeOf.
+        CFTL_REPEAT_LEFT(
+            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_MAKE_VARIANT_UNIT_SPEC,
+            void
+        )
+    }
+}
+
+namespace cftl { namespace stl {
 
     /// forward declaration of sum type
     template <typename T0 \
@@ -227,7 +232,7 @@ namespace cftl {
             STORAGE_SIZE = sizeof(storage_t),
 
             /// the maximum size of all object sizes in this sum type
-            MAX_OBJECT_SIZE = Max<
+            MAX_OBJECT_SIZE = mpl::Max<
                 sizeof(storage_t),
                 sizeof(T0)
                 CFTL_REPEAT_LEFT(
@@ -270,7 +275,7 @@ namespace cftl {
         /// default construction, initialize to the first type in type
         /// parameter list.
         Variant(void) : type_tag(TYPE_T0) {
-            Initializer<T0>::initialize(&storage);
+            mpl::Initializer<T0>::initialize(&storage);
         }
 
         /// copy construction, default initializes the value to the tagged
@@ -303,8 +308,8 @@ namespace cftl {
         template <typename Q>
         class ExtractType {
         public:
-            typedef typename Sequence<CFTL_VARIANT_TYPE_PARAM_LIST>:: \
-            template Select<Q>::type_t type_t;
+            typedef mpl::Sequence<CFTL_VARIANT_TYPE_PARAM_LIST> sequence_t;
+            typedef typename sequence_t::template Select<Q>::type_t type_t;
         };
 
         /// create a mapping between types
@@ -419,6 +424,6 @@ namespace cftl {
         }
         return os << ')';
     }
-}
+}}
 
 #endif /* CFTL_STL_VARIANT_HPP_ */
