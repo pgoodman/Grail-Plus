@@ -83,7 +83,7 @@ int main(void) {
 
     std::cout << "streamed tuple after assignment: " << tuple << '\n';
 
-    cftl::Tuple<int,char,double> tuple3(9, 'x', 10.99);
+    cftl::Tuple<bool,char,double> tuple3(9, 'x', 10.99);
     std::cout << "streamed tuple3 value constructor: " << tuple3 << '\n';
 
     return 0;

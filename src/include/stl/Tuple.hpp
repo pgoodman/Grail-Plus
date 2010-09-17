@@ -18,6 +18,7 @@
 #include "src/include/mpl/Unit.hpp"
 #include "src/include/mpl/Sequence.hpp"
 #include "src/include/mpl/SizeOf.hpp"
+#include "src/include/mpl/VarArgPromotion.hpp"
 
 #ifndef CFTL_TUPLE_OVER_TYPES_LIMIT
 #define CFTL_TUPLE_OVER_TYPES_LIMIT 7
@@ -45,7 +46,7 @@
     } \
 
 #define CFTL_TUPLE_INITIALIZE_NTH(n, var) \
-    case n: Assign<T ## n, n>::apply(*this, var); break;
+    case n: Assign<typename VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
 
 namespace cftl {
 
@@ -300,7 +301,9 @@ namespace cftl {
         /// initial value constructor, expects *all* values to be set. if
         /// not all values are set then unsafe things can happen!
         ///
-        /// Note: all arguments are passed by *value*
+        /// Note: - all arguments are passed by *value*
+        ///       - this method isn't type safe and so passing the wrong
+        ///         number of arguments won't be found by the compiler.
         Tuple(const T0 val0, ...) {
 
             get<0>() = val0;
