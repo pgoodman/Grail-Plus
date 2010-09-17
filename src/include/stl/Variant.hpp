@@ -16,9 +16,7 @@
 #include "src/include/preprocessor/CATENATE.hpp"
 #include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
 #include "src/include/preprocessor/EVAL.hpp"
-#include "src/include/preprocessor/INCREMENT.hpp"
 #include "src/include/preprocessor/REPEAT_LEFT.hpp"
-#include "src/include/preprocessor/UNPACK.hpp"
 
 #include "src/include/mpl/Max.hpp"
 #include "src/include/mpl/Sequence.hpp"
@@ -98,7 +96,10 @@
     T0 CFTL_ENUMERATE_PARAMS(CFTL_VARIANT_OVER_TYPES_LIMIT, T)
 
 #define CFTL_VARIANT_TYPENAME_LIST \
-    typename T0 CFTL_ENUMERATE_PARAMS(CFTL_VARIANT_OVER_TYPES_LIMIT, typename T)
+    typename T0 CFTL_ENUMERATE_PARAMS( \
+        CFTL_VARIANT_OVER_TYPES_LIMIT, \
+        typename T \
+    )
 
 /// used to build the switch statement so as to be able to properly destroy
 /// the held value
@@ -158,7 +159,11 @@ namespace cftl {
         /// also, they are in the anonymous namespace and so they cannot be
         /// used by someone outside of this file, i.e. no one can ever
         /// make a sum that explicity uses one of the VariantUnit classes.
-        CFTL_REPEAT_LEFT(CFTL_VARIANT_OVER_TYPES_LIMIT, CFTL_MAKE_VARIANT_UNIT, void)
+        CFTL_REPEAT_LEFT(
+            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_MAKE_VARIANT_UNIT,
+            void
+        )
     }
 
     /// create the specializations of the sum types for Initializer and
@@ -303,7 +308,8 @@ namespace cftl {
         };
 
         /// create a mapping between types
-        template <typename Q, typename C, const unsigned id, const unsigned input>
+        template <typename Q, typename C,
+                  const unsigned id, const unsigned input>
         class ExtractId {
         public:
             enum { ID = input };
@@ -354,7 +360,11 @@ namespace cftl {
                 CFTL_VARIANT_OVER_TYPES_LIMIT,
                 CFTL_VARIANT_TYPE_EXTRACT_ID,
                 CFTL_PACK_0,
-                CFTL_VARIANT_TYPE_EXTRACT_ID(0, void, (unsigned) TYPE_UNKNOWN)
+                CFTL_VARIANT_TYPE_EXTRACT_ID(
+                    0,
+                    void,
+                    (unsigned) TYPE_UNKNOWN
+                )
             ));
         }
 
@@ -393,7 +403,9 @@ namespace cftl {
     /// streaming operator
     template <CFTL_VARIANT_TYPENAME_LIST >
     std::ostream &
-    operator<<(std::ostream &os, const Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum) {
+    operator<<(std::ostream &os,
+               const Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum
+              ) {
         typedef Variant<CFTL_VARIANT_TYPE_PARAM_LIST> variant_t;
         os << '(' << static_cast<unsigned>(sum.type_tag) << ", ";
         switch(sum.type_tag) {
