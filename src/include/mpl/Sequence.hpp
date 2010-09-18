@@ -10,11 +10,15 @@
 #define CFTL_MPL_SEQUENCE_HPP_
 
 #include "src/include/preprocessor/CATENATE.hpp"
+#include "src/include/preprocessor/DECREMENT.hpp"
 #include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
+#include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 #include "src/include/preprocessor/EVAL.hpp"
 #include "src/include/preprocessor/INCREMENT.hpp"
 #include "src/include/preprocessor/REPEAT_LEFT.hpp"
 #include "src/include/preprocessor/UNPACK.hpp"
+
+#include "src/include/trait/StaticOnly.hpp"
 
 #include "src/include/mpl/Max.hpp"
 #include "src/include/mpl/SizeOf.hpp"
@@ -37,7 +41,7 @@
 
 #define CFTL_SEQUENCE_INDEX_SPEC(n, _) \
     template <typename InvalidType> \
-    class IndexImpl<InvalidType, n> { \
+    class IndexImpl<n, InvalidType> { \
     public: \
         typedef T ## n type_t; \
     };
@@ -82,28 +86,43 @@ namespace cftl { namespace mpl {
             typedef Unit type_t;
         };
 
-        /// typed if
+        /// if statement for computing a type given a boolean value
         template <const bool, typename IfTrue, typename IfFalse>
-        class SequenceTypeIf;
+        class SequenceBoolIf;
 
         template <typename IfTrue, typename IfFalse>
-        class SequenceTypeIf<true, IfTrue, IfFalse> {
+        class SequenceBoolIf<true, IfTrue, IfFalse> {
         public:
             typedef IfTrue type_t;
         };
 
         template <typename IfTrue, typename IfFalse>
-        class SequenceTypeIf<false, IfTrue, IfFalse> {
+        class SequenceBoolIf<false, IfTrue, IfFalse> {
         public:
             typedef IfFalse type_t;
         };
 
+        /// determine whether or not a type contributes toward the length
+        /// of the sequence by looking at the size of the type.
         template <typename T>
         class SequenceTypeLength {
         public:
             enum {
                 VALUE = (0 == SizeOf<T>::VALUE ? 0 : 1)
             };
+        };
+
+        /// if statement for computing a type given a test type.
+        template <typename Test, typename IfNotUnit, typename IfUnit>
+        class SequenceTypeIf {
+        public:
+            typedef IfNotUnit type_t;
+        };
+
+        template <typename IfNotUnit, typename IfUnit>
+        class SequenceTypeIf<Unit, IfNotUnit, IfUnit> {
+        public:
+            typedef IfUnit type_t;
         };
     }
 
@@ -118,20 +137,32 @@ namespace cftl { namespace mpl {
     ///
     ///     Sequence<int, char, float>::Length::VALUE <==> 3
     ///
+    ///     Sequence<int, char, float>::Insert<double>::type_t
+    ///     <==> Sequence<double, int, char, float>
+    ///
+    ///     Sequence<int, char, float>::Insert<char>::type_t
+    ///     <==> Sequence<int, char, float>
+    ///
     template<typename T0 CFTL_ENUMERATE_VALUE_PARAMS(
         CFTL_SEQUENCE_OVER_TYPES_LIMIT,
         T,
         typename,
         = Unit
     )>
-    class Sequence {
+    class Sequence : private trait::StaticOnly {
     public:
+
+        /// easy way for nested classes to access the type of the sequence.
+        typedef Sequence<
+            T0
+            CFTL_ENUMERATE_PARAMS(CFTL_SEQUENCE_OVER_TYPES_LIMIT, T)
+        > self_t;
 
         /// the length of the type sequence. types can be ignored from the
         /// length count by specializing SizeOf to have VALUE = 0, i.e. this
         /// counts all types in the sequence that the programmer considers
         /// to be able to contain values.
-        class Length {
+        class Length : private trait::StaticOnly {
         public:
             enum {
                 VALUE = (
@@ -150,7 +181,7 @@ namespace cftl { namespace mpl {
         /// or the unit type if it is not contained. The select operation
         /// takes constness into account.
         template <typename Q, typename InvalidType=Unit>
-        class Select {
+        class Select : private trait::StaticOnly {
         private:
 
             enum {
@@ -166,7 +197,7 @@ namespace cftl { namespace mpl {
 
         public:
 
-            typedef typename SequenceTypeIf<
+            typedef typename SequenceBoolIf<
                 (MAX_TYPE_SIZE > 0),
                 Q,
                 InvalidType
@@ -176,7 +207,7 @@ namespace cftl { namespace mpl {
 
     private:
 
-        template <typename InvalidType, const unsigned i>
+        template <const unsigned i, typename InvalidType>
         class IndexImpl {
         public:
             typedef InvalidType type_t;
@@ -195,9 +226,30 @@ namespace cftl { namespace mpl {
         /// get the type at a particular index. if the index provided is
         /// out of range then the Unit type is returned.
         template <const unsigned i, typename InvalidType=Unit>
-        class Index {
+        class Index : private trait::StaticOnly {
         public:
-            typedef typename IndexImpl<InvalidType, i>::type_t type_t;
+            typedef typename IndexImpl<i, InvalidType>::type_t type_t;
+        };
+
+        /// insert a type into the type sequence. if the type is in the
+        /// sequence then the type of the inserted sequence remains the
+        /// same.
+        template <typename T, typename DontInsertType=Unit>
+        class Insert : private trait::StaticOnly {
+        public:
+
+            typedef typename SequenceTypeIf<
+                typename self_t::template Select<T>::type_t,
+                self_t,
+                Sequence<
+                    T,
+                    T0
+                    CFTL_ENUMERATE_PARAMS(
+                        CFTL_DECREMENT(CFTL_SEQUENCE_OVER_TYPES_LIMIT),
+                        T
+                    )
+                >
+            >::type_t type_t;
         };
     };
 }}

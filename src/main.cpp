@@ -12,7 +12,10 @@
 #include "src/include/mpl/SizeOf.hpp"
 #include "src/include/stl/Variant.hpp"
 #include "src/include/stl/Tuple.hpp"
-#include "src/include/cfg/Grammar.hpp"
+#include "src/include/mpl/Unit.hpp"
+#include "src/include/stl/Grammar.hpp"
+
+#include "src/include/trait/OperatorTag.hpp"
 
 using namespace cftl;
 
@@ -35,10 +38,60 @@ std::ostream &operator<<(std::ostream &os, const Foo &foo) {
               << ", z=" << foo.z << ", a=" << foo.a << ')';
 }
 
+typedef enum {
+    _a, _b, _c, _d
+} term_t;
+
+typedef enum {
+    EPSILON=0,
+    START,
+    FIRST,
+    REST
+} non_term_t;
+
+/// operators for terminals / non-terminals
+class catenation {
+public:
+    typedef trait::BinaryOperatorTag operator_tag_t;
+};
+class negation {
+public:
+    typedef trait::UnaryOperatorTag operator_tag_t;
+};
+class conjunction {
+public:
+    typedef trait::BinaryOperatorTag operator_tag_t;
+};
+class disjunction {
+public:
+    typedef trait::BinaryOperatorTag operator_tag_t;
+};
+
+/// context-free grammar type
+typedef stl::Grammar<
+    term_t,
+    non_term_t,
+    disjunction,
+    mpl::Sequence<catenation>
+> context_free_grammar_t;
+
+/// boolean grammar type
+typedef stl::Grammar<
+    term_t,
+    non_term_t,
+    disjunction,
+    mpl::Sequence<negation, conjunction>
+> boolean_grammar_t;
+
 int main(void) {
 
-    cftl::cfg::Grammar<char> grammar;
+    context_free_grammar_t grammar;
 
+    //grammar.addProduction(EPSILON);
+
+    (void) grammar;
+
+#if 0
     stl::Variant<char, int> number('f');
     number = 10;
     number = -10;
@@ -87,6 +140,6 @@ int main(void) {
 
     stl::Tuple<bool,char,double> tuple3(9, 'x', 10.99);
     std::cout << "streamed tuple3 value constructor: " << tuple3 << '\n';
-
+#endif
     return 0;
 }

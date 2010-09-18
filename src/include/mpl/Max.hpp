@@ -15,6 +15,8 @@
 #include "src/include/preprocessor/FOLD_LEFT.hpp"
 #include "src/include/preprocessor/PACK.hpp"
 
+#include "src/include/trait/StaticOnly.hpp"
+
 /// the default number of types that can be summed over
 #ifndef CFTL_MAX_OVER_VALUES_LIMIT
 #define CFTL_MAX_OVER_VALUES_LIMIT 10
@@ -44,7 +46,7 @@ namespace cftl { namespace mpl {
               CFTL_ENUMERATE_VALUE_PARAMS(
                   CFTL_MAX_OVER_VALUES_LIMIT, v, const std::size_t, = 0
               ) >
-    class Max {
+    class Max : private trait::StaticOnly {
     public:
         enum {
             VALUE = CFTL_FOLD_LEFT(

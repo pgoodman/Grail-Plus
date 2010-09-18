@@ -41,4 +41,5 @@ bin/%.o: src/%.cpp
 	${CXX} ${LD_FLAGS} $@ -o bin/$*
 
 clean:
+	-rm -rf bin/*.dSYM
 	-rm -rf bin/*.o

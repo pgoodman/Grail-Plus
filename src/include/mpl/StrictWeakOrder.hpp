@@ -9,6 +9,8 @@
 #ifndef CFTL_MPL_STRICTWEAKORDER_HPP_
 #define CFTL_MPL_STRICTWEAKORDER_HPP_
 
+#include "src/include/trait/OperatorTag.hpp";
+
 namespace cftl { namespace mpl {
 
     /// Less-than operator for some type. Defines a strict weak ordering
@@ -16,6 +18,9 @@ namespace cftl { namespace mpl {
     template <typename T>
     class StrictWeakOrder {
     public:
+
+        typedef trait::BinaryOperatorTag operator_tag_t;
+
         bool operator()(const T &left, const T &right) const {
             return left < right;
         }
@@ -24,6 +29,9 @@ namespace cftl { namespace mpl {
     template <typename T>
     class StrictWeakOrder<T &> {
     public:
+
+        typedef trait::BinaryOperatorTag operator_tag_t;
+
         bool operator()(const T &left, const T &right) const {
             return left < right;
         }

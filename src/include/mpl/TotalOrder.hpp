@@ -9,6 +9,8 @@
 #ifndef CFTL_MPL_TOTALORDER_HPP_
 #define CFTL_MPL_TOTALORDER_HPP_
 
+#include "src/include/trait/OperatorTag.hpp";
+
 namespace cftl { namespace mpl {
 
     /// Less-than-or-equal operator for some type. Defines a total ordering
@@ -16,6 +18,9 @@ namespace cftl { namespace mpl {
     template <typename T>
     class TotalOrder {
     public:
+
+        typedef trait::BinaryOperatorTag operator_tag_t;
+
         bool operator()(const T &left, const T &right) const {
             return left <= right;
         }
@@ -24,6 +29,9 @@ namespace cftl { namespace mpl {
     template <typename T>
     class TotalOrder<T &> {
     public:
+
+        typedef trait::BinaryOperatorTag operator_tag_t;
+
         bool operator()(const T &left, const T &right) const {
             return left <= right;
         }

@@ -22,6 +22,14 @@ namespace cftl { namespace mpl {
         };
     };
 
+    template <typename T>
+    class SizeOf<const T> {
+    public:
+        enum {
+            VALUE = SizeOf<T>::VALUE
+        };
+    };
+
     template <>
     class SizeOf<void> {
     public:

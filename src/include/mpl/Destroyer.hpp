@@ -9,21 +9,21 @@
 #ifndef CFTL_DESTROYER_HPP_
 #define CFTL_DESTROYER_HPP_
 
-namespace cftl {
-    namespace mpl {
+#include "src/include/trait/StaticOnly.hpp"
 
-        /// Call the destructor of an object through a pointer.
-        template <typename T>
-        class Destroyer {
-        public:
-            static void destroy(T *memory) {
-                memory->~T();
-            }
-            static void destroy(void *memory) {
-                reinterpret_cast<T *>(memory)->~T();
-            }
-        };
-    }
-}
+namespace cftl { namespace mpl {
+
+    /// Call the destructor of an object through a pointer.
+    template <typename T>
+    class Destroyer : private trait::StaticOnly {
+    public:
+        static void destroy(T *memory) {
+            memory->~T();
+        }
+        static void destroy(void *memory) {
+            reinterpret_cast<T *>(memory)->~T();
+        }
+    };
+}}
 
 #endif /* CFTL_DESTROYER_HPP_ */

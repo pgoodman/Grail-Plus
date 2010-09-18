@@ -85,10 +85,17 @@ namespace cftl { namespace stl {
     /// cases. the result is that a tuple can be larger than a class/struct
     /// of equivalent definition. The benefit of the tuple is that its easy
     /// to use.
+    ///
+    /// Note: - the mpl::Unit type is not meant to be stored within a
+    ///         tuple and will result in a compiler error.
     template <CFTL_TUPLE_TYPENAME_DEFAULT_LIST>
     class Tuple;
 
     namespace {
+
+        enum {
+            TUPLE_ALIGN_BYTE_LEN = sizeof(unsigned)
+        };
 
         /// pad the representation of a type to fit into integer chunked
         /// sizes. the bool parameter is whether or not the type neatly
@@ -116,7 +123,9 @@ namespace cftl { namespace stl {
             typedef TuplePaddedType<T, true> self_t;
             T value;
 
-            char padding[sizeof(unsigned) - (sizeof(T) % sizeof(unsigned))];
+            char padding[TUPLE_ALIGN_BYTE_LEN - (
+                mpl::SizeOf<T>::VALUE % TUPLE_ALIGN_BYTE_LEN
+            )];
 
             CFTL_TUPLE_PADDING_TYPE_METHODS
         };
@@ -128,7 +137,7 @@ namespace cftl { namespace stl {
             enum {
                 VALUE = sizeof(TuplePaddedType<
                     T,
-                    0 == (sizeof(T) % sizeof(unsigned))
+                    0 == (mpl::SizeOf<T>::VALUE % TUPLE_ALIGN_BYTE_LEN)
                 >)
             };
         };
@@ -222,6 +231,23 @@ namespace cftl { namespace stl {
             void
         )
 
+        /// assignment type for arguments
+        template <typename ArgType, typename PromotedType, const unsigned i>
+        class Assign {
+        public:
+            static void apply(self_t &tuple, va_list &args) {
+                tuple.get<i>() = static_cast<ArgType>(
+                    va_arg(args, PromotedType)
+                );
+            }
+        };
+
+        template <typename PromotedType, const unsigned i>
+        class Assign<TupleUnit, PromotedType, i> {
+        public:
+            static void apply(self_t &, va_list &) { }
+        };
+
         /// define how the types are stored. storage for types T_0, T_1, ...,
         /// T_N-1 is defined by the recurrence:
         ///
@@ -256,23 +282,6 @@ namespace cftl { namespace stl {
                 rest = other.rest;
                 return *this;
             }
-        };
-
-        /// assignment type for arguments
-        template <typename ArgType, typename PromotedType, const unsigned i>
-        class Assign {
-        public:
-            static void apply(self_t &tuple, va_list &args) {
-                tuple.get<i>() = static_cast<ArgType>(
-                    va_arg(args, PromotedType)
-                );
-            }
-        };
-
-        template <typename PromotedType, const unsigned i>
-        class Assign<TupleUnit, PromotedType, i> {
-        public:
-            static void apply(self_t &, va_list &) { }
         };
 
         /// base case of induction for the storage type
@@ -333,6 +342,8 @@ namespace cftl { namespace stl {
             va_end(tuple_args);
         }
 
+        ~Tuple(void) { }
+
         /// copy assignment operator
         self_t &operator=(const self_t &other) {
             storage = other.storage;
@@ -342,7 +353,7 @@ namespace cftl { namespace stl {
         /// get a reference to the element at a given index
         template <const unsigned i>
         inline typename sequence_t::template Index<i>::type_t &
-        get(void) {
+        get(void) throw() {
             typedef typename sequence_t::template Index<i>::type_t value_t;
             return *reinterpret_cast<value_t *>(
                 reinterpret_cast<char *>(&storage)
@@ -353,7 +364,7 @@ namespace cftl { namespace stl {
         /// get a const reference to the element at a given index
         template <unsigned i>
         inline const typename sequence_t::template Index<i>::type_t &
-        get(void) const {
+        get(void) const throw() {
             typedef typename sequence_t::template Index<i>::type_t value_t;
             return *reinterpret_cast<const value_t *>(
                 reinterpret_cast<const char *>(&storage)
@@ -384,7 +395,7 @@ namespace cftl { namespace stl {
     inline
     typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
     template Index<i>::type_t &
-    get(Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
+    get(Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
 
@@ -392,7 +403,7 @@ namespace cftl { namespace stl {
     inline
     const typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
     template Index<i>::type_t &
-    get(const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
+    get(const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
 }}

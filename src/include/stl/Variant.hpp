@@ -143,13 +143,13 @@ namespace cftl {
         /// any of the types in the Variant
 
         template <typename T, const std::size_t k>
-        class Padding {
+        class VariantPadding {
         public:
             enum { VALUE = sizeof(T) - k };
         };
 
         template <typename T>
-        class Padding<T, 0UL> {
+        class VariantPadding<T, 0UL> {
         public:
             enum { VALUE = 0 };
         };
@@ -247,7 +247,7 @@ namespace cftl { namespace stl {
             MOS_DIV = MAX_OBJECT_SIZE / STORAGE_SIZE,
             MOS_MOD = MAX_OBJECT_SIZE % STORAGE_SIZE,
 
-            PADDING = Padding<storage_t, MOS_MOD>::VALUE,
+            PADDING = VariantPadding<storage_t, MOS_MOD>::VALUE,
             MEMORY_SIZE = MOS_DIV + PADDING
         };
 
@@ -301,6 +301,11 @@ namespace cftl { namespace stl {
             void
         )
 
+        /// destructor, destroy the proper object.
+        ~Variant(void) {
+            destroy();
+        }
+
     private:
 
         /// class used for extracting a value of a particular type from a
@@ -350,7 +355,7 @@ namespace cftl { namespace stl {
 
         /// get a reference to a value in the sum
         template <typename Q>
-        typename StreamType<Q, Q>::type_t &streamGet(void) const {
+        typename StreamType<Q, Q>::type_t &streamGet(void) const throw() {
             return *reinterpret_cast<
                 typename StreamType<Q, Q>::type_t *
             >(&storage);
@@ -360,7 +365,7 @@ namespace cftl { namespace stl {
 
         /// check type containment
         template <typename Q>
-        bool hasType(void) const {
+        bool hasType(void) const throw() {
             return type_tag == static_cast<tag_t>(CFTL_FOLD_LEFT(
                 CFTL_VARIANT_OVER_TYPES_LIMIT,
                 CFTL_VARIANT_TYPE_EXTRACT_ID,
@@ -375,7 +380,7 @@ namespace cftl { namespace stl {
 
         /// get a reference to a value in the sum
         template <typename Q>
-        Q &get(void) {
+        Q &get(void) throw() {
             assert(hasType<Q>());
             return *reinterpret_cast<
                 typename ExtractType<Q>::type_t *
@@ -384,7 +389,7 @@ namespace cftl { namespace stl {
 
         /// get a reference to a value in the sum
         template <typename Q>
-        const Q &get(void) const {
+        const Q &get(void) const throw() {
             assert(hasType<Q>());
             return *reinterpret_cast<
                 typename ExtractType<Q>::type_t *
@@ -395,13 +400,14 @@ namespace cftl { namespace stl {
     /// get a reference to a value in the sum. this performs runtime checking
     /// to make sure that the type can be extracted.
     template <typename Q, CFTL_VARIANT_TYPENAME_LIST >
-    inline Q &get(Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum) {
+    inline Q &get(Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum) throw() {
         return sum.template get<Q>();
     }
 
     /// get a const reference to a value in the sum
     template <typename Q, CFTL_VARIANT_TYPENAME_LIST >
-    inline const Q &get(const Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum) {
+    inline const Q &get(const Variant<CFTL_VARIANT_TYPE_PARAM_LIST> &sum)
+    throw() {
         return sum.template get<Q>();
     }
 
