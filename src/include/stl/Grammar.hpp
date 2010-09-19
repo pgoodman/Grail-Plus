@@ -23,6 +23,8 @@
 #include "src/include/trait/PolyadicOperator.hpp"
 #include "src/include/trait/Uncopyable.hpp"
 
+#include "src/include/stl/BlockAllocator.hpp"
+
 #define CFTL_GRAMMAR_GET_OPERATOR_ARITY(n, _) \
     , (GrammarOperatorArity<\
            typename op_sequence_t::template At<n>::type_t \
@@ -31,6 +33,10 @@
 namespace cftl { namespace stl {
 
     namespace {
+
+        /// the arity of an operator that a grammar will use. this is used to
+        /// figure out what the maximum arity of operators used in the
+        /// grammar is.
         template <typename T>
         class GrammarOperatorArity {
         public:
@@ -39,6 +45,9 @@ namespace cftl { namespace stl {
             };
         };
 
+        /// operator types are stored in a sequence, which fills empty space
+        /// with the Unit type. The unit type is obviously not an operator,
+        /// so we wrap it up and pretend that it's a nullary operator.
         template <>
         class GrammarOperatorArity<mpl::Unit> {
         public:
@@ -94,7 +103,11 @@ namespace cftl { namespace stl {
         typename OperatorSequenceT,
 
         // empty non-terminal, i.e. epsilon
-        typename AcceptNonTermT=NonTermT
+        typename AcceptNonTermT=NonTermT,
+
+        // basic allocator that the grammar type will use for allocating
+        // internal expression trees.
+        template<typename> class Allocator = stl::Block<64>::Allocator
     >
     class Grammar {
     private:
@@ -139,11 +152,9 @@ namespace cftl { namespace stl {
             >::VALUE
         };
 
-        /// internal representation of elements of a grammar
+        /// expression tree representation for a grammar rule.
         class Expression {
         public:
-
-            /// id of the operator
             unsigned operator_id;
             unsigned symbol_id;
             Expression *nodes[MAX_OPERATOR_ARITY];
@@ -159,6 +170,9 @@ namespace cftl { namespace stl {
 
         /// mappings of non-terminals to expressions
         std::vector<Expression *> rules;
+
+        /// expression allocator
+        Allocator<Expression> allocator;
 
     public:
 

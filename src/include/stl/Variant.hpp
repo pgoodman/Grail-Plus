@@ -138,7 +138,7 @@ namespace cftl {
         /// on to the end of the storage so as to be able to hold a value of
         /// any of the types in the Variant
 
-        template <typename T, const std::size_t k>
+        template <typename T, const size_t k>
         class VariantPadding {
         public:
             enum { VALUE = sizeof(T) - k };

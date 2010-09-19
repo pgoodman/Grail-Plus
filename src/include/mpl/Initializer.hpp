@@ -10,6 +10,7 @@
 #define CFTL_MPL_INITIALIZER_HPP_
 
 #include <cstring>
+#include <new>
 
 #include "src/include/trait/StaticOnly.hpp"
 
@@ -25,13 +26,15 @@ namespace cftl { namespace mpl {
     template <typename T>
     class Initializer : private trait::StaticOnly {
     public:
-        static void initialize(void *memory) {
-            T default_value;
+        static T *initialize(void *memory) {
+            /*T default_value;
             memcpy(
                 memory,
                 reinterpret_cast<void *>(&default_value),
                 sizeof(T)
-            );
+            );*/
+            memset(memory, 0, sizeof(T));
+            return new (memory) T;
         }
     };
 }}
