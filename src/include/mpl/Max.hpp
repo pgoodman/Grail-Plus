@@ -11,15 +11,17 @@
 
 #include <cstddef>
 
+#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 #include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 #include "src/include/preprocessor/FOLD_LEFT.hpp"
 #include "src/include/preprocessor/PACK.hpp"
 
 #include "src/include/trait/StaticOnly.hpp"
 
-/// the default number of types that can be summed over
-#ifndef CFTL_MAX_OVER_VALUES_LIMIT
-#define CFTL_MAX_OVER_VALUES_LIMIT 10
+#define CFTL_MAX_TEMPLATE_VARIABLE_LIMIT 10
+
+#if CFTL_TEMPLATE_VARIABLE_LIMIT > (CFTL_MAX_TEMPLATE_VARIABLE_LIMIT - 3)
+#error "The Max template must accept more template arguments."
 #endif
 
 /// the fold function for computing the max value of N numbers by computing
@@ -40,17 +42,22 @@ namespace cftl { namespace mpl {
         };
     }
 
-    /// Compute the maximum of 1 to CFTL_MAX_OVER_VALUES_LIMIT values at
+    /// Compute the maximum of 1 to CFTL_MAX_TEMPLATE_VARIABLE_LIMIT values at
     /// compile time.
-    template <const std::size_t v0
-              CFTL_ENUMERATE_VALUE_PARAMS(
-                  CFTL_MAX_OVER_VALUES_LIMIT, v, const std::size_t, = 0
-              ) >
+    template <
+        const std::size_t v0
+        CFTL_ENUMERATE_VALUE_PARAMS(
+            CFTL_MAX_TEMPLATE_VARIABLE_LIMIT,
+            v,
+            const std::size_t,
+            = 0
+        )
+    >
     class Max : private trait::StaticOnly {
     public:
         enum {
             VALUE = CFTL_FOLD_LEFT(
-                CFTL_MAX_OVER_VALUES_LIMIT,
+                CFTL_MAX_TEMPLATE_VARIABLE_LIMIT,
                 CFTL_MAX_OF_2,
                 CFTL_PACK_0,
                 v0

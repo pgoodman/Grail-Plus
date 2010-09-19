@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <iostream>
 
+#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 #include "src/include/preprocessor/CATENATE.hpp"
 #include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
 #include "src/include/preprocessor/EVAL.hpp"
@@ -25,11 +26,6 @@
 #include "src/include/mpl/Initializer.hpp"
 
 #include "src/include/trait/Uncopyable.hpp"
-
-/// the default number of types that can be summed over
-#ifndef CFTL_VARIANT_OVER_TYPES_LIMIT
-#define CFTL_VARIANT_OVER_TYPES_LIMIT 7
-#endif
 
 /// an expansion of a single parameterized type with a default type of Unit
 #define CFTL_VARIANT_ENUMERATED_TPL_PARAM(n, p) \
@@ -92,11 +88,11 @@
     }
 
 #define CFTL_VARIANT_TYPE_PARAM_LIST \
-    T0 CFTL_ENUMERATE_PARAMS(CFTL_VARIANT_OVER_TYPES_LIMIT, T)
+    T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, T)
 
 #define CFTL_VARIANT_TYPENAME_LIST \
     typename T0 CFTL_ENUMERATE_PARAMS( \
-        CFTL_VARIANT_OVER_TYPES_LIMIT, \
+        CFTL_TEMPLATE_VARIABLE_LIMIT, \
         typename T \
     )
 
@@ -159,7 +155,7 @@ namespace cftl {
         /// used by someone outside of this file, i.e. no one can ever
         /// make a sum that explicity uses one of the VariantUnit classes.
         CFTL_REPEAT_LEFT(
-            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
             CFTL_MAKE_VARIANT_UNIT,
             void
         )
@@ -170,7 +166,7 @@ namespace cftl {
         /// create the specializations of the sum types for Initializer,
         /// Destroyer, and SizeOf.
         CFTL_REPEAT_LEFT(
-            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
             CFTL_MAKE_VARIANT_UNIT_SPEC,
             void
         )
@@ -182,7 +178,7 @@ namespace cftl { namespace stl {
     /// forward declaration of sum type
     template <typename T0 \
               CFTL_REPEAT_LEFT(
-                  CFTL_VARIANT_OVER_TYPES_LIMIT,
+                  CFTL_TEMPLATE_VARIABLE_LIMIT,
                   CFTL_VARIANT_ENUMERATED_TPL_PARAM,
                   T
               )>
@@ -218,7 +214,7 @@ namespace cftl { namespace stl {
         typedef enum {
             TYPE_T0 = 0
             CFTL_REPEAT_LEFT(
-                CFTL_VARIANT_OVER_TYPES_LIMIT,
+                CFTL_TEMPLATE_VARIABLE_LIMIT,
                 CFTL_VARIANT_ENUMERATED_ENUM_PARAM,
                 T
             ),
@@ -236,7 +232,7 @@ namespace cftl { namespace stl {
                 sizeof(storage_t),
                 sizeof(T0)
                 CFTL_REPEAT_LEFT(
-                    CFTL_VARIANT_OVER_TYPES_LIMIT,
+                    CFTL_TEMPLATE_VARIABLE_LIMIT,
                     CFTL_VARIANT_TYPE_SIZE,
                     STORAGE_SIZE
                 )
@@ -262,7 +258,7 @@ namespace cftl { namespace stl {
             switch(type_tag) {
                 CFTL_VARIANT_DESTROY_MEM(0, void)
                 CFTL_REPEAT_LEFT(
-                    CFTL_VARIANT_OVER_TYPES_LIMIT,
+                    CFTL_TEMPLATE_VARIABLE_LIMIT,
                     CFTL_VARIANT_DESTROY_MEM,
                     void
                 )
@@ -284,7 +280,7 @@ namespace cftl { namespace stl {
             switch(type_tag) {
                 CFTL_VARIANT_COPY_MEM(0, other.storage)
                 CFTL_REPEAT_LEFT(
-                    CFTL_VARIANT_OVER_TYPES_LIMIT,
+                    CFTL_TEMPLATE_VARIABLE_LIMIT,
                     CFTL_VARIANT_COPY_MEM,
                     other.storage
                 )
@@ -296,7 +292,7 @@ namespace cftl { namespace stl {
         /// operators.
         CFTL_VARIANT_TYPE_METHOD(0, void)
         CFTL_REPEAT_LEFT(
-            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
             CFTL_VARIANT_TYPE_METHOD,
             void
         )
@@ -348,7 +344,7 @@ namespace cftl { namespace stl {
         /// create default mappings for the unit types to pass through input
         /// and also default stream types for the unit classes
         CFTL_REPEAT_LEFT(
-            CFTL_VARIANT_OVER_TYPES_LIMIT,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
             CFTL_VARIANT_TYPE_SPEC_EXTRACT_ID,
             void
         )
@@ -367,7 +363,7 @@ namespace cftl { namespace stl {
         template <typename Q>
         bool hasType(void) const throw() {
             return type_tag == static_cast<tag_t>(CFTL_FOLD_LEFT(
-                CFTL_VARIANT_OVER_TYPES_LIMIT,
+                CFTL_TEMPLATE_VARIABLE_LIMIT,
                 CFTL_VARIANT_TYPE_EXTRACT_ID,
                 CFTL_PACK_0,
                 CFTL_VARIANT_TYPE_EXTRACT_ID(
@@ -422,7 +418,7 @@ namespace cftl { namespace stl {
         switch(sum.type_tag) {
             CFTL_VARIANT_STREAM_SWITCH(0, os)
             CFTL_REPEAT_LEFT(
-                CFTL_VARIANT_OVER_TYPES_LIMIT,
+                CFTL_TEMPLATE_VARIABLE_LIMIT,
                 CFTL_VARIANT_STREAM_SWITCH,
                 os
             )

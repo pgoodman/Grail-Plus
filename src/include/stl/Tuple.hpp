@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cstdarg>
 
+#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 #include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
 #include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 
@@ -22,19 +23,15 @@
 
 #include "src/include/trait/Uncopyable.hpp"
 
-#ifndef CFTL_TUPLE_OVER_TYPES_LIMIT
-#define CFTL_TUPLE_OVER_TYPES_LIMIT 7
-#endif
-
 #define CFTL_TUPLE_TYPENAME_DEFAULT_LIST \
     typename T0 \
-    CFTL_ENUMERATE_VALUE_PARAMS(CFTL_TUPLE_OVER_TYPES_LIMIT,T,typename,= TupleUnit)
+    CFTL_ENUMERATE_VALUE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= TupleUnit)
 
 #define CFTL_TUPLE_TYPENAME_LIST \
-    typename T0 CFTL_ENUMERATE_PARAMS(CFTL_TUPLE_OVER_TYPES_LIMIT, typename T)
+    typename T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, typename T)
 
 #define CFTL_TUPLE_TYPE_PARAM_LIST \
-    T0 CFTL_ENUMERATE_PARAMS(CFTL_TUPLE_OVER_TYPES_LIMIT,T)
+    T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,T)
 
 #define CFTL_TUPLE_BEFRIEND_PRINTER(n, _) \
     friend class TuplePrintStorage<n, self_t>;
@@ -149,7 +146,7 @@ namespace cftl { namespace stl {
         public:
             enum {
                 VALUE = (TupleSizeOf<
-                    typename SequenceType::template Index<i - 1>::type_t
+                    typename SequenceType::template At<i - 1>::type_t
                 >::VALUE + TupleOffsetOf<i - 1, SequenceType>::VALUE)
             };
         };
@@ -190,7 +187,7 @@ namespace cftl { namespace stl {
                 TuplePrintStorage<i - 1, TupleType>::apply(os, tuple);
 
                 // the type of the value to be printed
-                typedef typename TupleType::sequence_t::template Index<
+                typedef typename TupleType::sequence_t::template At<
                     i
                 >::type_t value_t;
 
@@ -226,7 +223,7 @@ namespace cftl { namespace stl {
 
         CFTL_TUPLE_BEFRIEND_PRINTER(0, void)
         CFTL_REPEAT_LEFT(
-            CFTL_TUPLE_OVER_TYPES_LIMIT,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
             CFTL_TUPLE_BEFRIEND_PRINTER,
             void
         )
@@ -268,7 +265,7 @@ namespace cftl { namespace stl {
             /// second value to store
             Storage<
                 CurrType,
-                typename sequence_t::template Index<i+1,TupleUnit>::type_t,
+                typename sequence_t::template At<i+1,TupleUnit>::type_t,
                 i + 1
             > rest;
 
@@ -333,7 +330,7 @@ namespace cftl { namespace stl {
             for(unsigned i(1); i < sequence_t::Length::VALUE; ++i) {
                 switch(i) {
                     CFTL_REPEAT_LEFT(
-                        CFTL_TUPLE_OVER_TYPES_LIMIT,
+                        CFTL_TEMPLATE_VARIABLE_LIMIT,
                         CFTL_TUPLE_INITIALIZE_NTH,
                         tuple_args
                     )
@@ -352,9 +349,9 @@ namespace cftl { namespace stl {
 
         /// get a reference to the element at a given index
         template <const unsigned i>
-        inline typename sequence_t::template Index<i>::type_t &
+        inline typename sequence_t::template At<i>::type_t &
         get(void) throw() {
-            typedef typename sequence_t::template Index<i>::type_t value_t;
+            typedef typename sequence_t::template At<i>::type_t value_t;
             return *reinterpret_cast<value_t *>(
                 reinterpret_cast<char *>(&storage)
               + TupleOffsetOf<i, sequence_t>::VALUE
@@ -363,9 +360,9 @@ namespace cftl { namespace stl {
 
         /// get a const reference to the element at a given index
         template <unsigned i>
-        inline const typename sequence_t::template Index<i>::type_t &
+        inline const typename sequence_t::template At<i>::type_t &
         get(void) const throw() {
-            typedef typename sequence_t::template Index<i>::type_t value_t;
+            typedef typename sequence_t::template At<i>::type_t value_t;
             return *reinterpret_cast<const value_t *>(
                 reinterpret_cast<const char *>(&storage)
               + TupleOffsetOf<i, sequence_t>::VALUE
@@ -394,7 +391,7 @@ namespace cftl { namespace stl {
     template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
     inline
     typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
-    template Index<i>::type_t &
+    template At<i>::type_t &
     get(Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
@@ -402,7 +399,7 @@ namespace cftl { namespace stl {
     template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
     inline
     const typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
-    template Index<i>::type_t &
+    template At<i>::type_t &
     get(const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }

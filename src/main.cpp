@@ -15,7 +15,7 @@
 #include "src/include/mpl/Unit.hpp"
 #include "src/include/stl/Grammar.hpp"
 
-#include "src/include/trait/OperatorTag.hpp"
+#include "src/include/trait/PolyadicOperator.hpp"
 
 using namespace cftl;
 
@@ -50,22 +50,10 @@ typedef enum {
 } non_term_t;
 
 /// operators for terminals / non-terminals
-class catenation {
-public:
-    typedef trait::BinaryOperatorTag operator_tag_t;
-};
-class negation {
-public:
-    typedef trait::UnaryOperatorTag operator_tag_t;
-};
-class conjunction {
-public:
-    typedef trait::BinaryOperatorTag operator_tag_t;
-};
-class disjunction {
-public:
-    typedef trait::BinaryOperatorTag operator_tag_t;
-};
+class catenation : public trait::PolyadicOperator<2> { };
+class negation : public trait::PolyadicOperator<1> { };
+class conjunction : public trait::PolyadicOperator<2> { };
+class disjunction : public trait::PolyadicOperator<2> { };
 
 /// context-free grammar type
 typedef stl::Grammar<
@@ -87,8 +75,11 @@ int main(void) {
 
     context_free_grammar_t grammar;
 
+    //context_free_grammar_t::RuntimeProductionBuilder builder;
+
     //grammar.addProduction(EPSILON);
 
+    //(void) builder;
     (void) grammar;
 
 #if 0

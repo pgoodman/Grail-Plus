@@ -9,6 +9,7 @@
 #ifndef CFTL_MPL_SEQUENCE_HPP_
 #define CFTL_MPL_SEQUENCE_HPP_
 
+#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 #include "src/include/preprocessor/CATENATE.hpp"
 #include "src/include/preprocessor/DECREMENT.hpp"
 #include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
@@ -24,30 +25,41 @@
 #include "src/include/mpl/SizeOf.hpp"
 #include "src/include/mpl/Unit.hpp"
 
-/// default number of types that can be sequenced
-#ifndef CFTL_SEQUENCE_OVER_TYPES_LIMIT
-#define CFTL_SEQUENCE_OVER_TYPES_LIMIT 7
-#endif
-
 #define CFTL_SEQUENCE_COMPARE_TYPE(n, t) \
     , SizeOf<typename SequenceTypeEq<t, T ## n >::type_t >::VALUE
 
 #define CFTL_SEQUENCE_SPEC_TYPENAME_LIST \
     typename T0 \
-    CFTL_ENUMERATE_PARAMS(CFTL_SEQUENCE_OVER_TYPES_LIMIT,typename T)
+    CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,typename T)
 
 #define CFTL_SEQUENCE_TYPE_PARAM_LIST \
-    T0 CFTL_ENUMERATE_PARAMS(CFTL_SEQUENCE_OVER_TYPES_LIMIT, T)
+    T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, T)
 
-#define CFTL_SEQUENCE_INDEX_SPEC(n, _) \
+#define CFTL_SEQUENCE_AT_SPEC(n, _) \
     template <typename InvalidType> \
-    class IndexImpl<n, InvalidType> { \
+    class AtImpl<n, InvalidType> { \
     public: \
         typedef T ## n type_t; \
     };
 
 #define CFTL_SEQUENCE_TYPE_LENGTH(n, _) \
     + SequenceTypeLength<T ## n>::VALUE
+
+#define CFTL_SEQUENCE_INSERT_TYPE(n, _) \
+    typedef typename CFTL_CATENATE(base_t, CFTL_DECREMENT(n))::\
+    template Insert<T ## n>::type_t base_t ## n;
+
+#define CFTL_SEQUENCE_TYPE_INDEX1(n, next_n) \
+    VALUE ## next_n = mpl::SizeOf< \
+        typename SequenceTypeEq<T ## n, T>::type_t \
+    >::VALUE == 0 ? VALUE ## n : \
+    (VALUE ## n > 0 ? VALUE ## n : next_n),
+
+#define CFTL_SEQUENCE_TYPE_INDEX0(n, next_n) \
+    CFTL_SEQUENCE_TYPE_INDEX1(n, next_n)
+
+#define CFTL_SEQUENCE_TYPE_INDEX(n, _) \
+    CFTL_SEQUENCE_TYPE_INDEX0(n, CFTL_INCREMENT(n))
 
 namespace cftl { namespace mpl {
 
@@ -132,8 +144,8 @@ namespace cftl { namespace mpl {
     ///     Sequence<int, char, float>::Select<char>::type_t <==> char
     ///     Sequence<int, char, float>::Select<bool>::type_t <==> Unit
     ///
-    ///     Sequence<int, char, float>::Index<1>::type_t <==> char
-    ///     Sequence<int, char, float>::Index<3>::type_t <==> Unit
+    ///     Sequence<int, char, float>::At<1>::type_t <==> char
+    ///     Sequence<int, char, float>::At<3>::type_t <==> Unit
     ///
     ///     Sequence<int, char, float>::Length::VALUE <==> 3
     ///
@@ -144,7 +156,7 @@ namespace cftl { namespace mpl {
     ///     <==> Sequence<int, char, float>
     ///
     template<typename T0 CFTL_ENUMERATE_VALUE_PARAMS(
-        CFTL_SEQUENCE_OVER_TYPES_LIMIT,
+        CFTL_TEMPLATE_VARIABLE_LIMIT,
         T,
         typename,
         = Unit
@@ -155,7 +167,7 @@ namespace cftl { namespace mpl {
         /// easy way for nested classes to access the type of the sequence.
         typedef Sequence<
             T0
-            CFTL_ENUMERATE_PARAMS(CFTL_SEQUENCE_OVER_TYPES_LIMIT, T)
+            CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, T)
         > self_t;
 
         /// the length of the type sequence. types can be ignored from the
@@ -168,7 +180,7 @@ namespace cftl { namespace mpl {
                 VALUE = (
                     SequenceTypeLength<T0>::VALUE
                     CFTL_REPEAT_LEFT(
-                        CFTL_SEQUENCE_OVER_TYPES_LIMIT,
+                        CFTL_TEMPLATE_VARIABLE_LIMIT,
                         CFTL_SEQUENCE_TYPE_LENGTH,
                         void
                     )
@@ -188,7 +200,7 @@ namespace cftl { namespace mpl {
                 MAX_TYPE_SIZE = Max<0
                     CFTL_SEQUENCE_COMPARE_TYPE(0, Q)
                     CFTL_REPEAT_LEFT(
-                        CFTL_SEQUENCE_OVER_TYPES_LIMIT,
+                        CFTL_TEMPLATE_VARIABLE_LIMIT,
                         CFTL_SEQUENCE_COMPARE_TYPE,
                         Q
                     )
@@ -208,16 +220,16 @@ namespace cftl { namespace mpl {
     private:
 
         template <const unsigned i, typename InvalidType>
-        class IndexImpl {
+        class AtImpl {
         public:
             typedef InvalidType type_t;
         };
 
-        /// partial specializations of IndexImpl
-        CFTL_SEQUENCE_INDEX_SPEC(0, void)
+        /// partial specializations of AtImpl
+        CFTL_SEQUENCE_AT_SPEC(0, void)
         CFTL_REPEAT_LEFT(
-            CFTL_SEQUENCE_OVER_TYPES_LIMIT,
-            CFTL_SEQUENCE_INDEX_SPEC,
+            CFTL_TEMPLATE_VARIABLE_LIMIT,
+            CFTL_SEQUENCE_AT_SPEC,
             void
         )
 
@@ -226,9 +238,9 @@ namespace cftl { namespace mpl {
         /// get the type at a particular index. if the index provided is
         /// out of range then the Unit type is returned.
         template <const unsigned i, typename InvalidType=Unit>
-        class Index : private trait::StaticOnly {
+        class At : private trait::StaticOnly {
         public:
-            typedef typename IndexImpl<i, InvalidType>::type_t type_t;
+            typedef typename AtImpl<i, InvalidType>::type_t type_t;
         };
 
         /// insert a type into the type sequence. if the type is in the
@@ -245,11 +257,57 @@ namespace cftl { namespace mpl {
                     T,
                     T0
                     CFTL_ENUMERATE_PARAMS(
-                        CFTL_DECREMENT(CFTL_SEQUENCE_OVER_TYPES_LIMIT),
+                        CFTL_DECREMENT(CFTL_TEMPLATE_VARIABLE_LIMIT),
                         T
                     )
                 >
             >::type_t type_t;
+        };
+
+        /// gets this sequence type as a sort of set.
+        class UniqueTypes {
+        private:
+
+            typedef Sequence<T0> base_t0;
+            CFTL_REPEAT_LEFT(
+                CFTL_TEMPLATE_VARIABLE_LIMIT,
+                CFTL_SEQUENCE_INSERT_TYPE,
+                void
+            )
+
+        public:
+            typedef CFTL_CATENATE(base_t, CFTL_TEMPLATE_VARIABLE_LIMIT)
+                    type_t;
+        };
+
+        /// get the index of a particular type in the sequence. If the type
+        /// is not in the sequence then the value is value_on_error (defaults
+        /// to CFTL_TEMPLATE_VARIABLE_LIMIT+1).
+        template <
+            typename T,
+            const unsigned value_on_error=CFTL_TEMPLATE_VARIABLE_LIMIT+1
+        >
+        class IndexOf {
+        private:
+            enum {
+                VALUE0 = 0,
+                CFTL_SEQUENCE_TYPE_INDEX(0, void)
+                CFTL_REPEAT_LEFT(
+                    CFTL_TEMPLATE_VARIABLE_LIMIT,
+                    CFTL_SEQUENCE_TYPE_INDEX,
+                    void
+                )
+
+                RESULT = CFTL_CATENATE(
+                    VALUE,
+                    CFTL_INCREMENT(CFTL_TEMPLATE_VARIABLE_LIMIT)
+                )
+            };
+        public:
+
+            enum {
+                VALUE = (RESULT > 0 ? RESULT - 1 : value_on_error)
+            };
         };
     };
 }}

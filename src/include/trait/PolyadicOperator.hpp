@@ -1,5 +1,5 @@
 /*
- * OperatorTag.hpp
+ * PolyadicOperator.hpp
  *
  *  Created on: Sep 17, 2010
  *      Author: Peter Goodman
@@ -11,11 +11,13 @@
 
 namespace cftl { namespace trait {
 
-    class OperatorTag { };
-
-    class UnaryOperatorTag : public OperatorTag { };
-
-    class BinaryOperatorTag : public OperatorTag { };
+    template <const unsigned arity>
+    class PolyadicOperator {
+    public:
+        enum {
+            ARITY = arity
+        };
+    };
 }}
 
 #endif /* CFTL_TRAIT_OPERATORTAG_HPP_ */

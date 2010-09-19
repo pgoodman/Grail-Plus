@@ -18,10 +18,13 @@ namespace cftl {
         protected:
 
             Uncopyable(void) throw() { }
+
             ~Uncopyable(void) throw() { }
 
         private:
+
             Uncopyable(const Uncopyable &) throw() { }
+
             Uncopyable &operator=(const Uncopyable &) throw() {
                 return *this;
             }

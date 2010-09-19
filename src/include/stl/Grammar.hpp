@@ -12,9 +12,41 @@
 #include <map>
 #include <vector>
 
+#include "src/include/mpl/Max.hpp"
 #include "src/include/mpl/Sequence.hpp"
+#include "src/include/mpl/Unit.hpp"
+
+#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "src/include/preprocessor/REPEAT_LEFT.hpp"
+#include "src/include/preprocessor/STATIC_ASSERT.hpp"
+
+#include "src/include/trait/PolyadicOperator.hpp"
+#include "src/include/trait/Uncopyable.hpp"
+
+#define CFTL_GRAMMAR_GET_OPERATOR_ARITY(n, _) \
+    , (GrammarOperatorArity<\
+           typename op_sequence_t::template At<n>::type_t \
+       >::VALUE)
 
 namespace cftl { namespace stl {
+
+    namespace {
+        template <typename T>
+        class GrammarOperatorArity {
+        public:
+            enum {
+                VALUE = T::ARITY
+            };
+        };
+
+        template <>
+        class GrammarOperatorArity<mpl::Unit> {
+        public:
+            enum {
+                VALUE = 0
+            };
+        };
+    }
 
     /// base grammar type.
     ///
@@ -22,7 +54,8 @@ namespace cftl { namespace stl {
     /// on its parameterized types:
     ///
     ///     - Parameter types must have default constructors, copy
-    ///       constructors, and copy assignment operators.
+    ///       constructors, and copy assignment operators. Terminal and
+    ///       Non-terminal types are expected to behave with value semantics.
     ///     - The default construction of AcceptNonTermT must be the epsilon
     ///       non-terminal that accepts an empty word. By default,
     ///       AcceptNonTermT is NonTermT.
@@ -76,27 +109,107 @@ namespace cftl { namespace stl {
 
         typedef unsigned identifier_t;
 
-        /// make sure the disjunction operator is in the sequence type
-        typedef typename OperatorSequenceT:: \
-                template Insert<DisjunctionOperatorT>::type_t sequence_t;
+        /// represents an identity operator for symbols,
+        /// i.e. (non-)terminals
+        class TerminalOperator : public trait::PolyadicOperator<1> { };
+        class NonTerminalOperator : public trait::PolyadicOperator<1> { };
 
-        /// the next identifier to be assigned
-        identifier_t next_identifier;
+        /// make sure the disjunction and symbol operators are in the
+        /// operator type sequence, and make sure that all types in the
+        /// sequence are distinct.
+        typedef typename OperatorSequenceT::UniqueTypes::type_t:: \
+                template Insert<DisjunctionOperatorT>::type_t:: \
+                template Insert<TerminalOperator>::type_t:: \
+                template Insert<NonTerminalOperator>::type_t op_sequence_t;
+
+        enum {
+
+            /// number of operators, including disjunction and symbol
+            /// identity
+            NUM_OPERATORS = op_sequence_t::Length::VALUE,
+
+            /// the maximum arity of all of the operators
+            MAX_OPERATOR_ARITY = mpl::Max<
+                NonTerminalOperator::ARITY
+                CFTL_REPEAT_LEFT(
+                    CFTL_TEMPLATE_VARIABLE_LIMIT,
+                    CFTL_GRAMMAR_GET_OPERATOR_ARITY,
+                    void
+                )
+            >::VALUE
+        };
+
+        /// internal representation of elements of a grammar
+        class Expression {
+        public:
+
+            /// id of the operator
+            unsigned operator_id;
+            unsigned symbol_id;
+            Expression *nodes[MAX_OPERATOR_ARITY];
+        };
+
+        /// the next id to be assigned for (non-)terminals.
+        unsigned next_symbol_id[2];
 
         /// mappings of (non-)terminals to identifiers. the sets of
         /// mapped identifiers by these maps are disjoint
-        std::map<TermT, const identifier_t> terminal_map;
-        std::map<NonTermT, const identifier_t> non_terminal_map;
+        std::map<TermT, const unsigned> terminal_map;
+        std::map<NonTermT, const unsigned> non_terminal_map;
+
+        /// mappings of non-terminals to expressions
+        std::vector<Expression *> rules;
 
     public:
 
-        /// class used for building up production rewrite rules.
-        class ProductionBuilder {
+        /// class used for building up a single rewrite rule at runtime.
+        /// the builder expects to be fed symbols (terminals, non-termianls)
+        /// and operators in reverse-polish notation, i.e operands precede
+        /// operators.
+        class RuntimeProductionBuilder : private trait::Uncopyable {
         private:
+
+            /// the grammar that owns this production builder
+            self_t *owner;
+
+            /// private constructor so that only a grammar can make
+            /// production builders.
+            RuntimeProductionBuilder(self_t &owned_by) throw()
+             : owner(owned_by) { }
+
+            /// push an identifier onto the stack.
+            void push(const identifier_t id) {
+                (void) id;
+            }
+
         public:
+
+            ~RuntimeProductionBuilder(void) throw() { }
+
+            /// notify the production builder that stack can be collapsed
+            /// by an operator
+            template <typename RuleOperatorT>
+            void collapse(void) {
+
+                // make sure that the operator type passed in is actually
+                // a valid operator for this grammar
+                CFTL_STATIC_ASSERT(mpl::SizeOf<typename
+                    op_sequence_t::template Select<RuleOperatorT>::type_t
+                >::VALUE > 0);
+
+
+            }
+
+            void addTerminal(const TermT &symbol) {
+                (void) symbol;
+            }
+
+            void addNonTerminal(const NonTermT &symbol) {
+                (void) symbol;
+            }
         };
 
-
+        /// empty constructor
         Grammar(void) { }
 
         Grammar(const self_t &other)
