@@ -54,13 +54,13 @@
     template <> \
     class Destroyer<VariantUnit ## n> { \
     public: \
-        static void destroy(VariantUnit ## n *) { } \
-        static void destroy(void *) { } \
+        inline static void destroy(VariantUnit ## n *) { } \
+        inline static void destroy(void *) { } \
     }; \
     template <> \
     class Initializer<VariantUnit ## n> { \
     public: \
-        static void initialize(void *) { } \
+        inline static void initialize(void *) { } \
     }; \
     template <> \
     class SizeOf<VariantUnit ## n> { \

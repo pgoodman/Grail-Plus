@@ -232,7 +232,7 @@ namespace cftl { namespace stl {
         template <typename ArgType, typename PromotedType, const unsigned i>
         class Assign {
         public:
-            static void apply(self_t &tuple, va_list &args) {
+            inline static void apply(self_t &tuple, va_list &args) {
                 tuple.get<i>() = static_cast<ArgType>(
                     va_arg(args, PromotedType)
                 );
@@ -242,7 +242,7 @@ namespace cftl { namespace stl {
         template <typename PromotedType, const unsigned i>
         class Assign<TupleUnit, PromotedType, i> {
         public:
-            static void apply(self_t &, va_list &) { }
+            inline static void apply(self_t &, va_list &) { }
         };
 
         /// define how the types are stored. storage for types T_0, T_1, ...,

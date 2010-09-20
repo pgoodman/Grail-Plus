@@ -17,10 +17,10 @@ namespace cftl { namespace mpl {
     template <typename T>
     class Destroyer : private trait::StaticOnly {
     public:
-        static void destroy(T *memory) {
+        inline static void destroy(T *memory) {
             memory->~T();
         }
-        static void destroy(void *memory) {
+        inline static void destroy(void *memory) {
             reinterpret_cast<T *>(memory)->~T();
         }
     };

@@ -14,6 +14,7 @@
 
 #include "src/include/mpl/Max.hpp"
 #include "src/include/mpl/Sequence.hpp"
+#include "src/include/mpl/Query.hpp"
 #include "src/include/mpl/Unit.hpp"
 
 #include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
@@ -22,6 +23,7 @@
 
 #include "src/include/trait/PolyadicOperator.hpp"
 #include "src/include/trait/Uncopyable.hpp"
+#include "src/include/trait/Query.hpp"
 
 #include "src/include/stl/BlockAllocator.hpp"
 
@@ -102,14 +104,11 @@ namespace cftl { namespace stl {
         // and NonTermT.
         typename OperatorSequenceT,
 
-        // empty non-terminal, i.e. epsilon
-        typename AcceptNonTermT=NonTermT,
-
         // basic allocator that the grammar type will use for allocating
         // internal expression trees.
-        template<typename> class Allocator = stl::Block<64>::Allocator
+        template<typename> class AllocatorT = stl::Block<1024>::Allocator
     >
-    class Grammar {
+    class Grammar : private trait::Uncopyable {
     private:
 
         typedef Grammar<
@@ -117,10 +116,8 @@ namespace cftl { namespace stl {
             NonTermT,
             DisjunctionOperatorT,
             OperatorSequenceT,
-            AcceptNonTermT
+            AllocatorT
         > self_t;
-
-        typedef unsigned identifier_t;
 
         /// represents an identity operator for symbols,
         /// i.e. (non-)terminals
@@ -168,13 +165,15 @@ namespace cftl { namespace stl {
         std::map<TermT, const unsigned> terminal_map;
         std::map<NonTermT, const unsigned> non_terminal_map;
 
-        /// mappings of non-terminals to expressions
+        /// mappings of non-terminals to expressions. this vector represents
+        /// a forest, wherein each tree represents all rules for a particular
+        /// non-terminal.
         std::vector<Expression *> rules;
 
         /// expression allocator
-        Allocator<Expression> allocator;
+        AllocatorT<Expression> allocator;
 
-    public:
+    protected:
 
         /// class used for building up a single rewrite rule at runtime.
         /// the builder expects to be fed symbols (terminals, non-termianls)
@@ -183,18 +182,21 @@ namespace cftl { namespace stl {
         class RuntimeProductionBuilder : private trait::Uncopyable {
         private:
 
+            friend class Grammar<
+                TermT,
+                NonTermT,
+                DisjunctionOperatorT,
+                OperatorSequenceT,
+                AllocatorT
+            >;
+
             /// the grammar that owns this production builder
-            self_t *owner;
+            self_t &owner;
 
             /// private constructor so that only a grammar can make
             /// production builders.
             RuntimeProductionBuilder(self_t &owned_by) throw()
              : owner(owned_by) { }
-
-            /// push an identifier onto the stack.
-            void push(const identifier_t id) {
-                (void) id;
-            }
 
         public:
 
@@ -223,18 +225,28 @@ namespace cftl { namespace stl {
             }
         };
 
-        /// empty constructor
-        Grammar(void) { }
+        /// exposes expressions to subclasses as opaque types.
+        typedef Expression *expression_t;
 
-        Grammar(const self_t &other)
-         : terminal_map(other.terminal_map)
-         , non_terminal_map(other.non_terminal_map) { }
+        /// sub-classes of grammar have access to the builder in order to
+        /// be able to build grammar from user input
+        RuntimeProductionBuilder builder;
 
-        self_t &operator=(const self_t &other) {
-            terminal_map = other.terminal_map;
-            non_terminal_map = other.non_terminal_map;
-        }
+    public:
 
+        /// default constructor
+        Grammar(void)
+         : terminal_map()
+         , non_terminal_map()
+         , rules()
+         , allocator()
+         , builder(*this) { }
+
+        /// expose information to the query template class
+        template <typename VarT>
+        class query_traits_t : public trait::Query<VarT> {
+
+        };
     };
 }}
 

@@ -26,7 +26,7 @@ namespace cftl { namespace mpl {
     template <typename T>
     class Initializer : private trait::StaticOnly {
     public:
-        static T *initialize(void *memory) {
+        inline static T *initialize(void *memory) {
             /*T default_value;
             memcpy(
                 memory,

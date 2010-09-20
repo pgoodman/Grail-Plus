@@ -8,7 +8,7 @@ DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
 CXX = ${DEFAULT_CXX}
 CXX_WARN_FLAGS = -pedantic -pedantic-errors -Wall -Werror -Wextra
 CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long
-CXX_FLAGS = -O0 -g -ansi -I${ROOT_DIR}
+CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 # are we compiling with the g++?
