@@ -6,15 +6,15 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_INITIALIZER_HPP_
-#define CFTL_MPL_INITIALIZER_HPP_
+#ifndef FLTL_MPL_INITIALIZER_HPP_
+#define FLTL_MPL_INITIALIZER_HPP_
 
 #include <cstring>
 #include <new>
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     /// Default initializes a value of the parameterized type, and then
     /// copies the default initialized value to the memory pointed to by the
@@ -39,4 +39,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_MPL_INITIALIZER_HPP_ */
+#endif /* FLTL_MPL_INITIALIZER_HPP_ */

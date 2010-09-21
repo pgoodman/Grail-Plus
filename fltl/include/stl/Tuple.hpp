@@ -6,37 +6,37 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_STL_TUPLE_HPP_
-#define CFTL_STL_TUPLE_HPP_
+#ifndef FLTL_STL_TUPLE_HPP_
+#define FLTL_STL_TUPLE_HPP_
 
 #include <iostream>
 #include <cstdarg>
 
-#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
-#include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
-#include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
+#include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_PARAMS.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 
-#include "src/include/mpl/Unit.hpp"
-#include "src/include/mpl/Sequence.hpp"
-#include "src/include/mpl/SizeOf.hpp"
-#include "src/include/mpl/VarArgPromotion.hpp"
+#include "fltl/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Sequence.hpp"
+#include "fltl/include/mpl/SizeOf.hpp"
+#include "fltl/include/mpl/VarArgPromotion.hpp"
 
-#include "src/include/trait/Uncopyable.hpp"
+#include "fltl/include/trait/Uncopyable.hpp"
 
-#define CFTL_TUPLE_TYPENAME_DEFAULT_LIST \
+#define FLTL_TUPLE_TYPENAME_DEFAULT_LIST \
     typename T0 \
-    CFTL_ENUMERATE_VALUE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= TupleUnit)
+    FLTL_ENUMERATE_VALUE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= TupleUnit)
 
-#define CFTL_TUPLE_TYPENAME_LIST \
-    typename T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, typename T)
+#define FLTL_TUPLE_TYPENAME_LIST \
+    typename T0 FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT, typename T)
 
-#define CFTL_TUPLE_TYPE_PARAM_LIST \
-    T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,T)
+#define FLTL_TUPLE_TYPE_PARAM_LIST \
+    T0 FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,T)
 
-#define CFTL_TUPLE_BEFRIEND_PRINTER(n, _) \
+#define FLTL_TUPLE_BEFRIEND_PRINTER(n, _) \
     friend class TuplePrintStorage<n, self_t>;
 
-#define CFTL_TUPLE_PADDING_TYPE_METHODS \
+#define FLTL_TUPLE_PADDING_TYPE_METHODS \
     TuplePaddedType(void) : value() { } \
     TuplePaddedType(const self_t &other) : value(other.value) { } \
     self_t &operator=(const self_t &other) { \
@@ -44,10 +44,10 @@
         return *this; \
     } \
 
-#define CFTL_TUPLE_INITIALIZE_NTH(n, var) \
+#define FLTL_TUPLE_INITIALIZE_NTH(n, var) \
     case n: Assign<T ## n, typename mpl::VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
 
-namespace cftl {
+namespace fltl {
 
     namespace {
 
@@ -73,7 +73,7 @@ namespace cftl {
     }
 }
 
-namespace cftl { namespace stl {
+namespace fltl { namespace stl {
 
     /// forward-declaration of tuple type. the tuple type contains one of
     /// each of the types T0, ..., TN. All types in the tuple are expected
@@ -85,7 +85,7 @@ namespace cftl { namespace stl {
     ///
     /// Note: - the mpl::Unit type is not meant to be stored within a
     ///         tuple and will result in a compiler error.
-    template <CFTL_TUPLE_TYPENAME_DEFAULT_LIST>
+    template <FLTL_TUPLE_TYPENAME_DEFAULT_LIST>
     class Tuple;
 
     namespace {
@@ -111,7 +111,7 @@ namespace cftl { namespace stl {
             typedef TuplePaddedType<T, true> self_t;
             T value;
 
-            CFTL_TUPLE_PADDING_TYPE_METHODS
+            FLTL_TUPLE_PADDING_TYPE_METHODS
         };
 
         template <typename T>
@@ -124,7 +124,7 @@ namespace cftl { namespace stl {
                 mpl::SizeOf<T>::VALUE % TUPLE_ALIGN_BYTE_LEN
             )];
 
-            CFTL_TUPLE_PADDING_TYPE_METHODS
+            FLTL_TUPLE_PADDING_TYPE_METHODS
         };
 
         /// the size of an object stored inside a tuple
@@ -207,24 +207,24 @@ namespace cftl { namespace stl {
     }
 
     /// forward declaration of stream function
-    template <CFTL_TUPLE_TYPENAME_LIST >
+    template <FLTL_TUPLE_TYPENAME_LIST >
     std::ostream &
-    operator<<(std::ostream &, const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &);
+    operator<<(std::ostream &, const Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &);
 
-    template <CFTL_TUPLE_TYPENAME_LIST>
+    template <FLTL_TUPLE_TYPENAME_LIST>
     class Tuple {
     public:
 
         /// basic useful typedefs
-        typedef Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> self_t;
-        typedef mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST> sequence_t;
+        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> self_t;
+        typedef mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST> sequence_t;
 
     private:
 
-        CFTL_TUPLE_BEFRIEND_PRINTER(0, void)
-        CFTL_REPEAT_LEFT(
-            CFTL_TEMPLATE_VARIABLE_LIMIT,
-            CFTL_TUPLE_BEFRIEND_PRINTER,
+        FLTL_TUPLE_BEFRIEND_PRINTER(0, void)
+        FLTL_REPEAT_LEFT(
+            FLTL_TEMPLATE_VARIABLE_LIMIT,
+            FLTL_TUPLE_BEFRIEND_PRINTER,
             void
         )
 
@@ -329,9 +329,9 @@ namespace cftl { namespace stl {
             va_start(tuple_args, val0);
             for(unsigned i(1); i < sequence_t::Length::VALUE; ++i) {
                 switch(i) {
-                    CFTL_REPEAT_LEFT(
-                        CFTL_TEMPLATE_VARIABLE_LIMIT,
-                        CFTL_TUPLE_INITIALIZE_NTH,
+                    FLTL_REPEAT_LEFT(
+                        FLTL_TEMPLATE_VARIABLE_LIMIT,
+                        FLTL_TUPLE_INITIALIZE_NTH,
                         tuple_args
                     )
                 }
@@ -371,12 +371,12 @@ namespace cftl { namespace stl {
     };
 
     /// stream the tuple to output
-    template <CFTL_TUPLE_TYPENAME_LIST >
+    template <FLTL_TUPLE_TYPENAME_LIST >
     std::ostream &
     operator<<(std::ostream &os,
-               const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
+               const Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
 
-        typedef Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> tuple_t;
+        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> tuple_t;
 
         os << '[';
         TuplePrintStorage<
@@ -388,21 +388,21 @@ namespace cftl { namespace stl {
 
     /// simple interface for getting an element out of a tuple.
 
-    template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
+    template <const unsigned i, FLTL_TUPLE_TYPENAME_LIST >
     inline
-    typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
+    typename mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST>::\
     template At<i>::type_t &
-    get(Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
+    get(Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
 
-    template <const unsigned i, CFTL_TUPLE_TYPENAME_LIST >
+    template <const unsigned i, FLTL_TUPLE_TYPENAME_LIST >
     inline
-    const typename mpl::Sequence<CFTL_TUPLE_TYPE_PARAM_LIST>::\
+    const typename mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST>::\
     template At<i>::type_t &
-    get(const Tuple<CFTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
+    get(const Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
 }}
 
-#endif /* CFTL_STL_TUPLE_HPP_ */
+#endif /* FLTL_STL_TUPLE_HPP_ */

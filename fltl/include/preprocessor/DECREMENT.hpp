@@ -6,25 +6,25 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_PREPROCESSOR_DECREMENT_HPP_
-#define CFTL_PREPROCESSOR_DECREMENT_HPP_
+#ifndef FLTL_PREPROCESSOR_DECREMENT_HPP_
+#define FLTL_PREPROCESSOR_DECREMENT_HPP_
 
-#define CFTL_DEC_0 0
-#define CFTL_DEC_1 0
-#define CFTL_DEC_2 1
-#define CFTL_DEC_3 2
-#define CFTL_DEC_4 3
-#define CFTL_DEC_5 4
-#define CFTL_DEC_6 5
-#define CFTL_DEC_7 6
-#define CFTL_DEC_8 7
-#define CFTL_DEC_9 8
-#define CFTL_DEC_10 9
-#define CFTL_DEC_11 10
-#define CFTL_DEC_12 11
+#define FLTL_DEC_0 0
+#define FLTL_DEC_1 0
+#define FLTL_DEC_2 1
+#define FLTL_DEC_3 2
+#define FLTL_DEC_4 3
+#define FLTL_DEC_5 4
+#define FLTL_DEC_6 5
+#define FLTL_DEC_7 6
+#define FLTL_DEC_8 7
+#define FLTL_DEC_9 8
+#define FLTL_DEC_10 9
+#define FLTL_DEC_11 10
+#define FLTL_DEC_12 11
 
 /// pre-processor decrement function
-#define CFTL_DECREMENT0(n) CFTL_DEC_ ## n
-#define CFTL_DECREMENT(n) CFTL_DECREMENT0(n)
+#define FLTL_DECREMENT0(n) FLTL_DEC_ ## n
+#define FLTL_DECREMENT(n) FLTL_DECREMENT0(n)
 
-#endif /* CFTL_PREPROCESSOR_DECREMENT_HPP_ */
+#endif /* FLTL_PREPROCESSOR_DECREMENT_HPP_ */

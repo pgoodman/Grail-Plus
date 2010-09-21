@@ -6,12 +6,31 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_EXPR_HPP_
-#define CFTL_MPL_EXPR_HPP_
+#ifndef FLTL_MPL_EXPR_HPP_
+#define FLTL_MPL_EXPR_HPP_
 
-#include "src/include/trait/Uncopyable.hpp"
+#include "fltl/include/trait/Uncopyable.hpp"
 
-namespace cftl { namespace mpl {
+#define FLTL_BUILD_EXPR_TYPE_TPL_1(name) \
+    template <typename T> \
+    class name : public Expr<name<T> > { };
+
+#define FLTL_BUILD_EXPR_TYPE_TPL_2(name) \
+    template <typename L, typename R> \
+    class name : public Expr<name<L, R> > { };
+
+#define FLTL_BUILD_EXPR_TYPE_FUNC_1(c, f) \
+    expr::c<L> f(void) const { \
+        return Static<expr::c<L> >::VALUE; \
+    }
+
+#define FLTL_BUILD_EXPR_TYPE_FUNC_2(c, f) \
+    template <typename R> \
+    expr::c<L, R> f(R) const { \
+        return Static<expr::c<L, R> >::VALUE; \
+    }
+
+namespace fltl { namespace mpl {
 
     template <typename T> class Expr;
 
@@ -25,26 +44,21 @@ namespace cftl { namespace mpl {
         };
     }
 
-    /// expression predicates
+    /// expression template classes for common operators
     namespace expr {
 
-        template <typename L, typename R>
-        class Equal : public Expr<Equal<L, R> >{ };
+        FLTL_BUILD_EXPR_TYPE_TPL_2(Equal)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(NotEqual)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(LogicalAnd)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(LogicalOr)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(BitwiseAnd)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(BitwiseOr)
 
-        template <typename L, typename R>
-        class NotEqual : public Expr<NotEqual<L, R> >{ };
+        FLTL_BUILD_EXPR_TYPE_TPL_1(LogicalNot)
+        FLTL_BUILD_EXPR_TYPE_TPL_1(BitwiseNot)
 
-        template <typename L, typename R>
-        class And : public Expr<And<L, R> >{ };
-
-        template <typename L, typename R>
-        class Or : public Expr<Or<L, R> >{ };
-
-        template <typename R>
-        class Not : public Expr<Not<R> >{ };
-
-        template <typename T>
-        class Variable : public Expr<Variable<T> > { };
+        FLTL_BUILD_EXPR_TYPE_TPL_1(Ref)
+        FLTL_BUILD_EXPR_TYPE_TPL_2(DerefByPtr)
     }
 
     /// Base expression template
@@ -52,30 +66,21 @@ namespace cftl { namespace mpl {
     class Expr {
     public:
 
-        template <typename R>
-        expr::Equal<L, R> operator==(R) const {
-            return Static<expr::Equal<L, R> >::VALUE;
-        }
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(Equal, operator==)
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(NotEqual, operator!=)
 
-        template <typename R>
-        expr::NotEqual<L, R> operator!=(R) const {
-            return Static<expr::NotEqual<L, R> >::VALUE;
-        }
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(LogicalAnd, operator&&)
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(LogicalOr, operator||)
 
-        template <typename R>
-        expr::And<L, R> operator&&(R) const {
-            return Static<expr::And<L, R> >::VALUE;
-        }
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(BitwiseAnd, operator&)
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(BitwiseOr, operator|)
 
-        template <typename R>
-        expr::Or<L, R> operator||(R) const {
-            return Static<expr::Or<L, R> >::VALUE;
-        }
+        FLTL_BUILD_EXPR_TYPE_FUNC_1(LogicalNot, operator!)
+        FLTL_BUILD_EXPR_TYPE_FUNC_1(BitwiseNot, operator~)
 
-        expr::Not<L> operator!(void) const {
-            return Static<expr::Not<L> >::VALUE;
-        }
+        FLTL_BUILD_EXPR_TYPE_FUNC_1(Ref, operator&)
+        FLTL_BUILD_EXPR_TYPE_FUNC_2(DerefByPtr, operator->*)
     };
 }}
 
-#endif /* CFTL_MPL_EXPR_HPP_ */
+#endif /* FLTL_MPL_EXPR_HPP_ */

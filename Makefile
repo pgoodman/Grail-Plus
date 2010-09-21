@@ -36,7 +36,7 @@ CXX_FLAGS += ${CXX_WARN_FLAGS}
 
 all: bin/main.o
 
-bin/%.o: src/%.cpp
+bin/%.o: fltl/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
 	${CXX} ${LD_FLAGS} $@ -o bin/$*
 

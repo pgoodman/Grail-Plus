@@ -6,29 +6,29 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_MAX_HPP_
-#define CFTL_MPL_MAX_HPP_
+#ifndef FLTL_MPL_MAX_HPP_
+#define FLTL_MPL_MAX_HPP_
 
 #include <cstddef>
 
-#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
-#include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
-#include "src/include/preprocessor/FOLD_LEFT.hpp"
-#include "src/include/preprocessor/PACK.hpp"
+#include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
+#include "fltl/include/preprocessor/FOLD_LEFT.hpp"
+#include "fltl/include/preprocessor/PACK.hpp"
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-#define CFTL_MAX_TEMPLATE_VARIABLE_LIMIT 10
+#define FLTL_MAX_TEMPLATE_VARIABLE_LIMIT 10
 
-#if CFTL_TEMPLATE_VARIABLE_LIMIT > (CFTL_MAX_TEMPLATE_VARIABLE_LIMIT - 3)
+#if FLTL_TEMPLATE_VARIABLE_LIMIT > (FLTL_MAX_TEMPLATE_VARIABLE_LIMIT - 3)
 #error "The Max template must accept more template arguments."
 #endif
 
 /// the fold function for computing the max value of N numbers by computing
 /// the value one pair at a time.
-#define CFTL_MAX_OF_2(n, _, rest) (Max2<v ## n, rest>::VALUE)
+#define FLTL_MAX_OF_2(n, _, rest) (Max2<v ## n, rest>::VALUE)
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     namespace {
 
@@ -42,12 +42,12 @@ namespace cftl { namespace mpl {
         };
     }
 
-    /// Compute the maximum of 1 to CFTL_MAX_TEMPLATE_VARIABLE_LIMIT values at
+    /// Compute the maximum of 1 to FLTL_MAX_TEMPLATE_VARIABLE_LIMIT values at
     /// compile time.
     template <
         const std::size_t v0
-        CFTL_ENUMERATE_VALUE_PARAMS(
-            CFTL_MAX_TEMPLATE_VARIABLE_LIMIT,
+        FLTL_ENUMERATE_VALUE_PARAMS(
+            FLTL_MAX_TEMPLATE_VARIABLE_LIMIT,
             v,
             const std::size_t,
             = 0
@@ -56,14 +56,14 @@ namespace cftl { namespace mpl {
     class Max : private trait::StaticOnly {
     public:
         enum {
-            VALUE = CFTL_FOLD_LEFT(
-                CFTL_MAX_TEMPLATE_VARIABLE_LIMIT,
-                CFTL_MAX_OF_2,
-                CFTL_PACK_0,
+            VALUE = FLTL_FOLD_LEFT(
+                FLTL_MAX_TEMPLATE_VARIABLE_LIMIT,
+                FLTL_MAX_OF_2,
+                FLTL_PACK_0,
                 v0
             )
         };
     };
 }}
 
-#endif /* CFTL_MPL_MAX_HPP_ */
+#endif /* FLTL_MPL_MAX_HPP_ */

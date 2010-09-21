@@ -6,33 +6,33 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_STL_GRAMMAR_HPP_
-#define CFTL_STL_GRAMMAR_HPP_
+#ifndef FLTL_STL_GRAMMAR_HPP_
+#define FLTL_STL_GRAMMAR_HPP_
 
 #include <map>
 #include <vector>
 
-#include "src/include/mpl/Max.hpp"
-#include "src/include/mpl/Sequence.hpp"
-#include "src/include/mpl/Query.hpp"
-#include "src/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Max.hpp"
+#include "fltl/include/mpl/Sequence.hpp"
+#include "fltl/include/mpl/Query.hpp"
+#include "fltl/include/mpl/Unit.hpp"
 
-#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
-#include "src/include/preprocessor/REPEAT_LEFT.hpp"
-#include "src/include/preprocessor/STATIC_ASSERT.hpp"
+#include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
+#include "fltl/include/preprocessor/STATIC_ASSERT.hpp"
 
-#include "src/include/trait/PolyadicOperator.hpp"
-#include "src/include/trait/Uncopyable.hpp"
-#include "src/include/trait/Query.hpp"
+#include "fltl/include/trait/PolyadicOperator.hpp"
+#include "fltl/include/trait/Uncopyable.hpp"
+#include "fltl/include/trait/Query.hpp"
 
-#include "src/include/stl/BlockAllocator.hpp"
+#include "fltl/include/stl/BlockAllocator.hpp"
 
-#define CFTL_GRAMMAR_GET_OPERATOR_ARITY(n, _) \
+#define FLTL_GRAMMAR_GET_OPERATOR_ARITY(n, _) \
     , (GrammarOperatorArity<\
            typename op_sequence_t::template At<n>::type_t \
        >::VALUE)
 
-namespace cftl { namespace stl {
+namespace fltl { namespace stl {
 
     namespace {
 
@@ -58,6 +58,13 @@ namespace cftl { namespace stl {
             };
         };
     }
+
+    /// types for queries
+    namespace grammar { namespace query {
+
+        //template <typename T>
+
+    }}
 
     /// base grammar type.
     ///
@@ -141,9 +148,9 @@ namespace cftl { namespace stl {
             /// the maximum arity of all of the operators
             MAX_OPERATOR_ARITY = mpl::Max<
                 NonTerminalOperator::ARITY
-                CFTL_REPEAT_LEFT(
-                    CFTL_TEMPLATE_VARIABLE_LIMIT,
-                    CFTL_GRAMMAR_GET_OPERATOR_ARITY,
+                FLTL_REPEAT_LEFT(
+                    FLTL_TEMPLATE_VARIABLE_LIMIT,
+                    FLTL_GRAMMAR_GET_OPERATOR_ARITY,
                     void
                 )
             >::VALUE
@@ -209,7 +216,7 @@ namespace cftl { namespace stl {
 
                 // make sure that the operator type passed in is actually
                 // a valid operator for this grammar
-                CFTL_STATIC_ASSERT(mpl::SizeOf<typename
+                FLTL_STATIC_ASSERT(mpl::SizeOf<typename
                     op_sequence_t::template Select<RuleOperatorT>::type_t
                 >::VALUE > 0);
 
@@ -241,13 +248,28 @@ namespace cftl { namespace stl {
          , rules()
          , allocator()
          , builder(*this) { }
+    };
 
-        /// expose information to the query template class
-        template <typename VarT>
-        class query_traits_t : public trait::Query<VarT> {
 
-        };
+}}
+
+namespace fltl { namespace trait {
+
+    template <
+        typename TermT,
+        typename NonTermT,
+        typename DisjunctionOperatorT,
+        typename OperatorSequenceT,
+        template<typename> class AllocatorT
+    >
+    class Query<
+        stl::Grammar<
+            TermT,NonTermT,DisjunctionOperatorT,
+            OperatorSequenceT,AllocatorT
+        >
+    > {
+
     };
 }}
 
-#endif /* CFTL_STL_GRAMMAR_HPP_ */
+#endif /* FLTL_STL_GRAMMAR_HPP_ */

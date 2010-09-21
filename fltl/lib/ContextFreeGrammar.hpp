@@ -6,16 +6,16 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_LIB_CONTEXTFREEGRAMMAR_HPP_
-#define CFTL_LIB_CONTEXTFREEGRAMMAR_HPP_
+#ifndef FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_
+#define FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_
 
-#include "src/include/trait/PolyadicOperator.hpp"
+#include "fltl/include/trait/PolyadicOperator.hpp"
 
-#include "src/include/mpl/Sequence.hpp"
+#include "fltl/include/mpl/Sequence.hpp"
 
-#include "src/include/stl/Grammar.hpp"
+#include "fltl/include/stl/Grammar.hpp"
 
-namespace cftl { namespace lib {
+namespace fltl { namespace lib {
 
     namespace {
         class catenation : public trait::PolyadicOperator<2> { };
@@ -35,4 +35,4 @@ namespace cftl { namespace lib {
 
 }}
 
-#endif /* CFTL_LIB_CONTEXTFREEGRAMMAR_HPP_ */
+#endif /* FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_ */

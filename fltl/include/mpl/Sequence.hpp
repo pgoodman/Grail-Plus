@@ -6,62 +6,62 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_SEQUENCE_HPP_
-#define CFTL_MPL_SEQUENCE_HPP_
+#ifndef FLTL_MPL_SEQUENCE_HPP_
+#define FLTL_MPL_SEQUENCE_HPP_
 
-#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
-#include "src/include/preprocessor/CATENATE.hpp"
-#include "src/include/preprocessor/DECREMENT.hpp"
-#include "src/include/preprocessor/ENUMERATE_PARAMS.hpp"
-#include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
-#include "src/include/preprocessor/EVAL.hpp"
-#include "src/include/preprocessor/INCREMENT.hpp"
-#include "src/include/preprocessor/REPEAT_LEFT.hpp"
-#include "src/include/preprocessor/UNPACK.hpp"
+#include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "fltl/include/preprocessor/CATENATE.hpp"
+#include "fltl/include/preprocessor/DECREMENT.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_PARAMS.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
+#include "fltl/include/preprocessor/EVAL.hpp"
+#include "fltl/include/preprocessor/INCREMENT.hpp"
+#include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
+#include "fltl/include/preprocessor/UNPACK.hpp"
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-#include "src/include/mpl/Max.hpp"
-#include "src/include/mpl/SizeOf.hpp"
-#include "src/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Max.hpp"
+#include "fltl/include/mpl/SizeOf.hpp"
+#include "fltl/include/mpl/Unit.hpp"
 
-#define CFTL_SEQUENCE_COMPARE_TYPE(n, t) \
+#define FLTL_SEQUENCE_COMPARE_TYPE(n, t) \
     , SizeOf<typename SequenceTypeEq<t, T ## n >::type_t >::VALUE
 
-#define CFTL_SEQUENCE_SPEC_TYPENAME_LIST \
+#define FLTL_SEQUENCE_SPEC_TYPENAME_LIST \
     typename T0 \
-    CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT,typename T)
+    FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,typename T)
 
-#define CFTL_SEQUENCE_TYPE_PARAM_LIST \
-    T0 CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, T)
+#define FLTL_SEQUENCE_TYPE_PARAM_LIST \
+    T0 FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT, T)
 
-#define CFTL_SEQUENCE_AT_SPEC(n, _) \
+#define FLTL_SEQUENCE_AT_SPEC(n, _) \
     template <typename InvalidType> \
     class AtImpl<n, InvalidType> { \
     public: \
         typedef T ## n type_t; \
     };
 
-#define CFTL_SEQUENCE_TYPE_LENGTH(n, _) \
+#define FLTL_SEQUENCE_TYPE_LENGTH(n, _) \
     + SequenceTypeLength<T ## n>::VALUE
 
-#define CFTL_SEQUENCE_INSERT_TYPE(n, _) \
-    typedef typename CFTL_CATENATE(base_t, CFTL_DECREMENT(n))::\
+#define FLTL_SEQUENCE_INSERT_TYPE(n, _) \
+    typedef typename FLTL_CATENATE(base_t, FLTL_DECREMENT(n))::\
     template Insert<T ## n>::type_t base_t ## n;
 
-#define CFTL_SEQUENCE_TYPE_INDEX1(n, next_n) \
+#define FLTL_SEQUENCE_TYPE_INDEX1(n, next_n) \
     VALUE ## next_n = mpl::SizeOf< \
         typename SequenceTypeEq<T ## n, T>::type_t \
     >::VALUE == 0 ? VALUE ## n : \
     (VALUE ## n > 0 ? VALUE ## n : next_n),
 
-#define CFTL_SEQUENCE_TYPE_INDEX0(n, next_n) \
-    CFTL_SEQUENCE_TYPE_INDEX1(n, next_n)
+#define FLTL_SEQUENCE_TYPE_INDEX0(n, next_n) \
+    FLTL_SEQUENCE_TYPE_INDEX1(n, next_n)
 
-#define CFTL_SEQUENCE_TYPE_INDEX(n, _) \
-    CFTL_SEQUENCE_TYPE_INDEX0(n, CFTL_INCREMENT(n))
+#define FLTL_SEQUENCE_TYPE_INDEX(n, _) \
+    FLTL_SEQUENCE_TYPE_INDEX0(n, FLTL_INCREMENT(n))
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     namespace {
 
@@ -155,8 +155,8 @@ namespace cftl { namespace mpl {
     ///     Sequence<int, char, float>::Insert<char>::type_t
     ///     <==> Sequence<int, char, float>
     ///
-    template<typename T0 CFTL_ENUMERATE_VALUE_PARAMS(
-        CFTL_TEMPLATE_VARIABLE_LIMIT,
+    template<typename T0 FLTL_ENUMERATE_VALUE_PARAMS(
+        FLTL_TEMPLATE_VARIABLE_LIMIT,
         T,
         typename,
         = Unit
@@ -167,7 +167,7 @@ namespace cftl { namespace mpl {
         /// easy way for nested classes to access the type of the sequence.
         typedef Sequence<
             T0
-            CFTL_ENUMERATE_PARAMS(CFTL_TEMPLATE_VARIABLE_LIMIT, T)
+            FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT, T)
         > self_t;
 
         /// the length of the type sequence. types can be ignored from the
@@ -179,9 +179,9 @@ namespace cftl { namespace mpl {
             enum {
                 VALUE = (
                     SequenceTypeLength<T0>::VALUE
-                    CFTL_REPEAT_LEFT(
-                        CFTL_TEMPLATE_VARIABLE_LIMIT,
-                        CFTL_SEQUENCE_TYPE_LENGTH,
+                    FLTL_REPEAT_LEFT(
+                        FLTL_TEMPLATE_VARIABLE_LIMIT,
+                        FLTL_SEQUENCE_TYPE_LENGTH,
                         void
                     )
                 )
@@ -198,10 +198,10 @@ namespace cftl { namespace mpl {
 
             enum {
                 MAX_TYPE_SIZE = Max<0
-                    CFTL_SEQUENCE_COMPARE_TYPE(0, Q)
-                    CFTL_REPEAT_LEFT(
-                        CFTL_TEMPLATE_VARIABLE_LIMIT,
-                        CFTL_SEQUENCE_COMPARE_TYPE,
+                    FLTL_SEQUENCE_COMPARE_TYPE(0, Q)
+                    FLTL_REPEAT_LEFT(
+                        FLTL_TEMPLATE_VARIABLE_LIMIT,
+                        FLTL_SEQUENCE_COMPARE_TYPE,
                         Q
                     )
                 >::VALUE
@@ -226,10 +226,10 @@ namespace cftl { namespace mpl {
         };
 
         /// partial specializations of AtImpl
-        CFTL_SEQUENCE_AT_SPEC(0, void)
-        CFTL_REPEAT_LEFT(
-            CFTL_TEMPLATE_VARIABLE_LIMIT,
-            CFTL_SEQUENCE_AT_SPEC,
+        FLTL_SEQUENCE_AT_SPEC(0, void)
+        FLTL_REPEAT_LEFT(
+            FLTL_TEMPLATE_VARIABLE_LIMIT,
+            FLTL_SEQUENCE_AT_SPEC,
             void
         )
 
@@ -256,8 +256,8 @@ namespace cftl { namespace mpl {
                 Sequence<
                     T,
                     T0
-                    CFTL_ENUMERATE_PARAMS(
-                        CFTL_DECREMENT(CFTL_TEMPLATE_VARIABLE_LIMIT),
+                    FLTL_ENUMERATE_PARAMS(
+                        FLTL_DECREMENT(FLTL_TEMPLATE_VARIABLE_LIMIT),
                         T
                     )
                 >
@@ -269,38 +269,38 @@ namespace cftl { namespace mpl {
         private:
 
             typedef Sequence<T0> base_t0;
-            CFTL_REPEAT_LEFT(
-                CFTL_TEMPLATE_VARIABLE_LIMIT,
-                CFTL_SEQUENCE_INSERT_TYPE,
+            FLTL_REPEAT_LEFT(
+                FLTL_TEMPLATE_VARIABLE_LIMIT,
+                FLTL_SEQUENCE_INSERT_TYPE,
                 void
             )
 
         public:
-            typedef CFTL_CATENATE(base_t, CFTL_TEMPLATE_VARIABLE_LIMIT)
+            typedef FLTL_CATENATE(base_t, FLTL_TEMPLATE_VARIABLE_LIMIT)
                     type_t;
         };
 
         /// get the index of a particular type in the sequence. If the type
         /// is not in the sequence then the value is value_on_error (defaults
-        /// to CFTL_TEMPLATE_VARIABLE_LIMIT+1).
+        /// to FLTL_TEMPLATE_VARIABLE_LIMIT+1).
         template <
             typename T,
-            const unsigned value_on_error=CFTL_TEMPLATE_VARIABLE_LIMIT+1
+            const unsigned value_on_error=FLTL_TEMPLATE_VARIABLE_LIMIT+1
         >
         class IndexOf {
         private:
             enum {
                 VALUE0 = 0,
-                CFTL_SEQUENCE_TYPE_INDEX(0, void)
-                CFTL_REPEAT_LEFT(
-                    CFTL_TEMPLATE_VARIABLE_LIMIT,
-                    CFTL_SEQUENCE_TYPE_INDEX,
+                FLTL_SEQUENCE_TYPE_INDEX(0, void)
+                FLTL_REPEAT_LEFT(
+                    FLTL_TEMPLATE_VARIABLE_LIMIT,
+                    FLTL_SEQUENCE_TYPE_INDEX,
                     void
                 )
 
-                RESULT = CFTL_CATENATE(
+                RESULT = FLTL_CATENATE(
                     VALUE,
-                    CFTL_INCREMENT(CFTL_TEMPLATE_VARIABLE_LIMIT)
+                    FLTL_INCREMENT(FLTL_TEMPLATE_VARIABLE_LIMIT)
                 )
             };
         public:
@@ -313,4 +313,4 @@ namespace cftl { namespace mpl {
 }}
 
 
-#endif /* CFTL_MPL_SEQUENCE_HPP_ */
+#endif /* FLTL_MPL_SEQUENCE_HPP_ */

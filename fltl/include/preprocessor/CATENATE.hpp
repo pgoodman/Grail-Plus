@@ -6,11 +6,11 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_CATENATE_HPP_
-#define CFTL_CATENATE_HPP_
+#ifndef FLTL_CATENATE_HPP_
+#define FLTL_CATENATE_HPP_
 
 /// pre-processor macro for concatenating two strings
-#define CFTL_CATENATE0(l, r) l ## r
-#define CFTL_CATENATE(left, right) CFTL_CATENATE0(left, right)
+#define FLTL_CATENATE0(l, r) l ## r
+#define FLTL_CATENATE(left, right) FLTL_CATENATE0(left, right)
 
-#endif /* CFTL_CATENATE_HPP_ */
+#endif /* FLTL_CATENATE_HPP_ */

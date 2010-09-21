@@ -6,12 +6,12 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_TOTALORDER_HPP_
-#define CFTL_MPL_TOTALORDER_HPP_
+#ifndef FLTL_MPL_TOTALORDER_HPP_
+#define FLTL_MPL_TOTALORDER_HPP_
 
-#include "src/include/trait/OperatorTag.hpp";
+#include "fltl/include/trait/OperatorTag.hpp";
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     /// Less-than-or-equal operator for some type. Defines a total ordering
     /// for elements of that type.
@@ -38,4 +38,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_MPL_TOTALORDER_HPP_ */
+#endif /* FLTL_MPL_TOTALORDER_HPP_ */

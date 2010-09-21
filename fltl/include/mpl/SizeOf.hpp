@@ -6,10 +6,10 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_SIZEOF_HPP_
-#define CFTL_MPL_SIZEOF_HPP_
+#ifndef FLTL_MPL_SIZEOF_HPP_
+#define FLTL_MPL_SIZEOF_HPP_
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     /// Get the byte size for a particular type. this allows us to say that
     /// specific types have zero size, which happens to be useful for other
@@ -39,4 +39,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_MPL_SIZEOF_HPP_ */
+#endif /* FLTL_MPL_SIZEOF_HPP_ */

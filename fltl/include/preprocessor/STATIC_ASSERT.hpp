@@ -6,18 +6,18 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_STATIC_ASSERT_HPP_
-#define CFTL_STATIC_ASSERT_HPP_
+#ifndef FLTL_STATIC_ASSERT_HPP_
+#define FLTL_STATIC_ASSERT_HPP_
 
 /// create a compile-time assertion. must be followed by a semicolon.
-#define CFTL_STATIC_ASSERT1(cond, line) \
+#define FLTL_STATIC_ASSERT1(cond, line) \
     char __failed_assertion_ ## line [cond ? 1 : -1]; \
     (void) __failed_assertion_ ## line
 
-#define CFTL_STATIC_ASSERT0(cond, line) \
-    CFTL_STATIC_ASSERT1(cond, line)
+#define FLTL_STATIC_ASSERT0(cond, line) \
+    FLTL_STATIC_ASSERT1(cond, line)
 
-#define CFTL_STATIC_ASSERT(cond) \
-    CFTL_STATIC_ASSERT0((cond), __LINE__)
+#define FLTL_STATIC_ASSERT(cond) \
+    FLTL_STATIC_ASSERT0((cond), __LINE__)
 
-#endif /* CFTL_STATIC_ASSERT_HPP_ */
+#endif /* FLTL_STATIC_ASSERT_HPP_ */

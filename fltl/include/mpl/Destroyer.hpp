@@ -6,12 +6,12 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_DESTROYER_HPP_
-#define CFTL_DESTROYER_HPP_
+#ifndef FLTL_DESTROYER_HPP_
+#define FLTL_DESTROYER_HPP_
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     /// Call the destructor of an object through a pointer.
     template <typename T>
@@ -26,4 +26,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_DESTROYER_HPP_ */
+#endif /* FLTL_DESTROYER_HPP_ */

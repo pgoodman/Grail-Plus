@@ -6,10 +6,10 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_TRAIT_UNCOPYABLE_HPP_
-#define CFTL_TRAIT_UNCOPYABLE_HPP_
+#ifndef FLTL_TRAIT_UNCOPYABLE_HPP_
+#define FLTL_TRAIT_UNCOPYABLE_HPP_
 
-namespace cftl {
+namespace fltl {
 
     namespace trait {
 
@@ -32,4 +32,4 @@ namespace cftl {
     }
 }
 
-#endif /* CFTL_TRAIT_UNCOPYABLE_HPP_ */
+#endif /* FLTL_TRAIT_UNCOPYABLE_HPP_ */

@@ -8,21 +8,21 @@
 
 #include <iostream>
 
-#include "src/include/mpl/Sequence.hpp"
-#include "src/include/mpl/SizeOf.hpp"
-#include "src/include/mpl/Unit.hpp"
-#include "src/include/mpl/Query.hpp"
-#include "src/include/mpl/Expr.hpp"
+#include "fltl/include/mpl/Sequence.hpp"
+#include "fltl/include/mpl/SizeOf.hpp"
+#include "fltl/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Query.hpp"
+#include "fltl/include/mpl/Expr.hpp"
 
-#include "src/include/stl/Variant.hpp"
-#include "src/include/stl/Tuple.hpp"
-#include "src/include/stl/Grammar.hpp"
+#include "fltl/include/stl/Variant.hpp"
+#include "fltl/include/stl/Tuple.hpp"
+#include "fltl/include/stl/Grammar.hpp"
 
-#include "src/include/trait/PolyadicOperator.hpp"
+#include "fltl/include/trait/PolyadicOperator.hpp"
 
-#include "src/lib/ContextFreeGrammar.hpp"
+#include "fltl/lib/ContextFreeGrammar.hpp"
 
-using namespace cftl;
+using namespace fltl;
 
 typedef enum {
     _a, _b, _c, _d
@@ -39,6 +39,8 @@ int main(void) {
 
     using namespace mpl::query;
     using namespace mpl::query::var;
+    using namespace stl::grammar::query;
+
     //using namespace mpl::query::op;
 
     typedef lib::ContextFreeGrammar<term_t, non_term_t> cfg_t;
@@ -46,8 +48,8 @@ int main(void) {
     cfg_t grammar;
     //mpl::expr::Variable<term_t> term;
 
-    from<cfg_t>::select<non_term_t, non_term_t, term_t>::where(
-        !(_0 != _1) || _0 == _2
+    from<cfg_t>::with<non_term_t, non_term_t, term_t>::where(
+        (_1 ->* (_2 & _1)) || (_1 ->* _2)
     );
 
     std::cout << mpl::Sequence<mpl::Unit>::Length::VALUE << '\n';

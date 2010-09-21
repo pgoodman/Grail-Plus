@@ -6,13 +6,13 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_UNIT_HPP_
-#define CFTL_MPL_UNIT_HPP_
+#ifndef FLTL_MPL_UNIT_HPP_
+#define FLTL_MPL_UNIT_HPP_
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     //class Unit { };
     typedef void Unit;
 }}
 
-#endif /* CFTL_MPL_UNIT_HPP_ */
+#endif /* FLTL_MPL_UNIT_HPP_ */

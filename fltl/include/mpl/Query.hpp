@@ -6,43 +6,43 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_QUERY_HPP_
-#define CFTL_MPL_QUERY_HPP_
+#ifndef FLTL_MPL_QUERY_HPP_
+#define FLTL_MPL_QUERY_HPP_
 
-#include "src/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
-#include "src/include/preprocessor/REPEAT_LEFT.hpp"
-#include "src/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
+#include "fltl/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
+#include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
+#include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 
-#include "src/include/mpl/Expr.hpp"
-#include "src/include/mpl/Sequence.hpp"
-#include "src/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Expr.hpp"
+#include "fltl/include/mpl/Sequence.hpp"
+#include "fltl/include/mpl/Unit.hpp"
 
-#include "src/include/stl/Tuple.hpp"
+#include "fltl/include/stl/Tuple.hpp"
 
-#include "src/include/trait/StaticOnly.hpp"
-#include "src/include/trait/Uncopyable.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/Uncopyable.hpp"
 
-#define CFTL_QUERY_TYPENAME_DEFAULT_LIST \
+#define FLTL_QUERY_TYPENAME_DEFAULT_LIST \
     typename T0 \
-    CFTL_ENUMERATE_VALUE_PARAMS(\
-        CFTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= Unit \
+    FLTL_ENUMERATE_VALUE_PARAMS(\
+        FLTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= Unit \
     )
 
-#define CFTL_QUERY_VAR_ARG(n, _) \
+#define FLTL_QUERY_VAR_ARG(n, _) \
     , var_t v ## n=null_var
 
-#define CFTL_QUERY_VAR_ARGS \
+#define FLTL_QUERY_VAR_ARGS \
     var_t v0 \
-    CFTL_REPEAT_LEFT(CFTL_TEMPLATE_VARIABLE_LIMIT, CFTL_QUERY_VAR_ARG, void)
+    FLTL_REPEAT_LEFT(FLTL_TEMPLATE_VARIABLE_LIMIT, FLTL_QUERY_VAR_ARG, void)
 
-#define CFTL_QUERY_MAKE_VAR(n, ret) \
+#define FLTL_QUERY_MAKE_VAR(n, ret) \
     QueryVar<n> _ ## n;
 
-#define CFTL_QUERY_USE_VAR(n, foo) (void) query::var::_ ## n;
+#define FLTL_QUERY_USE_VAR(n, foo) (void) query::var::_ ## n;
 
 //    ret _ ## n (QueryUnit) { }
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     namespace {
         class QueryUnit { };
@@ -63,10 +63,10 @@ namespace cftl { namespace mpl {
     /// variables are opaque to the outside world.
     namespace query {
         namespace var {
-            CFTL_QUERY_MAKE_VAR(0, void)
-            CFTL_REPEAT_LEFT(
-                CFTL_TEMPLATE_VARIABLE_LIMIT,
-                CFTL_QUERY_MAKE_VAR,
+            FLTL_QUERY_MAKE_VAR(0, void)
+            FLTL_REPEAT_LEFT(
+                FLTL_TEMPLATE_VARIABLE_LIMIT,
+                FLTL_QUERY_MAKE_VAR,
                 void
             )
         }
@@ -87,18 +87,21 @@ namespace cftl { namespace mpl {
     public:
 
         /// determine which variables to select
-        template <CFTL_QUERY_TYPENAME_DEFAULT_LIST>
-        class select : trait::StaticOnly {
+        template <FLTL_QUERY_TYPENAME_DEFAULT_LIST>
+        class with : trait::StaticOnly {
         public:
 
             /// build up the predicates of this query. all we need is the
             /// type information stored inside of PredicateExprT.
             template <typename PredicateExprT>
             static void where(Expr<PredicateExprT>) throw() {
-                CFTL_QUERY_USE_VAR(0, void)
-                CFTL_REPEAT_LEFT(
-                    CFTL_TEMPLATE_VARIABLE_LIMIT,
-                    CFTL_QUERY_USE_VAR,
+
+                // mark the variables as being "used" so that we don't get
+                // compiler warnings about them being unused.
+                FLTL_QUERY_USE_VAR(0, void)
+                FLTL_REPEAT_LEFT(
+                    FLTL_TEMPLATE_VARIABLE_LIMIT,
+                    FLTL_QUERY_USE_VAR,
                     void
                 )
             }
@@ -114,4 +117,4 @@ namespace cftl { namespace mpl {
     }
 }}
 
-#endif /* CFTL_MPL_QUERY_HPP_ */
+#endif /* FLTL_MPL_QUERY_HPP_ */

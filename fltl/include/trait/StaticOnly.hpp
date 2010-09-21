@@ -6,10 +6,10 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_TRAIT_STATICONLY_HPP_
-#define CFTL_TRAIT_STATICONLY_HPP_
+#ifndef FLTL_TRAIT_STATICONLY_HPP_
+#define FLTL_TRAIT_STATICONLY_HPP_
 
-namespace cftl { namespace trait {
+namespace fltl { namespace trait {
 
     class StaticOnly {
     private:
@@ -20,4 +20,4 @@ namespace cftl { namespace trait {
 
 }}
 
-#endif /* CFTL_TRAIT_STATICONLY_HPP_ */
+#endif /* FLTL_TRAIT_STATICONLY_HPP_ */

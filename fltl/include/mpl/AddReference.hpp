@@ -6,12 +6,12 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_ADDREFERENCE_HPP_
-#define CFTL_ADDREFERENCE_HPP_
+#ifndef FLTL_ADDREFERENCE_HPP_
+#define FLTL_ADDREFERENCE_HPP_
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     template <typename T>
     class AddReference : private trait::StaticOnly {
@@ -26,4 +26,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_ADDREFERENCE_HPP_ */
+#endif /* FLTL_ADDREFERENCE_HPP_ */

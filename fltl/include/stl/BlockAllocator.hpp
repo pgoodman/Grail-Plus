@@ -6,8 +6,8 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_STL_BLOCKALLOCATOR_HPP_
-#define CFTL_STL_BLOCKALLOCATOR_HPP_
+#ifndef FLTL_STL_BLOCKALLOCATOR_HPP_
+#define FLTL_STL_BLOCKALLOCATOR_HPP_
 
 #include <cstddef>
 #include <cstdlib>
@@ -16,10 +16,10 @@
 #include <new>
 #include <bitset>
 
-#include "src/include/trait/StaticOnly.hpp"
-#include "src/include/trait/Uncopyable.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/Uncopyable.hpp"
 
-namespace cftl { namespace stl {
+namespace fltl { namespace stl {
 
     /// An allocator that allocates values of type T in chunks of size
     /// block_size. If the block allocator is unable to allocate a value
@@ -144,4 +144,4 @@ namespace cftl { namespace stl {
     };
 }}
 
-#endif /* CFTL_STL_BLOCKALLOCATOR_HPP_ */
+#endif /* FLTL_STL_BLOCKALLOCATOR_HPP_ */

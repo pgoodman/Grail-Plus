@@ -6,14 +6,14 @@
  *     Version: $Id$
  */
 
-#ifndef CFTL_MPL_VARARGPROMOTION_HPP_
-#define CFTL_MPL_VARARGPROMOTION_HPP_
+#ifndef FLTL_MPL_VARARGPROMOTION_HPP_
+#define FLTL_MPL_VARARGPROMOTION_HPP_
 
 #include <cstdarg>
 
-#include "src/include/trait/StaticOnly.hpp"
+#include "fltl/include/trait/StaticOnly.hpp"
 
-namespace cftl { namespace mpl {
+namespace fltl { namespace mpl {
 
     /// define type promotions for the variadic functions
     template <typename T>
@@ -43,4 +43,4 @@ namespace cftl { namespace mpl {
     };
 }}
 
-#endif /* CFTL_MPL_VARARGPROMOTION_HPP_ */
+#endif /* FLTL_MPL_VARARGPROMOTION_HPP_ */
