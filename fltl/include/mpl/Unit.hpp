@@ -11,7 +11,6 @@
 
 namespace fltl { namespace mpl {
 
-    //class Unit { };
     typedef void Unit;
 }}
 

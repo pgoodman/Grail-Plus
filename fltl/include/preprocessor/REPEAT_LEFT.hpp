@@ -9,6 +9,9 @@
 #ifndef FLTL_REPEAT_LEFT_HPP_
 #define FLTL_REPEAT_LEFT_HPP_
 
+#define FLTL_COMMA(_) ,
+#define FLTL_NOTHING(_)
+
 /// pre-processor macro for repeating the application of another macro
 /// a certain number of times. the application happens after the repetition
 /// happens. the macro

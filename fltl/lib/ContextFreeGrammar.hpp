@@ -30,7 +30,19 @@ namespace fltl { namespace lib {
         mpl::Sequence<catenation>
     > {
     private:
+
+        typedef stl::Grammar<
+            TermT,
+            NonTermT,
+            disjunction,
+            mpl::Sequence<catenation>
+        > parent_t;
+
     public:
+
+        /// trait for query building
+        typedef typename parent_t::query_discriminator_t
+                query_discriminator_t;
     };
 
 }}

@@ -16,6 +16,7 @@
 #include "fltl/include/mpl/Sequence.hpp"
 #include "fltl/include/mpl/Query.hpp"
 #include "fltl/include/mpl/Unit.hpp"
+#include "fltl/include/mpl/Expr.hpp"
 
 #include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
@@ -23,7 +24,6 @@
 
 #include "fltl/include/trait/PolyadicOperator.hpp"
 #include "fltl/include/trait/Uncopyable.hpp"
-#include "fltl/include/trait/Query.hpp"
 
 #include "fltl/include/stl/BlockAllocator.hpp"
 
@@ -31,6 +31,11 @@
     , (GrammarOperatorArity<\
            typename op_sequence_t::template At<n>::type_t \
        >::VALUE)
+
+namespace fltl { namespace trait {
+    template <typename GrammarT>
+    class GrammarQuery;
+}}
 
 namespace fltl { namespace stl {
 
@@ -59,12 +64,10 @@ namespace fltl { namespace stl {
         };
     }
 
-    /// types for queries
-    namespace grammar { namespace query {
-
-        //template <typename T>
-
-    }}
+    namespace grammar {
+        /// grammar query descriminator
+        class QueryDiscriminator { };
+    }
 
     /// base grammar type.
     ///
@@ -219,8 +222,6 @@ namespace fltl { namespace stl {
                 FLTL_STATIC_ASSERT(mpl::SizeOf<typename
                     op_sequence_t::template Select<RuleOperatorT>::type_t
                 >::VALUE > 0);
-
-
             }
 
             void addTerminal(const TermT &symbol) {
@@ -248,28 +249,127 @@ namespace fltl { namespace stl {
          , rules()
          , allocator()
          , builder(*this) { }
+
+        /// trait for query building
+        typedef grammar::QueryDiscriminator query_discriminator_t;
+    };
+}}
+
+namespace fltl { namespace mpl { namespace query {
+
+#define FLTL_GQDSID fltl::stl::grammar::QueryDiscriminator
+
+    template <typename G>
+    class Index<FLTL_GQDSID, G> {
+
+    };
+
+    template <typename G>
+    class Meet<FLTL_GQDSID, G, fltl::mpl::expr::LogicalAnd> {
+    public:
+        inline static void visit(
+            const Index<FLTL_GQDSID, G> &in_1,
+            const Index<FLTL_GQDSID, G> &in_2,
+            Index<FLTL_GQDSID, G> &out
+        ) throw() {
+            (void) in_1; (void) in_2; (void) out;
+        }
+    };
+
+    template <typename G>
+    class Meet<FLTL_GQDSID, G, fltl::mpl::expr::LogicalOr> {
+    public:
+        inline static void visit(
+            const Index<FLTL_GQDSID, G> &in_1,
+            const Index<FLTL_GQDSID, G> &in_2,
+            Index<FLTL_GQDSID, G> &out
+        ) throw() {
+            (void) in_1; (void) in_2; (void) out;
+        }
+    };
+
+    template <typename G, typename E>
+    class Filter<FLTL_GQDSID, G, E, fltl::mpl::expr::DerefByPtr> {
+    public:
+        inline static void visit(
+            const Index<FLTL_GQDSID, G> &in,
+            Index<FLTL_GQDSID, G> &out
+        ) throw() {
+            (void) in; (void) out;
+        }
+    };
+
+    template <typename G, typename E>
+    class SyntaxChecker<FLTL_GQDSID, G, 0, E, fltl::mpl::expr::DerefByPtr> {
+    public:
+        inline static bool visit(void) throw() {
+            return false;
+        }
     };
 
 
-}}
 
-namespace fltl { namespace trait {
+#if 0
+#define FLTL_GRAMMAR_QUERY_TPL_TYPES \
+    typename TermT, \
+    typename NonTermT, \
+    typename DisjunctionOperatorT, \
+    typename OperatorSequenceT, \
+    template<typename> class AllocatorT
 
-    template <
-        typename TermT,
-        typename NonTermT,
-        typename DisjunctionOperatorT,
-        typename OperatorSequenceT,
-        template<typename> class AllocatorT
+#define FLTL_GRAMMAR_QUERY_SC_TPL_DECL \
+    template < \
+        FLTL_GRAMMAR_QUERY_TPL_TYPES, \
+        typename ExprT \
     >
-    class Query<
-        stl::Grammar<
-            TermT,NonTermT,DisjunctionOperatorT,
-            OperatorSequenceT,AllocatorT
-        >
-    > {
 
+#define FLTL_GRAMMAR_TPL \
+    fltl::stl::Grammar< \
+        TermT, NonTermT, DisjunctionOperatorT, OperatorSequenceT, AllocatorT \
+    >
+
+    template <FLTL_GRAMMAR_QUERY_TPL_TYPES>
+    class Index<FLTL_GRAMMAR_TPL> {
+    public:
     };
-}}
+
+    FLTL_GRAMMAR_QUERY_SC_TPL_DECL
+    class SyntaxChecker<FLTL_GRAMMAR_TPL, ExprT> {
+    public:
+        inline static bool visit(void) throw() {
+            return false;
+        }
+    };
+
+/*
+    /// define an expression of the form "var ->* expr" to be valid if
+    /// expr is valid.
+    template <>
+    template <typename L, typename R, typename BoundVarsEnvT>
+    class Builder<stl::grammar::QueryDiscriminator>::CheckExpr<
+        mpl::expr::DerefByPtr, L, R, BoundVarsEnvT
+    > {
+    private:
+
+        /// bind the variable
+        typedef typename BoundVarsEnvT::template Bind<AsVariable<L> >
+                bound_prod_t;
+
+        typedef CheckSubExpr<R, bound_prod_t> checked_expr_t;
+
+    public:
+
+        typedef typename checked_expr_t::bound_vars_t bound_vars_t;
+
+        enum {
+            NUM_ERRORS = checked_expr_t::NUM_ERRORS
+        };
+    };
+*/
+#endif
+
+
+
+}}}
 
 #endif /* FLTL_STL_GRAMMAR_HPP_ */

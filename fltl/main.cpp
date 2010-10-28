@@ -39,20 +39,27 @@ int main(void) {
 
     using namespace mpl::query;
     using namespace mpl::query::var;
-    using namespace stl::grammar::query;
 
     //using namespace mpl::query::op;
 
     typedef lib::ContextFreeGrammar<term_t, non_term_t> cfg_t;
 
     cfg_t grammar;
-    //mpl::expr::Variable<term_t> term;
 
-    from<cfg_t>::with<non_term_t, non_term_t, term_t>::where(
-        (_1 ->* (_2 & _1)) || (_1 ->* _2)
+    Let<non_term_t, 0> V0("V0");
+    Let<non_term_t, 1> V1("V1");
+    Let<term_t, 2> alpha("alpha");
+    Let<term_t, 3> beta("beta");
+
+    // notes:
+    //      - LHS and RHS of ->* bind variables
+    //      - invalid:  (_0 != _1 && (_0 ->* (_1 & _2))) because _0 and _1
+    //        are not bound until ->*.
+    from<cfg_t>::where(
+        ((V0 ->* (alpha * beta)) >> (V0 ->* beta)) && (V1 ->* alpha)
     );
 
-    std::cout << mpl::Sequence<mpl::Unit>::Length::VALUE << '\n';
+
 
     //context_free_grammar_t::RuntimeProductionBuilder builder;
 
