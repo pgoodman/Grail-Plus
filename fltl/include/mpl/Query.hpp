@@ -11,13 +11,41 @@
 
 #include <cstdlib>
 
+#include "fltl/include/mpl/Expr.hpp"
+#include "fltl/include/mpl/Static.hpp"
+
+namespace fltl { namespace mpl {
+
+    /// forward-declaration
+    template <typename DataStructureT>
+    class Query;
+
+    template <typename DataStructureT, typename BuilderT>
+    class QueryBuilder {
+    public:
+    };
+
+
+    /// query builder. expects DataStructureT::builder_type to exist. This
+    /// is so that the query builder can more easily be specialized, but also
+    /// so that
+    template <typename DataStructureT>
+    QueryBuilder<typename DataStructureT::builder_type>
+    query(const DataStructureT &) throw() {
+        typedef typename DataStructureT::builder_type builder_type;
+        return Static<QueryBuilder<DataStructureT, builder_type> >::VALUE;
+    }
+
+}}
+
+#if 0
+
 #include "fltl/include/preprocessor/CATENATE.hpp"
 #include "fltl/include/preprocessor/ENUMERATE_VALUE_PARAMS.hpp"
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 #include "fltl/include/preprocessor/STATIC_ASSERT.hpp"
 #include "fltl/include/preprocessor/TEMPLATE_VARIABLE_LIMIT.hpp"
 
-#include "fltl/include/mpl/Expr.hpp"
 #include "fltl/include/mpl/Sequence.hpp"
 #include "fltl/include/mpl/Unit.hpp"
 
@@ -40,7 +68,7 @@ namespace {
     template <typename ExprT>
     class QueryExtractExpr : public ExprT {
     public:
-        typedef ExprT type_t;
+        typedef ExprT type;
     };
 
     template <>
@@ -53,8 +81,8 @@ namespace {
 
 namespace fltl { namespace mpl {
 
-    /// variables available for use in queries. Note: the types of the
-    /// variables are opaque to the outside world.
+    /// variables available for use in queries. Variables are tagged
+    /// expressions where the id of the variable is contained in its type.
     namespace query {
 
         enum {
@@ -64,8 +92,8 @@ namespace fltl { namespace mpl {
         namespace {
 
             /// private place to store the names of variables. this exists
-            /// so that we can name variables so that debugging what the
-            /// query builder is doing is simpler.
+            /// so that we can name variables; makes debugging queries
+            /// simpler.
             const char *VARIABLE_NAME[NUM_VARIABLES] = {""};
         }
 
@@ -92,24 +120,60 @@ namespace fltl { namespace mpl {
 
             /// binding environment type for query variables. This contains
             /// the set of bound variables.
-            template <const unsigned bound_vars=0>
+            template <const int bound_vars=0>
             class BindingEnvironment {
             public:
 
+                enum {
+                    BOUND_VARS = bound_vars
+                };
+
                 /// bind a variable, resulting in a new binding environment
-                template <typename VarT>
-                class Bind : public BindingEnvironment<
-                    bound_vars | VarT::ID
-                > { };
+                template <const int var_id>
+                class Bind {
+                public:
+                    typedef BindingEnvironment<
+                        bound_vars | (1 << var_id)
+                    > type;
+                };
+
+                /// intersection of two binding environments
+                template <typename OtherEnvT>
+                class Intersect {
+                public:
+                    typedef BindingEnvironment<
+                        bound_vars & OtherEnvT::BOUND_VARS
+                    > type;
+                };
+
+                /// union of two binding environments
+                template <typename OtherEnvT>
+                class Union {
+                public:
+                    typedef BindingEnvironment<
+                        bound_vars | OtherEnvT::BOUND_VARS
+                    > type;
+                };
 
                 /// check if a variable is bound
-                template <typename VarT>
+                template <const int var_id>
                 class Contains {
                 public:
                     enum {
-                        VALUE = (0 == (VarT::ID & bound_vars)) ? 0 : 1
+                        RESULT = (0 == ((1 << var_id) & bound_vars)) ? 0 : 1
                     };
                 };
+
+                /// stream the variables
+                inline static void stream(std::ostream &os) throw() {
+                    const char *sep(", $");
+                    for(int i = 0, j = 2; i < NUM_VARIABLES; ++i) {
+                        if(0 != ((1 << i) & bound_vars)) {
+                            os << &(sep[j]) << VARIABLE_NAME[i];
+                            j = 0;
+                        }
+                    }
+                }
             };
         }
 
@@ -136,9 +200,19 @@ namespace fltl { namespace mpl {
             typename DiscriminatorT,
             typename DataStructureT,
             typename ExprT,
-            typename ExprTagT=Unit
+            typename ExprTagT
         >
-        class Filter;
+        class Filter {
+        public:
+            inline static void visit(
+                const Index<DiscriminatorT, DataStructureT> &,
+                Index<DiscriminatorT, DataStructureT> &
+            ) throw() {
+                std::cout << "[ERROR] No filter exists for sub-expression:\n\t";
+                expr::Printer<ExprT>::print();
+                std::cout << "\n\n";
+            }
+        };
 
         /// filter operation for a Unit expression
         template <typename DiscriminatorT, typename DataStructureT>
@@ -195,13 +269,15 @@ namespace fltl { namespace mpl {
                     Filter<
                         DiscriminatorT,
                         DataStructureT,
-                        typename ExprT::first_t
+                        typename ExprT::first_t,
+                        Unit
                     >::visit(index_in, index_out_0);
 
                     Filter<
                         DiscriminatorT,
                         DataStructureT,
-                        typename ExprT::second_t
+                        typename ExprT::second_t,
+                        Unit
                     >::visit(index_in, index_out_1);
 
                     Meet<DiscriminatorT, DataStructureT, ExprTagT>::visit(
@@ -212,13 +288,6 @@ namespace fltl { namespace mpl {
                 }
             };
         }
-
-        /// unpack for conjunction. this runs the two conditions and then
-        /// meets their results.
-        template <typename D0, typename D1, typename E>
-        class Filter<D0, D1, E, mpl::expr::LogicalAnd> : public FilterMeet<
-            D0, D1, E, mpl::expr::LogicalAnd
-        > { };
 
         /// unpack for disjunction. this runs the two conditions and then
         /// meets their results.
@@ -238,7 +307,7 @@ namespace fltl { namespace mpl {
             DiscriminatorT,
             DataStructureT,
             ExprT,
-            mpl::expr::ShiftRight
+            mpl::expr::LogicalAnd
         > {
         public:
             inline static void visit(
@@ -250,13 +319,15 @@ namespace fltl { namespace mpl {
                 Filter<
                     DiscriminatorT,
                     DataStructureT,
-                    typename ExprT::first_t
+                    typename ExprT::first_t,
+                    Unit
                 >::visit(index_in, index_out_0);
 
                 Filter<
                     DiscriminatorT,
                     DataStructureT,
-                    typename ExprT::second_t
+                    typename ExprT::second_t,
+                    Unit
                 >::visit(index_out_0, index_out);
             }
         };
@@ -265,7 +336,8 @@ namespace fltl { namespace mpl {
         template <
             typename DiscriminatorT,
             typename DataStructureT,
-            const int segment,
+            typename InEnvT,
+            const int state,
             typename ExprT,
             typename ExprTagT=Unit
         >
@@ -273,58 +345,54 @@ namespace fltl { namespace mpl {
 
         /// default case for syntax checker, the expression is
         /// invalid
-        template <typename D0, typename D1, const int s, typename E, typename ET>
+        template <
+            typename D0, typename D1, typename B,
+            const int s, typename E, typename ET
+        >
         class SyntaxChecker {
         public:
+
+            typedef B out_env_t;
+
             inline static bool visit(void) throw() {
+                std::cout << "[ERROR] Unsupported query operator "
+                          << ET::PRINT_NAME << " in state " << s
+                          << " with sub-expression:\n\t";
+                expr::Printer<E>::print();
+                std::cout << "\n\n";
                 return false;
             }
         };
 
         /// base case for syntax checker.
-        template <typename D0, typename D1, const int s>
-        class SyntaxChecker<D0, D1, s, Unit, Unit> {
+        template <typename D0, typename D1, typename IE, const int s>
+        class SyntaxChecker<D0, D1, IE, s, Unit, Unit> {
         public:
+            typedef IE out_env_t;
+
             inline static bool visit(void) throw() {
                 return true;
             }
         };
 
         /// expansion case for syntax checker, dispatch on the tag
-        template <typename D0, typename D1, const int s, typename E>
-        class SyntaxChecker<D0, D1, s, E, Unit> {
+        template <
+            typename D0, typename D1, typename IE,
+            const int s, typename E
+        >
+        class SyntaxChecker<D0, D1, IE, s, E, Unit> {
         public:
+
+            typedef typename SyntaxChecker<
+                D0, D1, IE, s, E, typename E::tag_t
+            >::out_env_t out_env_t;
+
             inline static bool visit(void) throw() {
-                return SyntaxChecker<D0, D1, s, E, typename E::tag_t>::visit();
+                return SyntaxChecker<
+                    D0, D1, IE, s, E, typename E::tag_t
+                >::visit();
             }
         };
-
-        namespace {
-            template <typename D0, typename D1, const int s, typename E, typename ET>
-            class BSC {
-            public:
-                inline static bool visit(void) throw() {
-                    return (
-                        SyntaxChecker<D0, D1, s, typename E::first_t>::visit()
-                     && SyntaxChecker<D0, D1, s, typename E::second_t>::visit()
-                    );
-                }
-            };
-        }
-
-        /// initial case for default query operators
-        template <typename D0, typename D1, typename E>
-        class SyntaxChecker<D0, D1, 0, E, mpl::expr::LogicalAnd>
-         : public BSC<D0,D1,0,E,mpl::expr::LogicalAnd>{ };
-
-        template <typename D0, typename D1, typename E>
-        class SyntaxChecker<D0, D1, 0, E, mpl::expr::LogicalOr>
-         : public BSC<D0,D1,0,E,mpl::expr::LogicalOr>{ };
-
-        template <typename D0, typename D1, typename E>
-        class SyntaxChecker<D0, D1, 0, E, mpl::expr::DerefByPtr>
-         : public BSC<D0,D1,0,E,mpl::expr::LogicalAnd>{ };
-
     }
 
     /// base query type for an arbitrary data stucture. it is the programmers
@@ -340,25 +408,36 @@ namespace fltl { namespace mpl {
 
         /// build up the predicates of this query. all we need is the
         /// type information stored inside of PredicateExprT.
-        //template <typename TagT, typename ExprLT, typename ExprRT>
         template <typename ExprT>
         static void where(ExprT) throw() {
 
             typedef DataStructureT ds_t;
             typedef typename ds_t::query_discriminator_t ds_id_t;
 
-            // print out the expression tree
-            expr::Printer<ExprT>::print();
-            std::cout << '\n';
+            // check syntax
+            const bool has_error = !mpl::query::SyntaxChecker<
+                ds_id_t,
+                ds_t,
+                mpl::query::var::BindingEnvironment<>,
+                0,
+                ExprT,
+                Unit
+            >::visit();
 
-            if(!mpl::query::SyntaxChecker<ds_id_t, ds_t, 0, ExprT>::visit()) {
-
-                exit(EXIT_FAILURE);
-
+            // print out the expression tree if a syntax error was detected
+            if(has_error) {
+                std::cout << "[NOTE] Expression tree for query is:\n\t";
+                expr::Printer<ExprT>::print();
+                std::cout << "\n\n";
             } else {
+
+                // go figure out what variables are used
+
+
+                // filter results
                 mpl::query::Index<ds_id_t, ds_t> index_in;
                 mpl::query::Index<ds_id_t, ds_t> results;
-                mpl::query::Filter<ds_id_t, ds_t, ExprT>::visit(
+                mpl::query::Filter<ds_id_t, ds_t, ExprT, Unit>::visit(
                     index_in,
                     results
                 );
@@ -387,6 +466,41 @@ namespace fltl { namespace mpl {
 }}
 
 #if 0
+
+/// unpack for conjunction. this runs the two conditions and then
+/// meets their results.
+/*template <typename D0, typename D1, typename E>
+class Filter<D0, D1, E, mpl::expr::LogicalAnd> : public FilterMeet<
+    D0, D1, E, mpl::expr::LogicalAnd
+> { };*/
+
+#if 0
+        namespace {
+            template <typename D0, typename D1, const int s, typename E, typename ET>
+            class BSC {
+            public:
+                inline static bool visit(void) throw() {
+                    return (
+                        SyntaxChecker<D0, D1, s, typename E::first_t>::visit()
+                     && SyntaxChecker<D0, D1, s, typename E::second_t>::visit()
+                    );
+                }
+            };
+        }
+
+        /// initial case for default query operators
+        template <typename D0, typename D1, typename E>
+        class SyntaxChecker<D0, D1, 0, E, mpl::expr::LogicalAnd>
+         : public BSC<D0,D1,0,E,mpl::expr::LogicalAnd>{ };
+
+        template <typename D0, typename D1, typename E>
+        class SyntaxChecker<D0, D1, 0, E, mpl::expr::LogicalOr>
+         : public BSC<D0,D1,0,E,mpl::expr::LogicalOr>{ };
+
+        template <typename D0, typename D1, typename E>
+        class SyntaxChecker<D0, D1, 0, E, mpl::expr::ShiftRight>
+         : public BSC<D0,D1,0,E,mpl::expr::ShiftRight>{ };
+#endif
 
 #if 0
 #define FLTL_QUERY_MAKE_VAR(n, ret) \
@@ -563,6 +677,7 @@ namespace fltl { namespace mpl {
                 )
             };
         };
+#endif
 #endif
 
 #endif /* FLTL_MPL_QUERY_HPP_ */

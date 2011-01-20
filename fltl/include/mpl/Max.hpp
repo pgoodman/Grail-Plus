@@ -26,11 +26,11 @@
 
 /// the fold function for computing the max value of N numbers by computing
 /// the value one pair at a time.
-#define FLTL_MAX_OF_2(n, _, rest) (Max2<v ## n, rest>::VALUE)
+#define FLTL_MAX_OF_2(n, _, rest) (detail::Max2<v ## n, rest>::VALUE)
 
 namespace fltl { namespace mpl {
 
-    namespace {
+    namespace detail {
 
         /// compute the maximum of two values at compile time.
         template <const std::size_t v0, const std::size_t v1>

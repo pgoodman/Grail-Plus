@@ -9,20 +9,18 @@
 #ifndef FLTL_ADDREFERENCE_HPP_
 #define FLTL_ADDREFERENCE_HPP_
 
-#include "fltl/include/trait/StaticOnly.hpp"
-
 namespace fltl { namespace mpl {
 
     template <typename T>
-    class AddReference : private trait::StaticOnly {
+    class AddReference  {
     public:
-        typedef T &type_t;
+        typedef T &type;
     };
 
     template <typename T>
-    class AddReference<T &> : private trait::StaticOnly {
+    class AddReference<T &> {
     public:
-        typedef T &type_t;
+        typedef T &type;
     };
 }}
 

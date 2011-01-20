@@ -19,13 +19,14 @@
 #include "fltl/include/mpl/Unit.hpp"
 #include "fltl/include/mpl/Sequence.hpp"
 #include "fltl/include/mpl/SizeOf.hpp"
-#include "fltl/include/mpl/VarArgPromotion.hpp"
+
+#include "fltl/include/helper/VarArgPromotion.hpp"
 
 #include "fltl/include/trait/Uncopyable.hpp"
 
 #define FLTL_TUPLE_TYPENAME_DEFAULT_LIST \
     typename T0 \
-    FLTL_ENUMERATE_VALUE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= TupleUnit)
+    FLTL_ENUMERATE_VALUE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,T,typename,= mpl::Unit)
 
 #define FLTL_TUPLE_TYPENAME_LIST \
     typename T0 FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT, typename T)
@@ -34,46 +35,20 @@
     T0 FLTL_ENUMERATE_PARAMS(FLTL_TEMPLATE_VARIABLE_LIMIT,T)
 
 #define FLTL_TUPLE_BEFRIEND_PRINTER(n, _) \
-    friend class TuplePrintStorage<n, self_t>;
+    friend class detail::TuplePrintStorage<n, self_type>;
 
 #define FLTL_TUPLE_PADDING_TYPE_METHODS \
     TuplePaddedType(void) : value() { } \
-    TuplePaddedType(const self_t &other) : value(other.value) { } \
-    self_t &operator=(const self_t &other) { \
+    TuplePaddedType(const self_type &other) : value(other.value) { } \
+    self_type &operator=(const self_type &other) { \
         value = other.value; \
         return *this; \
     } \
 
 #define FLTL_TUPLE_INITIALIZE_NTH(n, var) \
-    case n: Assign<T ## n, typename mpl::VarArgPromotion<T ## n>::type_t, n>::apply(*this, var); break;
+    case n: Assign<T ## n, typename helper::VarArgPromotion<T ## n>::type, n>::apply(*this, var); break;
 
-namespace fltl {
-
-    namespace {
-
-        /// hidden unit type that cannot be used outside of this module.
-        class TupleUnit : private trait::Uncopyable {
-        private:
-            TupleUnit(void) { }
-        };
-    }
-
-    namespace mpl {
-
-        /// size of the hidden tuple unit type; this makes it so that
-        /// Sequence::Length won't count TupleUnit towards the length of a
-        /// type sequence.
-        template <>
-        class SizeOf<TupleUnit> {
-        public:
-            enum {
-                VALUE = 0
-            };
-        };
-    }
-}
-
-namespace fltl { namespace stl {
+namespace fltl { namespace lib {
 
     /// forward-declaration of tuple type. the tuple type contains one of
     /// each of the types T0, ..., TN. All types in the tuple are expected
@@ -88,7 +63,7 @@ namespace fltl { namespace stl {
     template <FLTL_TUPLE_TYPENAME_DEFAULT_LIST>
     class Tuple;
 
-    namespace {
+    namespace detail {
 
         enum {
             TUPLE_ALIGN_BYTE_LEN = sizeof(unsigned)
@@ -108,7 +83,7 @@ namespace fltl { namespace stl {
         template <typename T>
         class TuplePaddedType<T, true> {
         public:
-            typedef TuplePaddedType<T, true> self_t;
+            typedef TuplePaddedType<T, true> self_type;
             T value;
 
             FLTL_TUPLE_PADDING_TYPE_METHODS
@@ -117,7 +92,7 @@ namespace fltl { namespace stl {
         template <typename T>
         class TuplePaddedType<T, false> {
         public:
-            typedef TuplePaddedType<T, true> self_t;
+            typedef TuplePaddedType<T, true> self_type;
             T value;
 
             char padding[TUPLE_ALIGN_BYTE_LEN - (
@@ -146,7 +121,7 @@ namespace fltl { namespace stl {
         public:
             enum {
                 VALUE = (TupleSizeOf<
-                    typename SequenceType::template At<i - 1>::type_t
+                    typename SequenceType::template At<i - 1>::type
                 >::VALUE + TupleOffsetOf<i - 1, SequenceType>::VALUE)
             };
         };
@@ -171,7 +146,7 @@ namespace fltl { namespace stl {
         };
 
         template <typename TupleType, const unsigned i>
-        class TupleTypePrinter<TupleUnit, TupleType, i> {
+        class TupleTypePrinter<mpl::Unit, TupleType, i> {
         public:
             inline static void apply(std::ostream &, const TupleType &) { }
         };
@@ -187,12 +162,12 @@ namespace fltl { namespace stl {
                 TuplePrintStorage<i - 1, TupleType>::apply(os, tuple);
 
                 // the type of the value to be printed
-                typedef typename TupleType::sequence_t::template At<
+                typedef typename TupleType::sequence_type::template At<
                     i
-                >::type_t value_t;
+                >::type value_type;
 
                 // print the value
-                TupleTypePrinter<value_t, TupleType, i>::apply(os, tuple);
+                TupleTypePrinter<value_type, TupleType, i>::apply(os, tuple);
             }
         };
 
@@ -216,8 +191,8 @@ namespace fltl { namespace stl {
     public:
 
         /// basic useful typedefs
-        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> self_t;
-        typedef mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST> sequence_t;
+        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> self_type;
+        typedef mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST> sequence_type;
 
     private:
 
@@ -232,7 +207,7 @@ namespace fltl { namespace stl {
         template <typename ArgType, typename PromotedType, const unsigned i>
         class Assign {
         public:
-            inline static void apply(self_t &tuple, va_list &args) {
+            inline static void apply(self_type &tuple, va_list &args) {
                 tuple.get<i>() = static_cast<ArgType>(
                     va_arg(args, PromotedType)
                 );
@@ -240,9 +215,9 @@ namespace fltl { namespace stl {
         };
 
         template <typename PromotedType, const unsigned i>
-        class Assign<TupleUnit, PromotedType, i> {
+        class Assign<mpl::Unit, PromotedType, i> {
         public:
-            inline static void apply(self_t &, va_list &) { }
+            inline static void apply(self_type &, va_list &) { }
         };
 
         /// define how the types are stored. storage for types T_0, T_1, ...,
@@ -254,10 +229,10 @@ namespace fltl { namespace stl {
         class Storage {
         public:
 
-            typedef Storage<PrevType,CurrType,i> self_t;
+            typedef Storage<PrevType,CurrType,i> self_type;
 
             /// first value to store
-            TuplePaddedType<
+            detail::TuplePaddedType<
                 PrevType,
                 0 == (sizeof(PrevType) % sizeof(unsigned))
             > first;
@@ -265,16 +240,16 @@ namespace fltl { namespace stl {
             /// second value to store
             Storage<
                 CurrType,
-                typename sequence_t::template At<i+1,TupleUnit>::type_t,
+                typename sequence_type::template At<i+1,mpl::Unit>::type,
                 i + 1
             > rest;
 
             /// constructors
             Storage(void) : first(), rest() { }
-            Storage(const self_t &other)
+            Storage(const self_type &other)
              : first(other.first), rest(other.rest) { }
 
-            self_t &operator=(const self_t &other) {
+            self_type &operator=(const self_type &other) {
                 first = other.first;
                 rest = other.rest;
                 return *this;
@@ -283,22 +258,22 @@ namespace fltl { namespace stl {
 
         /// base case of induction for the storage type
         template <typename PrevType, const unsigned i>
-        class Storage<PrevType, TupleUnit, i> {
+        class Storage<PrevType, mpl::Unit, i> {
         public:
 
-            typedef Storage<PrevType, TupleUnit, i> self_t;
+            typedef Storage<PrevType, mpl::Unit, i> self_type;
 
-            TuplePaddedType<
+            detail::TuplePaddedType<
                 PrevType,
                 0 == (sizeof(PrevType) % sizeof(unsigned))
             > first;
 
             /// constructors
             Storage(void) : first() { }
-            Storage(const self_t &other)
+            Storage(const self_type &other)
              : first(other.first) { }
 
-            self_t &operator=(const self_t &other) {
+            self_type &operator=(const self_type &other) {
                 first = other.first;
                 return *this;
             }
@@ -313,7 +288,7 @@ namespace fltl { namespace stl {
         Tuple(void) : storage() { }
 
         /// copy constructor, recursively copies.
-        Tuple(const self_t &other) : storage(other.storage) { }
+        Tuple(const self_type &other) : storage(other.storage) { }
 
         /// initial value constructor, expects *all* values to be set. if
         /// not all values are set then unsafe things can happen!
@@ -327,7 +302,7 @@ namespace fltl { namespace stl {
 
             va_list tuple_args;
             va_start(tuple_args, val0);
-            for(unsigned i(1); i < sequence_t::Length::VALUE; ++i) {
+            for(unsigned i(1); i < sequence_type::Length::VALUE; ++i) {
                 switch(i) {
                     FLTL_REPEAT_LEFT(
                         FLTL_TEMPLATE_VARIABLE_LIMIT,
@@ -342,30 +317,30 @@ namespace fltl { namespace stl {
         ~Tuple(void) { }
 
         /// copy assignment operator
-        self_t &operator=(const self_t &other) {
+        self_type &operator=(const self_type &other) {
             storage = other.storage;
             return *this;
         }
 
         /// get a reference to the element at a given index
         template <const unsigned i>
-        inline typename sequence_t::template At<i>::type_t &
+        inline typename sequence_type::template At<i>::type &
         get(void) throw() {
-            typedef typename sequence_t::template At<i>::type_t value_t;
-            return *reinterpret_cast<value_t *>(
+            typedef typename sequence_type::template At<i>::type value_type;
+            return *reinterpret_cast<value_type *>(
                 reinterpret_cast<char *>(&storage)
-              + TupleOffsetOf<i, sequence_t>::VALUE
+              + detail::TupleOffsetOf<i, sequence_type>::VALUE
             );
         }
 
         /// get a const reference to the element at a given index
         template <unsigned i>
-        inline const typename sequence_t::template At<i>::type_t &
+        inline const typename sequence_type::template At<i>::type &
         get(void) const throw() {
-            typedef typename sequence_t::template At<i>::type_t value_t;
-            return *reinterpret_cast<const value_t *>(
+            typedef typename sequence_type::template At<i>::type value_type;
+            return *reinterpret_cast<const value_type *>(
                 reinterpret_cast<const char *>(&storage)
-              + TupleOffsetOf<i, sequence_t>::VALUE
+              + detail::TupleOffsetOf<i, sequence_type>::VALUE
             );
         }
     };
@@ -376,12 +351,12 @@ namespace fltl { namespace stl {
     operator<<(std::ostream &os,
                const Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) {
 
-        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> tuple_t;
+        typedef Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> tuple_type;
 
         os << '[';
-        TuplePrintStorage<
-            tuple_t::sequence_t::Length::VALUE - 1,
-            tuple_t
+        detail::TuplePrintStorage<
+            tuple_type::sequence_type::Length::VALUE - 1,
+            tuple_type
         >::apply(os, tuple);
         return os << ']';
     }
@@ -391,7 +366,7 @@ namespace fltl { namespace stl {
     template <const unsigned i, FLTL_TUPLE_TYPENAME_LIST >
     inline
     typename mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST>::\
-    template At<i>::type_t &
+    template At<i>::type &
     get(Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }
@@ -399,7 +374,7 @@ namespace fltl { namespace stl {
     template <const unsigned i, FLTL_TUPLE_TYPENAME_LIST >
     inline
     const typename mpl::Sequence<FLTL_TUPLE_TYPE_PARAM_LIST>::\
-    template At<i>::type_t &
+    template At<i>::type &
     get(const Tuple<FLTL_TUPLE_TYPE_PARAM_LIST> &tuple) throw() {
         return tuple.template get<i>();
     }

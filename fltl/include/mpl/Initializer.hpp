@@ -12,8 +12,6 @@
 #include <cstring>
 #include <new>
 
-#include "fltl/include/trait/StaticOnly.hpp"
-
 namespace fltl { namespace mpl {
 
     /// Default initializes a value of the parameterized type, and then
@@ -24,15 +22,9 @@ namespace fltl { namespace mpl {
     ///         when the function returns and so the destructors of types that
     ///         are initialized by this function should be side-effect-free.
     template <typename T>
-    class Initializer : private trait::StaticOnly {
+    class Initializer {
     public:
         inline static T *initialize(void *memory) {
-            /*T default_value;
-            memcpy(
-                memory,
-                reinterpret_cast<void *>(&default_value),
-                sizeof(T)
-            );*/
             memset(memory, 0, sizeof(T));
             return new (memory) T;
         }

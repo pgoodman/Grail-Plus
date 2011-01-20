@@ -19,14 +19,12 @@
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 #include "fltl/include/preprocessor/UNPACK.hpp"
 
-#include "fltl/include/trait/StaticOnly.hpp"
-
 #include "fltl/include/mpl/Max.hpp"
 #include "fltl/include/mpl/SizeOf.hpp"
 #include "fltl/include/mpl/Unit.hpp"
 
 #define FLTL_SEQUENCE_COMPARE_TYPE(n, t) \
-    , SizeOf<typename SequenceTypeEq<t, T ## n >::type_t >::VALUE
+    , SizeOf<typename detail::SequenceTypeEq<t, T ## n >::type >::VALUE
 
 #define FLTL_SEQUENCE_SPEC_TYPENAME_LIST \
     typename T0 \
@@ -39,19 +37,19 @@
     template <typename InvalidType> \
     class AtImpl<n, InvalidType> { \
     public: \
-        typedef T ## n type_t; \
+        typedef T ## n type; \
     };
 
 #define FLTL_SEQUENCE_TYPE_LENGTH(n, _) \
-    + SequenceTypeLength<T ## n>::VALUE
+    + detail::SequenceTypeLength<T ## n>::VALUE
 
 #define FLTL_SEQUENCE_INSERT_TYPE(n, _) \
     typedef typename FLTL_CATENATE(base_t, FLTL_DECREMENT(n))::\
-    template Insert<T ## n>::type_t base_t ## n;
+    template Insert<T ## n>::type base_t ## n;
 
 #define FLTL_SEQUENCE_TYPE_INDEX1(n, next_n) \
     VALUE ## next_n = mpl::SizeOf< \
-        typename SequenceTypeEq<T ## n, T>::type_t \
+        typename detail::SequenceTypeEq<T ## n, T>::type \
     >::VALUE == 0 ? VALUE ## n : \
     (VALUE ## n > 0 ? VALUE ## n : next_n),
 
@@ -63,14 +61,14 @@
 
 namespace fltl { namespace mpl {
 
-    namespace {
+    namespace detail {
 
         /// type equivalence, if two types are different then this yields the
         /// unit type
         template <typename A, typename B>
         class SequenceTypeEq {
         public:
-            typedef Unit type_t;
+            typedef Unit type;
         };
 
         /// type equivalence, if two types are the same then this yields
@@ -78,7 +76,7 @@ namespace fltl { namespace mpl {
         template <typename A>
         class SequenceTypeEq<A, A> {
         public:
-            typedef A type_t;
+            typedef A type;
         };
 
         /// if we're requesting a const and the stored type might be const
@@ -86,7 +84,7 @@ namespace fltl { namespace mpl {
         template <typename A>
         class SequenceTypeEq<const A, A> {
         public:
-            typedef const A type_t;
+            typedef const A type;
         };
 
         /// const-correctness for type equivalence. if one of the types in
@@ -95,7 +93,7 @@ namespace fltl { namespace mpl {
         template <typename A>
         class SequenceTypeEq<A, const A> {
         public:
-            typedef Unit type_t;
+            typedef Unit type;
         };
 
         /// if statement for computing a type given a boolean value
@@ -105,13 +103,13 @@ namespace fltl { namespace mpl {
         template <typename IfTrue, typename IfFalse>
         class SequenceBoolIf<true, IfTrue, IfFalse> {
         public:
-            typedef IfTrue type_t;
+            typedef IfTrue type;
         };
 
         template <typename IfTrue, typename IfFalse>
         class SequenceBoolIf<false, IfTrue, IfFalse> {
         public:
-            typedef IfFalse type_t;
+            typedef IfFalse type;
         };
 
         /// determine whether or not a type contributes toward the length
@@ -128,31 +126,31 @@ namespace fltl { namespace mpl {
         template <typename Test, typename IfNotUnit, typename IfUnit>
         class SequenceTypeIf {
         public:
-            typedef IfNotUnit type_t;
+            typedef IfNotUnit type;
         };
 
         template <typename IfNotUnit, typename IfUnit>
         class SequenceTypeIf<Unit, IfNotUnit, IfUnit> {
         public:
-            typedef IfUnit type_t;
+            typedef IfUnit type;
         };
     }
 
     /// represents a sequence of types and operations on the sequence.
     ///
     /// Examples:
-    ///     Sequence<int, char, float>::Select<char>::type_t <==> char
-    ///     Sequence<int, char, float>::Select<bool>::type_t <==> Unit
+    ///     Sequence<int, char, float>::Select<char>::type <==> char
+    ///     Sequence<int, char, float>::Select<bool>::type <==> Unit
     ///
-    ///     Sequence<int, char, float>::At<1>::type_t <==> char
-    ///     Sequence<int, char, float>::At<3>::type_t <==> Unit
+    ///     Sequence<int, char, float>::At<1>::type <==> char
+    ///     Sequence<int, char, float>::At<3>::type <==> Unit
     ///
     ///     Sequence<int, char, float>::Length::VALUE <==> 3
     ///
-    ///     Sequence<int, char, float>::Insert<double>::type_t
+    ///     Sequence<int, char, float>::Insert<double>::type
     ///     <==> Sequence<double, int, char, float>
     ///
-    ///     Sequence<int, char, float>::Insert<char>::type_t
+    ///     Sequence<int, char, float>::Insert<char>::type
     ///     <==> Sequence<int, char, float>
     ///
     template<typename T0 FLTL_ENUMERATE_VALUE_PARAMS(
@@ -161,7 +159,7 @@ namespace fltl { namespace mpl {
         typename,
         = Unit
     )>
-    class Sequence : private trait::StaticOnly {
+    class Sequence {
     public:
 
         /// easy way for nested classes to access the type of the sequence.
@@ -174,11 +172,11 @@ namespace fltl { namespace mpl {
         /// length count by specializing SizeOf to have VALUE = 0, i.e. this
         /// counts all types in the sequence that the programmer considers
         /// to be able to contain values.
-        class Length : private trait::StaticOnly {
+        class Length {
         public:
             enum {
                 VALUE = (
-                    SequenceTypeLength<T0>::VALUE
+                    detail::SequenceTypeLength<T0>::VALUE
                     FLTL_REPEAT_LEFT(
                         FLTL_TEMPLATE_VARIABLE_LIMIT,
                         FLTL_SEQUENCE_TYPE_LENGTH,
@@ -193,7 +191,7 @@ namespace fltl { namespace mpl {
         /// or the unit type if it is not contained. The select operation
         /// takes constness into account.
         template <typename Q, typename InvalidType=Unit>
-        class Select : private trait::StaticOnly {
+        class Select {
         private:
 
             enum {
@@ -209,11 +207,11 @@ namespace fltl { namespace mpl {
 
         public:
 
-            typedef typename SequenceBoolIf<
+            typedef typename detail::SequenceBoolIf<
                 (MAX_TYPE_SIZE > 0),
                 Q,
                 InvalidType
-            >::type_t type_t;
+            >::type type;
 
         };
 
@@ -222,7 +220,7 @@ namespace fltl { namespace mpl {
         template <const unsigned i, typename InvalidType>
         class AtImpl {
         public:
-            typedef InvalidType type_t;
+            typedef InvalidType type;
         };
 
         /// partial specializations of AtImpl
@@ -238,20 +236,20 @@ namespace fltl { namespace mpl {
         /// get the type at a particular index. if the index provided is
         /// out of range then the Unit type is returned.
         template <const unsigned i, typename InvalidType=Unit>
-        class At : private trait::StaticOnly {
+        class At {
         public:
-            typedef typename AtImpl<i, InvalidType>::type_t type_t;
+            typedef typename AtImpl<i, InvalidType>::type type;
         };
 
         /// insert a type into the type sequence. if the type is in the
         /// sequence then the type of the inserted sequence remains the
         /// same.
         template <typename T, typename DontInsertType=Unit>
-        class Insert : private trait::StaticOnly {
+        class Insert {
         public:
 
-            typedef typename SequenceTypeIf<
-                typename self_t::template Select<T>::type_t,
+            typedef typename detail::SequenceTypeIf<
+                typename self_t::template Select<T>::type,
                 self_t,
                 Sequence<
                     T,
@@ -261,7 +259,7 @@ namespace fltl { namespace mpl {
                         T
                     )
                 >
-            >::type_t type_t;
+            >::type type;
         };
 
         /// gets this sequence type as a sort of set.
@@ -277,7 +275,7 @@ namespace fltl { namespace mpl {
 
         public:
             typedef FLTL_CATENATE(base_t, FLTL_TEMPLATE_VARIABLE_LIMIT)
-                    type_t;
+                    type;
         };
 
         /// get the index of a particular type in the sequence. If the type

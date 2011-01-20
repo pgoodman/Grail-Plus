@@ -7,7 +7,7 @@ ROOT_DIR = ./
 DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
 CXX = ${DEFAULT_CXX}
 CXX_WARN_FLAGS = -pedantic -pedantic-errors -Wall -Werror -Wextra -frtti
-CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long
+CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long -Winline -finline-functions
 CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 

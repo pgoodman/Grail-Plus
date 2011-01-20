@@ -11,16 +11,23 @@
 #include "fltl/include/mpl/Sequence.hpp"
 #include "fltl/include/mpl/SizeOf.hpp"
 #include "fltl/include/mpl/Unit.hpp"
-#include "fltl/include/mpl/Query.hpp"
+//#include "fltl/include/mpl/Query.hpp"
 #include "fltl/include/mpl/Expr.hpp"
 
 #include "fltl/include/stl/Variant.hpp"
 #include "fltl/include/stl/Tuple.hpp"
-#include "fltl/include/stl/Grammar.hpp"
+//#include "fltl/include/stl/Grammar.hpp"
 
 #include "fltl/include/trait/PolyadicOperator.hpp"
 
-#include "fltl/lib/ContextFreeGrammar.hpp"
+int main(void) {
+
+
+    return 0;
+}
+
+#if 0
+//#include "fltl/lib/ContextFreeGrammar.hpp"
 
 using namespace fltl;
 
@@ -35,13 +42,25 @@ typedef enum {
     REST
 } non_term_t;
 
+#if 1
+typedef struct { int x; } sum_t;
+typedef struct { char a; long y; } Foo;
+
+std::ostream &operator<<(std::ostream &os, const Foo &f) {
+    return os << "Foo(" << f.a << ", " << f.y << ')';
+}
+
+typedef mpl::Sequence<int, char, float>::Select<sum_t>::type select_false_t;
+typedef mpl::Sequence<int, char, float>::Select<float>::type select_true_t;
+#endif
+
 int main(void) {
 
     using namespace mpl::query;
     using namespace mpl::query::var;
 
     //using namespace mpl::query::op;
-
+    /*
     typedef lib::ContextFreeGrammar<term_t, non_term_t> cfg_t;
 
     cfg_t grammar;
@@ -50,39 +69,37 @@ int main(void) {
     Let<non_term_t, 1> V1("V1");
     Let<term_t, 2> alpha("alpha");
     Let<term_t, 3> beta("beta");
+    */
+    /*
+    in<cfg_t>::where(
+        fix<cfg_t>(alpha, beta) [
+            (V0 ->* (alpha * beta))
+         && (V0 ->* beta)
+         && (V0 ->* alpha)
+        ]
+    );*/
 
-    // notes:
-    //      - LHS and RHS of ->* bind variables
-    //      - invalid:  (_0 != _1 && (_0 ->* (_1 & _2))) because _0 and _1
-    //        are not bound until ->*.
-    from<cfg_t>::where(
-        ((V0 ->* (alpha * beta)) >> (V0 ->* beta)) && (V1 ->* alpha)
-    );
-
-
-
-    //context_free_grammar_t::RuntimeProductionBuilder builder;
-
-    //grammar.addProduction(EPSILON);
+    //from<cfg_t>::where(V0 ->* (alpha + beta) && V0 ->* beta);
 
     //(void) builder;
-    (void) grammar;
-
-    std::cout << "sizeof cfg_t: " << sizeof(cfg_t) << '\n';
-
-#if 0
+    //(void) grammar;
+#if 1
+    std::cout << "sizeof vector<char>: " << sizeof(std::vector<char>) << '\n';
+    std::cout << "sizeof tuple<char, char>: " << sizeof(stl::Tuple<char, char>) << '\n';
+    //std::cout << "sizeof cfg_t: " << sizeof(cfg_t) << '\n';
+#endif
+#if 1
     stl::Variant<char, int> number('f');
     number = 10;
     number = -10;
     number = 'g';
 
-    (void) grammar;
+    //(void) grammar;
     (void) number;
 
     number = (unsigned char) 10;
 
-    typedef mpl::Sequence<int, char, float>::Select<sum_t>::type_t select_false_t;
-    typedef mpl::Sequence<int, char, float>::Select<float>::type_t select_true_t;
+
 
     std::cout << "sizeof sum_t: " << sizeof(sum_t) << '\n'
               << "sizeof sum_t *: " << sizeof(sum_t *) << '\n'
@@ -122,3 +139,4 @@ int main(void) {
 #endif
     return 0;
 }
+#endif

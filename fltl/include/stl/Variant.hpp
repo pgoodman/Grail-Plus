@@ -124,7 +124,7 @@
     template <typename Q> \
     class StreamType<Q, VariantUnit ## n> { \
     public: \
-        typedef const char type_t; \
+        typedef const char type; \
     };
 
 #define FLTL_VARIANT_STREAM_SWITCH(n, ss) \
@@ -173,7 +173,7 @@ namespace fltl {
     }
 }
 
-namespace fltl { namespace stl {
+namespace fltl { namespace lib {
 
     /// forward declaration of sum type
     template <typename T0 \
@@ -310,7 +310,7 @@ namespace fltl { namespace stl {
         class ExtractType {
         public:
             typedef mpl::Sequence<FLTL_VARIANT_TYPE_PARAM_LIST> sequence_t;
-            typedef typename sequence_t::template Select<Q>::type_t type_t;
+            typedef typename sequence_t::template Select<Q>::type type;
         };
 
         /// create a mapping between types
@@ -338,7 +338,7 @@ namespace fltl { namespace stl {
         template <typename Q, typename A>
         class StreamType {
         public:
-            typedef const A type_t;
+            typedef const A type;
         };
 
         /// create default mappings for the unit types to pass through input
@@ -351,9 +351,9 @@ namespace fltl { namespace stl {
 
         /// get a reference to a value in the sum
         template <typename Q>
-        typename StreamType<Q, Q>::type_t &streamGet(void) const throw() {
+        typename StreamType<Q, Q>::type &streamGet(void) const throw() {
             return *reinterpret_cast<
-                typename StreamType<Q, Q>::type_t *
+                typename StreamType<Q, Q>::type *
             >(&storage);
         }
 
@@ -379,7 +379,7 @@ namespace fltl { namespace stl {
         Q &get(void) throw() {
             assert(hasType<Q>());
             return *reinterpret_cast<
-                typename ExtractType<Q>::type_t *
+                typename ExtractType<Q>::type *
             >(&storage);
         }
 
@@ -388,7 +388,7 @@ namespace fltl { namespace stl {
         const Q &get(void) const throw() {
             assert(hasType<Q>());
             return *reinterpret_cast<
-                typename ExtractType<Q>::type_t *
+                typename ExtractType<Q>::type *
             >(&storage);
         }
     };

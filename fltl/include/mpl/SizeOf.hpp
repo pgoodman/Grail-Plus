@@ -9,24 +9,13 @@
 #ifndef FLTL_MPL_SIZEOF_HPP_
 #define FLTL_MPL_SIZEOF_HPP_
 
+#include "fltl/include/mpl/If.hpp"
 #include "fltl/include/mpl/Unit.hpp"
 
 namespace fltl { namespace mpl {
 
-    namespace {
-        class centinel { };
-
-        template <typename T0, typename T1>
-        class SizeOfTypeEq {
-        public:
-            typedef T0 type_t;
-        };
-
-        template <typename T0>
-        class SizeOfTypeEq<T0, T0> {
-        public:
-            typedef centinel type_t;
-        };
+    namespace detail {
+        class sizeof_centinel { };
     }
 
     /// Get the byte size for a particular type. this allows us to say that
@@ -58,7 +47,7 @@ namespace fltl { namespace mpl {
 
     // set the size of the Unit type, assuming it's distinct from void.
     template <>
-    class SizeOf<SizeOfTypeEq<Unit,void>::type_t> {
+    class SizeOf<IfEqual<void,Unit,detail::sizeof_centinel,Unit>::type> {
     public:
         enum {
             VALUE = 0

@@ -19,7 +19,7 @@
 #include "fltl/include/trait/StaticOnly.hpp"
 #include "fltl/include/trait/Uncopyable.hpp"
 
-namespace fltl { namespace stl {
+namespace fltl { namespace lib {
 
     /// An allocator that allocates values of type T in chunks of size
     /// block_size. If the block allocator is unable to allocate a value
@@ -62,7 +62,7 @@ namespace fltl { namespace stl {
         Block *block_list;
 
         /// the offset of the value field in the Element class.
-        static const size_t offset_in_element = offsetof(Element, value);
+        static const unsigned offset_in_element = offsetof(Element, value);
 
     public:
 
