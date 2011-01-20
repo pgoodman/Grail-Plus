@@ -12,6 +12,8 @@
 #include "fltl/include/mpl/Static.hpp"
 #include "fltl/include/mpl/Unit.hpp"
 
+#include "fltl/include/trait/Uncopyable.hpp"
+
 #define FLTL_EXPR_MAKE_UNARY_OPERATOR(func,cls) \
     inline Expr<expr::op::cls, expr::Unary<self_type> > \
     func(void) const throw() { \
@@ -40,15 +42,16 @@ namespace fltl { namespace mpl {
 
             template <
                 typename TagT,
-                template<class, class> class VisitorT,
-                template<class, class, class> class AccumulatorT
+                template<class, class, const unsigned> class VisitorT,
+                template<class, class, class, const unsigned> class AccumulatorT,
+                const unsigned state
             >
             class Visit {
             public:
-                typedef typename VisitorT<TagT,T0>::type
+                typedef typename VisitorT<TagT,T0,state>::type
                         visited_type;
 
-                typedef typename AccumulatorT<TagT,visited_type,mpl::Unit>::type
+                typedef typename AccumulatorT<TagT,visited_type,mpl::Unit,state>::type
                         type;
             };
         };
@@ -60,21 +63,23 @@ namespace fltl { namespace mpl {
 
             template <
                 typename TagT,
-                template<class, class> class VisitorT,
-                template<class, class, class> class AccumulatorT
+                template<class, class, const unsigned> class VisitorT,
+                template<class, class, class, const unsigned> class AccumulatorT,
+                const unsigned state
             >
             class Visit {
             public:
-                typedef typename VisitorT<TagT,T0>::type
+                typedef typename VisitorT<TagT,T0,state>::type
                         visited_type0;
 
-                typedef typename VisitorT<TagT,T1>::type
+                typedef typename VisitorT<TagT,T1,state>::type
                         visited_type1;
 
                 typedef typename AccumulatorT<
                     TagT,
                     visited_type0,
-                    visited_type1
+                    visited_type1,
+                    state
                 >::type type;
             };
         };
@@ -138,7 +143,7 @@ namespace fltl { namespace mpl {
     /// expression types store meta information as a type containing their
     /// operands.
     template <typename TagT, typename MetaT>
-    class Expr {
+    class Expr : public trait::Uncopyable {
     public:
 
         typedef TagT tag_type;
@@ -158,6 +163,10 @@ namespace fltl { namespace mpl {
                 AccumulatorT
             >::type type;
         };
+
+        Expr(void) throw() : trait::Uncopyable() { }
+        Expr(const Expr<TagT,MetaT> &) throw() : trait::Uncopyable() { }
+        ~Expr(void) throw() { }
 
         FLTL_EXPR_MAKE_BINARY_OPERATOR(operator=,assign)
         FLTL_EXPR_MAKE_BINARY_OPERATOR(operator+,add)

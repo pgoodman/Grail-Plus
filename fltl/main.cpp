@@ -5,23 +5,50 @@
  *      Author: Peter Goodman
  *     Version: $Id$
  */
-
+/*
 #include <iostream>
 
 #include "fltl/include/mpl/Sequence.hpp"
 #include "fltl/include/mpl/SizeOf.hpp"
 #include "fltl/include/mpl/Unit.hpp"
 //#include "fltl/include/mpl/Query.hpp"
-#include "fltl/include/mpl/Expr.hpp"
+//#include "fltl/include/mpl/Expr.hpp"
 
-#include "fltl/include/stl/Variant.hpp"
-#include "fltl/include/stl/Tuple.hpp"
+
+//#include "fltl/include/stl/Variant.hpp"
+//#include "fltl/include/stl/Tuple.hpp"
 //#include "fltl/include/stl/Grammar.hpp"
 
 #include "fltl/include/trait/PolyadicOperator.hpp"
+*/
+
+#include "fltl/lib/CFG.hpp"
 
 int main(void) {
 
+    using fltl::lib::CFG;
+    using fltl::mpl::query;
+
+    CFG<char> cfg;
+
+    FLTL_CFG_LET_NON_TERM(var);
+    FLTL_CFG_LET_TERM(term);
+
+    CFG<char>::variable_type S(cfg.addVariable());
+    CFG<char>::terminal_type a(cfg.getTerminal('a'));
+    CFG<char>::terminal_type b(cfg.getTerminal('b'));
+    CFG<char>::terminal_type c(cfg.getTerminal('c'));
+
+    (void) S;
+    (void) a;
+    (void) b;
+    (void) c;
+    (void) var;
+    (void) term;
+
+    //cfg.addProduction[var ->* (term + var)]();
+
+    //query(cfg)[var ->* (term + var)];
 
     return 0;
 }

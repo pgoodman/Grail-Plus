@@ -14,6 +14,8 @@
 #include "fltl/include/mpl/Expr.hpp"
 #include "fltl/include/mpl/Static.hpp"
 
+#include "fltl/include/trait/Uncopyable.hpp"
+
 namespace fltl { namespace mpl {
 
     /// forward-declaration
@@ -21,19 +23,36 @@ namespace fltl { namespace mpl {
     class Query;
 
     template <typename DataStructureT, typename BuilderT>
-    class QueryBuilder {
-    public:
-    };
+    class QueryBuilder;
 
+    namespace detail {
 
-    /// query builder. expects DataStructureT::builder_type to exist. This
-    /// is so that the query builder can more easily be specialized, but also
-    /// so that
+        template <typename DataStructureT>
+        class QueryHandler {
+        private:
+
+            typedef typename DataStructureT::query_builder_tag builder_tag;
+
+            DataStructureT *data_structure;
+
+        public:
+
+            QueryHandler(DataStructureT *ds) throw()
+                : data_structure(ds)
+            { }
+
+            template <typename ExprT>
+            void operator[](const ExprT) const throw() {
+
+            }
+        };
+    }
+
+    /// make a new data structure query.
     template <typename DataStructureT>
-    QueryBuilder<typename DataStructureT::builder_type>
-    query(const DataStructureT &) throw() {
-        typedef typename DataStructureT::builder_type builder_type;
-        return Static<QueryBuilder<DataStructureT, builder_type> >::VALUE;
+    detail::QueryHandler<DataStructureT>
+    query(DataStructureT &ds) throw() {
+        return detail::QueryHandler<DataStructureT>(&ds);
     }
 
 }}

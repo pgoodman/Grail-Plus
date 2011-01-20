@@ -15,12 +15,14 @@ namespace fltl { namespace mpl {
     class AddReference  {
     public:
         typedef T &type;
+        typedef const T &const_type;
     };
 
     template <typename T>
     class AddReference<T &> {
     public:
         typedef T &type;
+        typedef const T &const_type;
     };
 }}
 
