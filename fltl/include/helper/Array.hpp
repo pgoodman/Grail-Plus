@@ -36,6 +36,7 @@ namespace fltl { namespace helper {
         typedef T value_type;
 
     private:
+
         pointer_type slots;
         size_t num_slots;
         mutable size_t num_used_slots;
@@ -134,7 +135,7 @@ namespace fltl { namespace helper {
         }
 
         /// pushBack an item to this Array
-        inline void append(const_reference_type item) throw() {
+        void append(const_reference_type item) throw() {
             const size_t old_len(num_used_slots);
             reserve(old_len + 1, true);
             setSize(old_len + 1);
@@ -154,11 +155,11 @@ namespace fltl { namespace helper {
             }
         }
 
-        /// clear out the Array, this actually just changes the length of
-        /// the Array
+        /// clear out the Array
         inline void clear(void) throw() {
             num_used_slots = 0;
             delete [] slots;
+            slots = 0;
         }
 
         /// remove an element from the Array and slide all elements that
@@ -222,7 +223,7 @@ namespace fltl { namespace helper {
 
         /// change the current length of the Array
         inline void setSize(const size_t new_len) throw() {
-            assert(new_len <= num_slots && "Can't shrink Array with setSize().");
+            assert(new_len <= num_slots && "Can't grow Array with setSize().");
             num_used_slots = new_len;
         }
 

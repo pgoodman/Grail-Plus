@@ -46,9 +46,11 @@ int main(void) {
     (void) var;
     (void) term;
 
-    //cfg.addProduction[var ->* (term + var)]();
-
-    //query(cfg)[var ->* (term + var)];
+    CFG<char>::production_builder_type buffer;
+    cfg.addProduction(S, buffer.clear() << a << S << a);
+    cfg.addProduction(S, buffer.clear() << a << S);
+    cfg.addProduction(S, buffer.clear() << a);
+    cfg.addProduction(S, buffer.clear() << a << b << c);
 
     return 0;
 }
