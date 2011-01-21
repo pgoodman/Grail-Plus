@@ -11,9 +11,6 @@
 #ifndef FLTL_PRODUCTION_HPP_
 #define FLTL_PRODUCTION_HPP_
 
-#include <cassert>
-#include <stdint.h>
-
 namespace fltl { namespace lib { namespace cfg {
 
     namespace detail {
@@ -34,6 +31,7 @@ namespace fltl { namespace lib { namespace cfg {
 
     /// production of a grammar
     /// the first element in a production is its variable.
+    /// productions are reference counted
     template <typename AlphaT>
     class Production {
     protected:
@@ -48,6 +46,9 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// hash of this production; makes for quicker comparison
         uint32_t hash;
+
+        /// reference counter for this production
+        uint32_t ref_count;
 
         /// compute the hash of a production
         /// TODO: should probably replace this with a real hash function
@@ -79,6 +80,7 @@ namespace fltl { namespace lib { namespace cfg {
         Production(void) throw()
             : next(0)
             , hash(0)
+            , ref_count(0)
         { }
 
         virtual ~Production(void) throw() {
@@ -94,13 +96,13 @@ namespace fltl { namespace lib { namespace cfg {
         get(const unsigned) const throw() = 0;
 
         /// index one of the symbols.
-        inline virtual const Symbol<AlphaT> &
+        virtual const Symbol<AlphaT> &
         operator[](const unsigned offset) const throw() {
             return get(offset);
         }
 
         /// check equivalence of two productions
-        inline virtual bool
+        virtual bool
         operator==(const self_type &that) const throw() {
             if(hash != that.hash) {
                 return false;
@@ -121,6 +123,19 @@ namespace fltl { namespace lib { namespace cfg {
 
             return true;
         }
+
+        static void hold(Production<AlphaT> *prod) throw() {
+            assert(0 != prod && "Cannot hold non-existant production.");
+            ++(prod->ref_count);
+        }
+
+        static void release(Production<AlphaT> *prod) throw() {
+            assert(0 != prod && "Cannot release non-existant production.");
+            assert(0 != prod->ref_count && "Cannot release invalid production.");
+            if(0 == --(prod->ref_count)) {
+                delete prod;
+            }
+        }
     };
 
     /// a production where all of the symbols of the production are contained
@@ -133,13 +148,14 @@ namespace fltl { namespace lib { namespace cfg {
 
     public:
 
-        StaticProduction(helper::Array<Symbol<AlphaT> > &symbol_buffer) throw()
+        StaticProduction(const Symbol<AlphaT> *symbol_buffer) throw()
             : Production<AlphaT>()
         {
-            for(unsigned i(0); i < num_symbols; ++i) {
-                symbols[i] = symbol_buffer[i];
-            }
-
+            memcpy(
+                symbols,
+                symbol_buffer,
+                sizeof(Symbol<AlphaT>) * num_symbols
+            );
             this->hash = Production<AlphaT>::get_hash(num_symbols, &(symbols[0]));
         }
 
@@ -167,15 +183,19 @@ namespace fltl { namespace lib { namespace cfg {
 
     public:
 
-        DynamicProduction(helper::Array<Symbol<AlphaT> > &symbol_buffer) throw()
+        DynamicProduction(
+            const Symbol<AlphaT> *symbol_buffer,
+            const unsigned _num_symbols
+        ) throw()
             : Production<AlphaT>()
-            , symbols(new Symbol<AlphaT>[symbol_buffer.size()])
-            , num_symbols(static_cast<unsigned>(symbol_buffer.size()))
+            , symbols(new Symbol<AlphaT>[_num_symbols])
+            , num_symbols(_num_symbols)
         {
-            for(unsigned i(0); i < num_symbols; ++i) {
-                symbols[i] = symbol_buffer[i];
-            }
-
+            memcpy(
+                symbols,
+                symbol_buffer,
+                sizeof(Symbol<AlphaT>) * _num_symbols
+            );
             this->hash = Production<AlphaT>::get_hash(num_symbols, symbols);
         }
 
@@ -194,7 +214,6 @@ namespace fltl { namespace lib { namespace cfg {
             assert(offset < num_symbols && "Access to symbol in production is out of bounds.");
             return symbols[offset];
         }
-
     };
 }}}
 

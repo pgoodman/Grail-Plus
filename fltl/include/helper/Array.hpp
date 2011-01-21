@@ -15,6 +15,8 @@
 
 #include "fltl/include/mpl/AddReference.hpp"
 
+#include "fltl/include/preprocessor/NO_INLINE.hpp"
+
 namespace fltl { namespace helper {
 
     /// base type representing some contiguous memory and those operations
@@ -64,7 +66,7 @@ namespace fltl { namespace helper {
             extend(other);
         }
 
-        virtual ~Array(void) {
+        ~Array(void) {
             if(0 != slots) {
                 delete [] slots;
                 slots = 0;
@@ -148,7 +150,7 @@ namespace fltl { namespace helper {
         }
 
         /// reverse the order of items in this Array
-        inline void reverse(void) throw() {
+        void reverse(void) throw() {
             const size_t mid = num_used_slots / 2;
             for (size_t j(0); j < mid; ++j) {
                 swap(j, num_used_slots - j - 1);
@@ -178,7 +180,7 @@ namespace fltl { namespace helper {
         }
 
         /// guarantee that this Array can scale up to a minimum length
-        void reserve(
+        FLTL_NO_INLINE void reserve(
             const size_t min_slots,
             const bool copy_old=true
         ) throw() {

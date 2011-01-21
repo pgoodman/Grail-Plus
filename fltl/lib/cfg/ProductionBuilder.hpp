@@ -13,6 +13,7 @@
 
 namespace fltl { namespace lib { namespace cfg {
 
+    /// buffer for building productions
     template <typename AlphaT>
     class ProductionBuilder : protected trait::Uncopyable {
     private:
@@ -39,7 +40,9 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         self_type &operator<<(const symbol_type &sym) throw() {
-            buffer.append(sym);
+            if(0 != sym.value) {
+                buffer.append(sym);
+            }
             return *this;
         }
     };

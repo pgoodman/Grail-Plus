@@ -52,6 +52,10 @@ int main(void) {
     cfg.addProduction(S, buffer.clear() << a);
     cfg.addProduction(S, buffer.clear() << a << b << c);
 
+    // duplicates
+    cfg.addProduction(S, buffer.clear() << a << b << c);
+    cfg.addProduction(S, buffer.clear() << a << S);
+
     return 0;
 }
 

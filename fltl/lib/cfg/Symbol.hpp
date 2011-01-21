@@ -18,14 +18,14 @@ namespace fltl { namespace lib { namespace cfg {
     class Symbol {
     protected:
 
-        int32_t value;
+        cfg::internal_sym_type value;
 
         friend class CFG<AlphaT>;
         friend class Variable<AlphaT>;
         friend class Production<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
 
-        explicit Symbol(const int32_t v) throw()
+        explicit Symbol(const cfg::internal_sym_type v) throw()
             : value(v)
         { }
 
@@ -33,11 +33,11 @@ namespace fltl { namespace lib { namespace cfg {
 
         typedef Symbol<AlphaT> self_type;
 
-        Symbol(void) throw()
+        explicit Symbol(void) throw()
             : value(0)
         { }
 
-        Symbol(const self_type &that) throw()
+        explicit Symbol(const self_type &that) throw()
             : value(that.value)
         { }
 

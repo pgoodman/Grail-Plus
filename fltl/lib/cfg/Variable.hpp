@@ -20,9 +20,30 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
 
-        int32_t id;
+        cfg::internal_sym_type id;
         Variable<AlphaT> *next;
         Production<AlphaT> *productions;
+
+        /// initialize the variable
+        void init(
+            const cfg::internal_sym_type _id,
+            Variable<AlphaT> *prev
+        ) throw() {
+            id = _id;
+            if(0 != prev) {
+                next = prev->next;
+                prev->next = this;
+            } else {
+                next = 0;
+            }
+        }
+
+        /// add a production to this variable
+        void addProduction(cfg::Production<AlphaT> *prod) throw() {
+            cfg::Production<AlphaT>::hold(prod);
+            prod->next = productions;
+            productions = prod;
+        }
 
     public:
 
@@ -40,18 +61,7 @@ namespace fltl { namespace lib { namespace cfg {
                 prod = next_prod) {
 
                 next_prod = prod->next;
-                delete prod;
-            }
-        }
-
-        /// initialize the variable
-        void init(const int32_t _id, Variable<AlphaT> *prev) {
-            id = _id;
-            if(0 != prev) {
-                next = prev->next;
-                prev->next = this;
-            } else {
-                next = 0;
+                cfg::Production<AlphaT>::release(prod);
             }
         }
 
