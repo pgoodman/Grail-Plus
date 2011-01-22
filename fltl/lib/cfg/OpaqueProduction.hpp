@@ -21,6 +21,8 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
 
         typedef OpaqueProduction<AlphaT> self_type;
+        typedef typename CFG<AlphaT>::symbol_type symbol_type;
+        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
 
         /// the internal production that this opaque type references
         Production<AlphaT> *production;
@@ -103,12 +105,12 @@ namespace fltl { namespace lib { namespace cfg {
         /// access a symbol from the production. uses 0 indexing, i.e. if we
         /// have a production of the form prod = A -> B C D then:
         ///             prod[0] <==> prod.symbol(0) <==> B.
-        inline typename CFG<AlphaT>::symbol_type
+        inline symbol_type
         operator[](const unsigned offset) const throw() {
             return symbol(offset);
         }
 
-        inline typename CFG<AlphaT>::symbol_type
+        inline symbol_type
         symbol(const unsigned offset) const throw() {
             assert(
                 0 != production &&
@@ -120,7 +122,10 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// get a slice of symbols
-
+        inline symbol_string_type
+        symbols(void) const throw() {
+            return symbol_string_type(production);
+        }
     };
 
 }}}

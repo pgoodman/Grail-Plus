@@ -149,12 +149,16 @@ namespace fltl { namespace lib {
         /// represents a production
         typedef cfg::OpaqueProduction<AlphaT> production_type;
 
+        /// string of symbols
+        typedef cfg::SymbolString<AlphaT> symbol_string_type;
+
         /// short forms
         typedef symbol_type sym_t;
         typedef production_builder_type prod_builder_t;
         typedef terminal_type term_t;
         typedef variable_type var_t;
         typedef production_type prod_t;
+        typedef symbol_string_type sym_str_t;
 
         /// constructor
         CFG(void) throw()

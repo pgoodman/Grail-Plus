@@ -60,6 +60,13 @@ int main(void) {
     printf("prod.length() = %u\n", prod.length());
     printf("prod.variable() == prod.symbol(1) = %d\n", prod.variable() == prod.symbol(1));
 
+    unsigned len(0);
+    for(unsigned i(0); i < 1000000; ++i) {
+        len += (S + a + prod.symbols() + prod.symbols() + a).length();
+    }
+
+    printf("allocated len = %u\n", len);
+
     return 0;
 }
 
