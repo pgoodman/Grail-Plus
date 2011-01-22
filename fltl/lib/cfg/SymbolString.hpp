@@ -375,6 +375,63 @@ namespace fltl { namespace lib { namespace cfg {
         inline self_type operator+(const terminal_type &sym) const throw() {
             return append_symbol(&sym);
         }
+
+        /// get a slice of symbols. gets a slice of symbols in the range
+        /// [from, from+stride[.
+        inline self_type
+        substring(const unsigned start, const unsigned stride) const throw() {
+
+            self_type ret;
+            const int len = length();
+
+            if(0 == len || 0 == stride) {
+                return ret;
+            }
+
+            assert(
+                start < len &&
+                "Substring of symbol string starts past end of string."
+            );
+
+            assert(
+                (start + stride) <= len &&
+                "Substring of symbol string is longer than string."
+            );
+
+            ret.symbols = allocate(stride);
+            memcpy(
+                ret.symbols,
+                &(unmask(symbols)[start]),
+                stride * sizeof(symbol_type)
+            );
+
+            return ret;
+        }
+
+        /// check for equality of symbol strings
+        inline bool operator==(const self_type &that) const throw() {
+            if(symbols == that.symbols) {
+                return true;
+            }
+
+            const symbol_type *this_syms = unmask(symbols);
+            const symbol_type *that_syms = unmask(that.symbols);
+            const internal_sym_type len(this_syms[STRING_LENGTH].value);
+
+            if(len != that_syms[STRING_LENGTH].value) {
+                return false;
+            }
+
+            return 0 == memcmp(
+                &(this_syms[FIRST_SYMBOL]),
+                &(that_syms[FIRST_SYMBOL]),
+                static_cast<size_t>(len) * sizeof(symbol_type)
+            );
+        }
+
+        inline bool operator!=(const self_type &that) const throw() {
+            return !(operator==(that));
+        }
     };
 
     template <typename AlphaT>

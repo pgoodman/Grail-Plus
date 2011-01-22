@@ -29,7 +29,7 @@ namespace fltl { namespace lib { namespace cfg {
         template <class, const unsigned short> friend class StaticProduction;
         friend class DynamicProduction<AlphaT>;
 
-        typedef SymbolString<AlphaT> string_type;
+        typedef SymbolString<AlphaT> symbol_string_type;
 
         explicit Symbol(const cfg::internal_sym_type v) throw()
             : value(v)
@@ -64,12 +64,12 @@ namespace fltl { namespace lib { namespace cfg {
             return (0 == value) ? 0U : 1U;
         }
 
-        string_type operator+(string_type &that) const throw() {
+        symbol_string_type operator+(symbol_string_type &that) const throw() {
             return that.prepend_symbol(this);
         }
 
-        string_type operator+(const self_type &other) const throw() {
-            string_type ret;
+        symbol_string_type operator+(const self_type &other) const throw() {
+            symbol_string_type ret;
             const unsigned this_len = length();
             const unsigned that_len = other.length();
             const unsigned total_len = this_len + that_len;
@@ -78,9 +78,11 @@ namespace fltl { namespace lib { namespace cfg {
                 return ret;
             }
 
-            ret.symbols = string_type::allocate(total_len);
-            ret.symbols[string_type::FIRST_SYMBOL].value = value;
-            ret.symbols[string_type::FIRST_SYMBOL + this_len].value = other.value;
+            ret.symbols = symbol_string_type::allocate(total_len);
+            ret.symbols[symbol_string_type::FIRST_SYMBOL].value = value;
+            ret.symbols[
+                symbol_string_type::FIRST_SYMBOL + this_len
+            ].value = other.value;
             return ret;
         }
     };

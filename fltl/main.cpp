@@ -63,6 +63,7 @@ int main(void) {
     unsigned len(0);
     for(unsigned i(0); i < 1000000; ++i) {
         len += (S + a + prod.symbols() + prod.symbols() + a).length();
+        len += (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
     }
 
     printf("allocated len = %u\n", len);
