@@ -7,14 +7,14 @@ ROOT_DIR = ./
 DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
 CXX = ${DEFAULT_CXX}
 CXX_WARN_FLAGS = -pedantic -pedantic-errors -Wall -Werror -Wextra -fno-exceptions
-CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long -Winline -finline-functions
+CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long #-Winline -finline-functions
 CXX_WARN_FLAGS += -fno-rtti -Wcast-qual -Wcast-align
 CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 # are we compiling with the g++?
 ifeq (${CXX}, g++)
-	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith -Wcast-qual \
+	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith \
 				      -Wwrite-strings \
 				      -Wfloat-equal -Wconversion -Wredundant-decls \
     				  -Wvolatile-register-var -fno-stack-protector \

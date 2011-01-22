@@ -23,7 +23,11 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
         friend class Variable<AlphaT>;
         friend class Production<AlphaT>;
+        friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
+        friend class SymbolString<AlphaT>;
+        template <class, const unsigned short> friend class StaticProduction;
+        friend class DynamicProduction<AlphaT>;
 
         explicit Symbol(const cfg::internal_sym_type v) throw()
             : value(v)
@@ -33,11 +37,11 @@ namespace fltl { namespace lib { namespace cfg {
 
         typedef Symbol<AlphaT> self_type;
 
-        explicit Symbol(void) throw()
+        Symbol(void) throw()
             : value(0)
         { }
 
-        explicit Symbol(const self_type &that) throw()
+        Symbol(const self_type &that) throw()
             : value(that.value)
         { }
 

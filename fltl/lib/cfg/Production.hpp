@@ -30,25 +30,36 @@ namespace fltl { namespace lib { namespace cfg {
     template <typename> class DynamicProduction;
 
     /// production of a grammar
-    /// the first element in a production is its variable.
-    /// productions are reference counted
+    ///
+    /// Note: - the first symbol in a production is a reference counter
+    ///         and as such cannot be treated as a normal symbol. this is
+    ///         so that, from a string point of view, symbol strings and
+    ///         production symbol lists are equivalent.
+    ///
+    ///       - the second symbol is the length of the production.
     template <typename AlphaT>
     class Production {
     protected:
 
+        enum {
+            FIRST_SYMBOL_OFFSET = 2U
+        };
+
         friend class CFG<AlphaT>;
         friend class Variable<AlphaT>;
+        friend class OpaqueProduction<AlphaT>;
 
         typedef Production<AlphaT> self_type;
 
-        /// next production related to the same variable as this one
+        /// productions chain in to a doubly-linked list
+        self_type *prev;
         self_type *next;
 
         /// hash of this production; makes for quicker comparison
         uint32_t hash;
 
-        /// reference counter for this production
-        uint32_t ref_count;
+        /// variable of this production
+        typename CFG<AlphaT>::variable_type var;
 
         /// compute the hash of a production
         /// TODO: should probably replace this with a real hash function
@@ -61,7 +72,7 @@ namespace fltl { namespace lib { namespace cfg {
             Symbol<AlphaT> *curr(symbols);
             Symbol<AlphaT> *last_sym(symbols + num_symbols);
 
-            for(int32_t i(0); curr != last_sym; ++curr, ++i) {
+            for(int32_t i(1); curr != last_sym; ++curr, ++i) {
                 const float val(static_cast<float>(
                     (curr->value * i) * detail::primes[
                         i % (sizeof(detail::primes) / sizeof(int32_t))
@@ -78,33 +89,35 @@ namespace fltl { namespace lib { namespace cfg {
     public:
 
         Production(void) throw()
-            : next(0)
+            : prev(0)
+            , next(0)
             , hash(0)
-            , ref_count(0)
+            , var()
         { }
 
         virtual ~Production(void) throw() {
             hash = 0U;
+            prev = 0;
             next = 0;
         }
 
+        /// extract one of the symbols in the production. note: the first
+        /// symbol is actually a reference counter.
+        virtual const Symbol<AlphaT> &get(const unsigned) const throw() = 0;
+
         /// get the number of symbols in this production, less the 1 symbol
         /// that is the variable that this production is related to
-        virtual unsigned length(void) const throw() = 0;
-
-        virtual const Symbol<AlphaT> &
-        get(const unsigned) const throw() = 0;
-
-        /// index one of the symbols.
-        virtual const Symbol<AlphaT> &
-        operator[](const unsigned offset) const throw() {
-            return get(offset);
+        virtual unsigned length(void) const throw() {
+            return static_cast<unsigned>(get(1).value);
         }
 
         /// check equivalence of two productions
-        virtual bool
-        operator==(const self_type &that) const throw() {
-            if(hash != that.hash) {
+        virtual bool is_equivalent_to(const self_type &that) const throw() {
+            if(this == &that) {
+                return true;
+            }
+
+            if(var != that.var || hash != that.hash) {
                 return false;
             }
 
@@ -124,16 +137,29 @@ namespace fltl { namespace lib { namespace cfg {
             return true;
         }
 
-        static void hold(Production<AlphaT> *prod) throw() {
-            assert(0 != prod && "Cannot hold non-existant production.");
-            ++(prod->ref_count);
+        inline static void hold(Production<AlphaT> *prod) throw() {
+            assert(
+                0 != prod &&
+                "Cannot hold non-existant production."
+            );
+
+            ++(const_cast<Symbol<AlphaT> &>(prod->get(0)).value);
         }
 
-        static void release(Production<AlphaT> *prod) throw() {
-            assert(0 != prod && "Cannot release non-existant production.");
-            assert(0 != prod->ref_count && "Cannot release invalid production.");
-            if(0 == --(prod->ref_count)) {
+        inline static void release(Production<AlphaT> *prod) throw() {
+            assert(
+                0 != prod &&
+                "Cannot release non-existant production."
+            );
+
+            assert(
+                0 != prod->get(0).value &&
+                "Cannot release invalid production."
+            );
+
+            if(0 == --(const_cast<Symbol<AlphaT> &>(prod->get(0)).value)) {
                 delete prod;
+                prod = 0;
             }
         }
     };
@@ -144,7 +170,9 @@ namespace fltl { namespace lib { namespace cfg {
     class StaticProduction : public Production<AlphaT> {
     private:
 
-        Symbol<AlphaT> symbols[num_symbols];
+        using Production<AlphaT>::FIRST_SYMBOL_OFFSET;
+
+        Symbol<AlphaT> symbols[num_symbols + FIRST_SYMBOL_OFFSET];
 
     public:
 
@@ -152,22 +180,27 @@ namespace fltl { namespace lib { namespace cfg {
             : Production<AlphaT>()
         {
             memcpy(
-                symbols,
+                &(symbols[FIRST_SYMBOL_OFFSET]),
                 symbol_buffer,
                 sizeof(Symbol<AlphaT>) * num_symbols
             );
-            this->hash = Production<AlphaT>::get_hash(num_symbols, &(symbols[0]));
+
+            symbols[1].value = static_cast<internal_sym_type>(num_symbols);
+
+            this->hash = Production<AlphaT>::get_hash(
+                num_symbols,
+                &(symbols[FIRST_SYMBOL_OFFSET])
+            );
         }
 
         virtual ~StaticProduction() throw() { }
 
-        virtual unsigned length(void) const throw() {
-            return static_cast<unsigned>(num_symbols) - 1U;
-        }
-
         virtual const Symbol<AlphaT> &
         get(const unsigned offset) const throw() {
-            assert(offset < num_symbols && "Access to symbol in production is out of bounds.");
+            assert(
+                offset < (num_symbols + FIRST_SYMBOL_OFFSET) &&
+                "Access to symbol in production is out of bounds."
+            );
             return symbols[offset];
         }
     };
@@ -177,6 +210,8 @@ namespace fltl { namespace lib { namespace cfg {
     template <typename AlphaT>
     class DynamicProduction : public Production<AlphaT> {
     private:
+
+        using Production<AlphaT>::FIRST_SYMBOL_OFFSET;
 
         Symbol<AlphaT> *symbols;
         const unsigned num_symbols;
@@ -188,15 +223,21 @@ namespace fltl { namespace lib { namespace cfg {
             const unsigned _num_symbols
         ) throw()
             : Production<AlphaT>()
-            , symbols(new Symbol<AlphaT>[_num_symbols])
+            , symbols(new Symbol<AlphaT>[_num_symbols + FIRST_SYMBOL_OFFSET])
             , num_symbols(_num_symbols)
         {
             memcpy(
-                symbols,
+                symbols + FIRST_SYMBOL_OFFSET,
                 symbol_buffer,
                 sizeof(Symbol<AlphaT>) * _num_symbols
             );
-            this->hash = Production<AlphaT>::get_hash(num_symbols, symbols);
+
+            symbols[1].value = static_cast<internal_sym_type>(num_symbols);
+
+            this->hash = Production<AlphaT>::get_hash(
+                num_symbols,
+                symbols + 2
+            );
         }
 
         virtual ~DynamicProduction(void) throw() {
@@ -204,14 +245,16 @@ namespace fltl { namespace lib { namespace cfg {
             symbols = 0;
         }
 
-        virtual unsigned length(void) const throw() {
-            return num_symbols - 1U;
-        }
-
         virtual const Symbol<AlphaT> &
         get(const unsigned offset) const throw() {
-            assert(0 != symbols && "Invalid use of already freed production.");
-            assert(offset < num_symbols && "Access to symbol in production is out of bounds.");
+            assert(
+                0 != symbols &&
+                "Invalid use of already freed production."
+            );
+            assert(
+                offset < (num_symbols + FIRST_SYMBOL_OFFSET) &&
+                "Access to symbol in production is out of bounds."
+            );
             return symbols[offset];
         }
     };

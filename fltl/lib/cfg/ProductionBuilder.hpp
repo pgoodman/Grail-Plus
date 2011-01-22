@@ -30,12 +30,12 @@ namespace fltl { namespace lib { namespace cfg {
         ProductionBuilder(void) throw()
             : buffer()
         {
-            buffer.reserve(16U);
+            buffer.reserve(32U);
             buffer.append(mpl::Static<typename CFG<AlphaT>::variable_type>::VALUE);
         }
 
         self_type &clear(void) throw() {
-            buffer.setSize(1U);
+            buffer.set_size(0U);
             return *this;
         }
 

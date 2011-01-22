@@ -22,6 +22,27 @@
 #define FLTL_DEC_10 9
 #define FLTL_DEC_11 10
 #define FLTL_DEC_12 11
+#define FLTL_DEC_13 12
+#define FLTL_DEC_14 13
+#define FLTL_DEC_15 14
+#define FLTL_DEC_16 15
+#define FLTL_DEC_17 16
+#define FLTL_DEC_18 17
+#define FLTL_DEC_19 18
+#define FLTL_DEC_20 19
+#define FLTL_DEC_21 20
+#define FLTL_DEC_22 21
+#define FLTL_DEC_23 22
+#define FLTL_DEC_24 23
+#define FLTL_DEC_25 24
+#define FLTL_DEC_26 25
+#define FLTL_DEC_27 26
+#define FLTL_DEC_28 27
+#define FLTL_DEC_29 28
+#define FLTL_DEC_30 29
+#define FLTL_DEC_31 30
+#define FLTL_DEC_32 31
+#define FLTL_DEC_33 32
 
 /// pre-processor decrement function
 #define FLTL_DECREMENT0(n) FLTL_DEC_ ## n

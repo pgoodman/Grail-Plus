@@ -34,10 +34,10 @@ int main(void) {
     FLTL_CFG_LET_NON_TERM(var);
     FLTL_CFG_LET_TERM(term);
 
-    CFG<char>::variable_type S(cfg.addVariable());
-    CFG<char>::terminal_type a(cfg.getTerminal('a'));
-    CFG<char>::terminal_type b(cfg.getTerminal('b'));
-    CFG<char>::terminal_type c(cfg.getTerminal('c'));
+    CFG<char>::variable_type S(cfg.add_variable());
+    CFG<char>::terminal_type a(cfg.get_terminal('a'));
+    CFG<char>::terminal_type b(cfg.get_terminal('b'));
+    CFG<char>::terminal_type c(cfg.get_terminal('c'));
 
     (void) S;
     (void) a;
@@ -47,14 +47,18 @@ int main(void) {
     (void) term;
 
     CFG<char>::production_builder_type buffer;
-    cfg.addProduction(S, buffer.clear() << a << S << a);
-    cfg.addProduction(S, buffer.clear() << a << S);
-    cfg.addProduction(S, buffer.clear() << a);
-    cfg.addProduction(S, buffer.clear() << a << b << c);
+    CFG<char>::prod_t prod = cfg.add_production(S, buffer.clear() << a << S << a);
+
+    cfg.add_production(S, buffer.clear() << a << S);
+    cfg.add_production(S, buffer.clear() << a);
+    cfg.add_production(S, buffer.clear() << a << b << c);
 
     // duplicates
-    cfg.addProduction(S, buffer.clear() << a << b << c);
-    cfg.addProduction(S, buffer.clear() << a << S);
+    cfg.add_production(S, buffer.clear() << a << b << c);
+    cfg.add_production(S, buffer.clear() << a << S);
+
+    printf("prod.length() = %u\n", prod.length());
+    printf("prod.variable() == prod.symbol(1) = %d\n", prod.variable() == prod.symbol(1));
 
     return 0;
 }
@@ -148,9 +152,9 @@ int main(void) {
 
     std::cout << "stream: " << number << '\n';
 
-    if(number.hasType<int>()) {
+    if(number.has_type<int>()) {
         std::cout << "it contains an int!\n";
-    } else if(number.hasType<char>()) {
+    } else if(number.has_type<char>()) {
         std::cout << "it contains a char!\n";
     }
 

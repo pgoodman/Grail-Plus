@@ -129,18 +129,18 @@ namespace fltl { namespace helper {
 
             const size_t old_len(num_used_slots);
             reserve(old_len + other.num_used_slots, true);
-            setSize(old_len + other.num_used_slots);
+            set_size(old_len + other.num_used_slots);
 
             for(size_t i(0); i < other.num_used_slots; ++i) {
                 slots[i + old_len] = other.slots[i];
             }
         }
 
-        /// pushBack an item to this Array
+        /// append an item to this Array
         void append(const_reference_type item) throw() {
             const size_t old_len(num_used_slots);
             reserve(old_len + 1, true);
-            setSize(old_len + 1);
+            set_size(old_len + 1);
             slots[old_len] = item;
         }
 
@@ -224,12 +224,12 @@ namespace fltl { namespace helper {
         }
 
         /// change the current length of the Array
-        inline void setSize(const size_t new_len) throw() {
-            assert(new_len <= num_slots && "Can't grow Array with setSize().");
+        inline void set_size(const size_t new_len) throw() {
+            assert(new_len <= num_slots && "Can't grow Array with set_size().");
             num_used_slots = new_len;
         }
 
-        inline bool isEmpty(void) const throw() {
+        inline bool is_empty(void) const throw() {
             return 0 == num_used_slots;
         }
     };

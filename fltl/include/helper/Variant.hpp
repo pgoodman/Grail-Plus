@@ -128,7 +128,7 @@
     };
 
 #define FLTL_VARIANT_STREAM_SWITCH(n, ss) \
-    case variant_t::TYPE_T ## n : ss << sum.template streamGet<T ## n>(); break;
+    case variant_t::TYPE_T ## n : ss << sum.template stream_get<T ## n>(); break;
 
 namespace fltl {
 
@@ -351,7 +351,7 @@ namespace fltl { namespace lib {
 
         /// get a reference to a value in the sum
         template <typename Q>
-        typename StreamType<Q, Q>::type &streamGet(void) const throw() {
+        typename StreamType<Q, Q>::type &stream_get(void) const throw() {
             return *reinterpret_cast<
                 typename StreamType<Q, Q>::type *
             >(&storage);
@@ -361,7 +361,7 @@ namespace fltl { namespace lib {
 
         /// check type containment
         template <typename Q>
-        bool hasType(void) const throw() {
+        bool has_type(void) const throw() {
             return type_tag == static_cast<tag_t>(FLTL_FOLD_LEFT(
                 FLTL_TEMPLATE_VARIABLE_LIMIT,
                 FLTL_VARIANT_TYPE_EXTRACT_ID,
@@ -377,7 +377,7 @@ namespace fltl { namespace lib {
         /// get a reference to a value in the sum
         template <typename Q>
         Q &get(void) throw() {
-            assert(hasType<Q>());
+            assert(has_type<Q>());
             return *reinterpret_cast<
                 typename ExtractType<Q>::type *
             >(&storage);
@@ -386,7 +386,7 @@ namespace fltl { namespace lib {
         /// get a reference to a value in the sum
         template <typename Q>
         const Q &get(void) const throw() {
-            assert(hasType<Q>());
+            assert(has_type<Q>());
             return *reinterpret_cast<
                 typename ExtractType<Q>::type *
             >(&storage);

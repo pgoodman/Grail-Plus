@@ -39,8 +39,12 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// add a production to this variable
-        void addProduction(cfg::Production<AlphaT> *prod) throw() {
+        void add_production(cfg::Production<AlphaT> *prod) throw() {
             cfg::Production<AlphaT>::hold(prod);
+            if(0 != productions) {
+                productions->prev = prod;
+            }
+            prod->prev = 0;
             prod->next = productions;
             productions = prod;
         }

@@ -23,6 +23,7 @@
 #include "fltl/include/mpl/Static.hpp"
 
 #include "fltl/include/preprocessor/NO_INLINE.hpp"
+#include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 
 #include "fltl/include/trait/Uncopyable.hpp"
 
@@ -67,7 +68,11 @@ namespace fltl { namespace lib {
         template <typename> class ProductionBuilder;
         template <typename> class Variable;
         template <typename> class Production;
+        template <typename, const unsigned short> class StaticProduction;
+        template <typename> class DynamicProduction;
         template <typename> class Symbol;
+        template <typename> class OpaqueProduction;
+        template <typename> class SymbolString;
     }
 
 }}
@@ -120,7 +125,11 @@ namespace fltl { namespace lib {
 
         /// type tag for specializing
         typedef cfg::query_builder_tag query_builder_tag;
+
+        /// arbitrary symbol (terminal, non-terminal) of a grammar
         typedef cfg::Symbol<AlphaT> symbol_type;
+
+        /// type of a production builder
         typedef cfg::ProductionBuilder<AlphaT> production_builder_type;
 
         /// represents a terminal of a grammar
@@ -137,7 +146,15 @@ namespace fltl { namespace lib {
             { }
         };
 
+        /// represents a production
+        typedef cfg::OpaqueProduction<AlphaT> production_type;
 
+        /// short forms
+        typedef symbol_type sym_t;
+        typedef production_builder_type prod_builder_t;
+        typedef terminal_type term_t;
+        typedef variable_type var_t;
+        typedef production_type prod_t;
 
         /// constructor
         CFG(void) throw()
@@ -174,7 +191,7 @@ namespace fltl { namespace lib {
         }
 
         /// add a new variable to the
-        variable_type addVariable(void) throw() {
+        variable_type add_variable(void) throw() {
             cfg::Variable<AlphaT> *var(variable_allocator.allocate());
             var->init(next_variable_id, variable_map.back());
 
@@ -189,7 +206,7 @@ namespace fltl { namespace lib {
         }
 
         /// get the terminal reference for a particular terminal.
-        terminal_type getTerminal(const AlphaT term) throw() {
+        terminal_type get_terminal(const AlphaT term) throw() {
             cfg::internal_sym_type &term_id(terminal_map_inv[term]);
 
             if(0 == term_id) {
@@ -204,7 +221,7 @@ namespace fltl { namespace lib {
         }
 
         /// add a production to the grammar
-        FLTL_NO_INLINE void addProduction(
+        FLTL_NO_INLINE production_type add_production(
             const variable_type var,
             production_builder_type &builder
         ) throw() {
@@ -212,35 +229,60 @@ namespace fltl { namespace lib {
             assert(
                 0 < var.value &&
                 var.value <= next_variable_id &&
-                "Invalid variable passed to addProduction."
+                "Invalid variable passed to add_production()."
             );
 
             cfg::Variable<AlphaT> *relation(variable_map.get(var.value));
 
             assert(
                 0 != relation &&
-                "Invalid variable passed to addProduction."
+                "Invalid variable passed to add_production()."
             );
 
-            builder.buffer.set(0U, var);
             cfg::Production<AlphaT> *prod(allocate_production(
                 &(builder.buffer.get(0)),
                 builder.buffer.size()
             ));
+
+            // set the variable of the production
+            prod->var = var;
 
             // make sure the production is unique
             for(cfg::Production<AlphaT> *related_prod(relation->productions);
                 0 != related_prod;
                 related_prod = related_prod->next) {
 
-                if(*related_prod == *prod) {
+                if(related_prod->is_equivalent_to(*prod)) {
                     delete prod;
-                    return;
+                    return production_type(related_prod);
                 }
             }
 
             // add the production in
-            relation->addProduction(prod);
+            relation->add_production(prod);
+            return production_type(prod);
+        }
+
+        /// remove a production from the grammar
+        void remove_production(production_type &_prod) throw() {
+            cfg::Production<AlphaT> *prod(_prod.production);
+            cfg::Variable<AlphaT> *var(variable_map.get(prod->get(0).value));
+
+            if(0 == prod->prev) {
+                var->productions = prod->next;
+            } else {
+                prod->prev->next = prod->next;
+            }
+
+            if(0 != prod->next) {
+                prod->next->prev = prod->prev;
+            }
+
+            prod->prev = 0;
+            prod->next = 0;
+
+            cfg::Production<AlphaT>::release(prod);
+            prod = 0;
         }
 
         /// get the variable representing the empty string, epsilon
@@ -278,6 +320,22 @@ namespace fltl { namespace lib {
             case 14: return new cfg::StaticProduction<AlphaT,14>(symbols);
             case 15: return new cfg::StaticProduction<AlphaT,15>(symbols);
             case 16: return new cfg::StaticProduction<AlphaT,16>(symbols);
+            case 17: return new cfg::StaticProduction<AlphaT,17>(symbols);
+            case 18: return new cfg::StaticProduction<AlphaT,18>(symbols);
+            case 19: return new cfg::StaticProduction<AlphaT,19>(symbols);
+            case 20: return new cfg::StaticProduction<AlphaT,20>(symbols);
+            case 21: return new cfg::StaticProduction<AlphaT,21>(symbols);
+            case 22: return new cfg::StaticProduction<AlphaT,22>(symbols);
+            case 23: return new cfg::StaticProduction<AlphaT,23>(symbols);
+            case 24: return new cfg::StaticProduction<AlphaT,24>(symbols);
+            case 25: return new cfg::StaticProduction<AlphaT,25>(symbols);
+            case 26: return new cfg::StaticProduction<AlphaT,26>(symbols);
+            case 27: return new cfg::StaticProduction<AlphaT,27>(symbols);
+            case 28: return new cfg::StaticProduction<AlphaT,28>(symbols);
+            case 29: return new cfg::StaticProduction<AlphaT,29>(symbols);
+            case 30: return new cfg::StaticProduction<AlphaT,30>(symbols);
+            case 31: return new cfg::StaticProduction<AlphaT,31>(symbols);
+            case 32: return new cfg::StaticProduction<AlphaT,32>(symbols);
             default:
                 return new cfg::DynamicProduction<AlphaT>(symbols, num_symbols);
             }
@@ -287,6 +345,8 @@ namespace fltl { namespace lib {
 }}
 
 #include "fltl/lib/cfg/ProductionBuilder.hpp"
+#include "fltl/lib/cfg/SymbolString.hpp"
+#include "fltl/lib/cfg/OpaqueProduction.hpp"
 
 namespace fltl { namespace mpl {
 
