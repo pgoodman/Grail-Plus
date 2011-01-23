@@ -69,7 +69,9 @@ namespace fltl { namespace lib { namespace cfg {
             inline static self_type **
             get_next_pointer(self_type *self) throw() {
                 return reinterpret_cast<self_type **>(
-                    reinterpret_cast<void **>(&(self->symbols[0]))
+                    reinterpret_cast<void **>(reinterpret_cast<void *>(
+                        &(self->symbols[0])
+                    ))
                 );
             }
         };
@@ -248,7 +250,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         FLTL_FORCE_INLINE internal_sym_type get_hash(void) const throw() {
             if(0 == symbols) {
-                return 2180083513;
+                return static_cast<internal_sym_type>(2180083513U);
             }
             return symbols[HASH].value;
         }

@@ -305,6 +305,7 @@ namespace fltl { namespace lib {
 #include "fltl/lib/cfg/SymbolString.hpp"
 #include "fltl/lib/cfg/OpaqueProduction.hpp"
 
+#if 0
 namespace fltl { namespace mpl {
 
     /// Classes for template variables.
@@ -319,5 +320,6 @@ namespace fltl { namespace mpl {
     };
 
 }}
+#endif
 
 #endif /* FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_ */
