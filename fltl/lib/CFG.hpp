@@ -23,7 +23,8 @@
 #include "fltl/include/mpl/Query.hpp"
 #include "fltl/include/mpl/Static.hpp"
 
-#include "fltl/include/preprocessor/NO_INLINE.hpp"
+#include "fltl/include/preprocessor/CATENATE.hpp"
+#include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 
 #include "fltl/include/trait/Uncopyable.hpp"
@@ -97,6 +98,7 @@ namespace fltl { namespace lib {
         friend class cfg::Variable<AlphaT>;
         friend class cfg::ProductionBuilder<AlphaT>;
         friend class cfg::Production<AlphaT>;
+        friend class cfg::SymbolString<AlphaT>;
 
         /// the next variable id that can be assigned, goes toward +inf
         cfg::internal_sym_type next_variable_id;
@@ -313,7 +315,6 @@ namespace fltl { namespace lib {
 #include "fltl/lib/cfg/ProductionBuilder.hpp"
 #include "fltl/lib/cfg/SymbolString.hpp"
 #include "fltl/lib/cfg/OpaqueProduction.hpp"
-
 
 namespace fltl { namespace mpl {
 

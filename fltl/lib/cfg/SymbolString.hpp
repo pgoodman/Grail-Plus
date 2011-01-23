@@ -14,29 +14,32 @@
 #define FLTL_SYMBOL_STRING_NUM_ALLOCATORS 32
 #define FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE 64U
 #define FLTL_SYMBOL_STRING_MAKE_ALLOCATOR(n, _) \
-    static helper::ListAllocator< \
+    static helper::StorageChain<helper::ListAllocator< \
         detail::SymbolArray<AlphaT, n>, \
-        &detail::SymbolArray<AlphaT, \
-        n \
-    >::get_next_pointer, FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE> alloc ## n ;
+        &detail::SymbolArray< \
+            AlphaT, \
+            n \
+        >::get_next_pointer, \
+        FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE \
+    > > alloc ## n ;
 
 #define FLTL_SYMBOL_STRING_ALLOCATE(n,_) \
-    case n: syms = (alloc ## n).allocate()->symbols; break;
+    case n: syms = (alloc ## n)->allocate()->symbols; break;
 
 #define FLTL_SYMBOL_STRING_DEALLOCATE(n,var) \
     case n: \
-        (alloc ## n).deallocate(static_cast<detail::SymbolArray<AlphaT, n> *>( \
+        (alloc ## n)->deallocate(static_cast<detail::SymbolArray<AlphaT, n> *>( \
             reinterpret_cast<void *>(var) \
         )); \
         break;
 
-#define FLTL_SYMBOL_STRING_INIT_ALLOCATOR(n,_) \
+#define FLTL_SYMBOL_STRING_INIT_ALLOCATOR(n,alloc_var) \
     template <typename AlphaT> \
-    helper::ListAllocator< \
+    helper::StorageChain<helper::ListAllocator< \
         detail::SymbolArray<AlphaT, n>, \
         &detail::SymbolArray<AlphaT, n >::get_next_pointer, \
         FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE \
-    > SymbolString<AlphaT>::alloc ## n;
+    > > SymbolString<AlphaT>::alloc ## n(alloc_var);
 
 namespace fltl { namespace lib { namespace cfg {
 
@@ -136,11 +139,11 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             // clear out the memory
-            memset(
+            /*memset(
                 &(syms[0]),
                 0,
                 sizeof(symbol_type) * (num_symbols + FIRST_SYMBOL)
-            );
+            );*/
 
             // initialize
             incref(syms);
@@ -178,20 +181,6 @@ namespace fltl { namespace lib { namespace cfg {
                 )
             default:
                 delete [] syms;
-            }
-        }
-
-        /// create a symbol string from an array of symbols
-        SymbolString(symbol_type *arr, const unsigned num_syms) throw()
-            : symbols(allocate(num_syms))
-        {
-            if(0 < num_syms) {
-                memcpy(
-                    &(symbols[FIRST_SYMBOL]),
-                    &(arr),
-                    sizeof(symbol_type) * num_syms
-                );
-                symbols[HASH].value = hash_array(arr, num_syms);
             }
         }
 
@@ -256,7 +245,7 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// very simple commutative hash function in the group Z_53
-        inline static internal_sym_type hash(
+        FLTL_FORCE_INLINE static internal_sym_type hash(
             const internal_sym_type a,
             const internal_sym_type b
         ) throw() {
@@ -276,6 +265,21 @@ namespace fltl { namespace lib { namespace cfg {
                 ihash = hash(ihash, sym->randomize());
             }
             return ihash;
+        }
+
+        /// create a symbol string from an array of symbols
+        SymbolString(symbol_type *arr, const unsigned num_syms) throw()
+            : symbols(0)
+        {
+            if(0 < num_syms) {
+                symbols = allocate(num_syms);
+                memcpy(
+                    &(symbols[FIRST_SYMBOL]),
+                    arr,
+                    sizeof(symbol_type) * num_syms
+                );
+                symbols[HASH].value = hash_array(arr, num_syms);
+            }
         }
 
     public:
@@ -504,7 +508,7 @@ namespace fltl { namespace lib { namespace cfg {
     FLTL_REPEAT_LEFT(
         FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
         FLTL_SYMBOL_STRING_INIT_ALLOCATOR,
-        void
+        CFG<AlphaT>::production_allocator
     )
 }}}
 

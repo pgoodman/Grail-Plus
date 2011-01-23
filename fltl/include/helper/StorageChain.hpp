@@ -14,12 +14,21 @@
 #include <cstring>
 #include <new>
 
+#include "fltl/include/preprocessor/FORCE_INLINE.hpp"
+
 namespace fltl { namespace helper {
 
     /// storage chain meant for static usage where the order of the call of
     /// the static destructors is significant
     ///
-    /// works by representing type T as an array of some type.
+    /// works by representing type T as an array of some type, and only
+    /// deallocating T when its predecessor in the chain has been
+    /// deallocated.
+    ///
+    /// this is not safe for use on the stack, i.e. it is safe when used
+    /// in static memory because the destructor of a storage chain might
+    /// be called multiple times, and if it were on the stack then we risk
+    /// the data changing or being marked as invalid by a tool like valgrind.
     template <typename T>
     class StorageChain {
     private:
@@ -80,7 +89,7 @@ namespace fltl { namespace helper {
             }
         }
 
-        inline T *operator->(void) throw() {
+        FLTL_FORCE_INLINE T *operator->(void) throw() {
             return reinterpret_cast<T *>(reinterpret_cast<void *>(storage));
         }
     };

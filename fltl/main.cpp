@@ -62,9 +62,13 @@ int main(void) {
 
     unsigned len(0);
     for(unsigned i(0); i < 10; ++i) {
-        len += (S + a + prod.symbols() + prod.symbols() + a).length();
-        len += (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
+        //len += (S + a + prod.symbols() + prod.symbols() + a).length();
+        //len += (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
         //len += (((S + a)) == ((S + a)));
+
+        //cfg.add_production(S, buffer.clear() << a << S);
+        //cfg.add_production(S, buffer.clear() << a);
+        cfg.add_production(S, buffer.clear() << a << b << c);
     }
 
     printf("allocated len = %u\n", len);
