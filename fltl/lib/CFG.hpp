@@ -17,6 +17,7 @@
 
 #include "fltl/include/helper/Array.hpp"
 #include "fltl/include/helper/ListAllocator.hpp"
+#include "fltl/include/helper/StorageChain.hpp"
 
 #include "fltl/include/mpl/If.hpp"
 #include "fltl/include/mpl/Query.hpp"
@@ -65,13 +66,11 @@ namespace fltl { namespace lib {
         class query_terminal_tag { };
 
         // forward declarations
-        template <typename> class ProductionBuilder;
         template <typename> class Variable;
         template <typename> class Production;
-        template <typename, const unsigned short> class StaticProduction;
-        template <typename> class DynamicProduction;
-        template <typename> class Symbol;
         template <typename> class OpaqueProduction;
+        template <typename> class ProductionBuilder;
+        template <typename> class Symbol;
         template <typename> class SymbolString;
     }
 
@@ -97,6 +96,7 @@ namespace fltl { namespace lib {
         template <typename, typename> friend class QueryBuilder;
         friend class cfg::Variable<AlphaT>;
         friend class cfg::ProductionBuilder<AlphaT>;
+        friend class cfg::Production<AlphaT>;
 
         /// the next variable id that can be assigned, goes toward +inf
         cfg::internal_sym_type next_variable_id;
@@ -116,10 +116,16 @@ namespace fltl { namespace lib {
         helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
         /// allocator for variables
-        helper::ListAllocator<
+        static helper::StorageChain<helper::ListAllocator<
             cfg::Variable<AlphaT>,
             &cfg::Variable<AlphaT>::get_next_pointer
-        > variable_allocator;
+        > > variable_allocator;
+
+        /// allocator for productions
+        static helper::StorageChain<helper::ListAllocator<
+            cfg::Production<AlphaT>,
+            &cfg::Production<AlphaT>::get_next_pointer
+        > > production_allocator;
 
     public:
 
@@ -168,7 +174,6 @@ namespace fltl { namespace lib {
             , terminal_map()
             , terminal_map_inv()
             , variable_map()
-            , variable_allocator()
         {
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
@@ -189,14 +194,14 @@ namespace fltl { namespace lib {
 
                     next_var = var->next;
                     variable_map.set(var->id, 0);
-                    variable_allocator.deallocate(var);
+                    variable_allocator->deallocate(var);
                 }
             }
         }
 
         /// add a new variable to the
         variable_type add_variable(void) throw() {
-            cfg::Variable<AlphaT> *var(variable_allocator.allocate());
+            cfg::Variable<AlphaT> *var(variable_allocator->allocate());
             var->init(next_variable_id, variable_map.back());
 
             cfg::internal_sym_type var_id(next_variable_id);
@@ -243,13 +248,9 @@ namespace fltl { namespace lib {
                 "Invalid variable passed to add_production()."
             );
 
-            cfg::Production<AlphaT> *prod(allocate_production(
-                &(builder.buffer.get(0)),
-                builder.buffer.size()
-            ));
-
-            // set the variable of the production
+            cfg::Production<AlphaT> *prod(production_allocator->allocate());
             prod->var = var;
+            prod->symbols.assign(builder.symbols());
 
             // make sure the production is unique
             for(cfg::Production<AlphaT> *related_prod(relation->productions);
@@ -257,7 +258,7 @@ namespace fltl { namespace lib {
                 related_prod = related_prod->next) {
 
                 if(related_prod->is_equivalent_to(*prod)) {
-                    delete prod;
+                    production_allocator->deallocate(prod);
                     return production_type(related_prod);
                 }
             }
@@ -293,64 +294,26 @@ namespace fltl { namespace lib {
         inline variable_type epsilon(void) const throw() {
             return mpl::Static<variable_type>::VALUE;
         }
-
-    private:
-
-        /// allocate a new production by copying the symbols from some array.
-        /// if the production is small then the symbols of the production
-        /// are allocated along with the production; otherwise the symbols
-        /// are separately heap-allocated.
-        FLTL_NO_INLINE static cfg::Production<AlphaT> *
-        allocate_production(
-            const cfg::Symbol<AlphaT> *symbols,
-            const unsigned num_symbols
-        ) throw() {
-            switch(num_symbols) {
-            case 0:
-                assert(false && "Production builder is in invalid state.");
-            case 1: return new cfg::StaticProduction<AlphaT,1>(symbols);
-            case 2: return new cfg::StaticProduction<AlphaT,2>(symbols);
-            case 3: return new cfg::StaticProduction<AlphaT,3>(symbols);
-            case 4: return new cfg::StaticProduction<AlphaT,4>(symbols);
-            case 5: return new cfg::StaticProduction<AlphaT,5>(symbols);
-            case 6: return new cfg::StaticProduction<AlphaT,6>(symbols);
-            case 7: return new cfg::StaticProduction<AlphaT,7>(symbols);
-            case 8: return new cfg::StaticProduction<AlphaT,8>(symbols);
-            case 9: return new cfg::StaticProduction<AlphaT,9>(symbols);
-            case 10: return new cfg::StaticProduction<AlphaT,10>(symbols);
-            case 11: return new cfg::StaticProduction<AlphaT,11>(symbols);
-            case 12: return new cfg::StaticProduction<AlphaT,12>(symbols);
-            case 13: return new cfg::StaticProduction<AlphaT,13>(symbols);
-            case 14: return new cfg::StaticProduction<AlphaT,14>(symbols);
-            case 15: return new cfg::StaticProduction<AlphaT,15>(symbols);
-            case 16: return new cfg::StaticProduction<AlphaT,16>(symbols);
-            case 17: return new cfg::StaticProduction<AlphaT,17>(symbols);
-            case 18: return new cfg::StaticProduction<AlphaT,18>(symbols);
-            case 19: return new cfg::StaticProduction<AlphaT,19>(symbols);
-            case 20: return new cfg::StaticProduction<AlphaT,20>(symbols);
-            case 21: return new cfg::StaticProduction<AlphaT,21>(symbols);
-            case 22: return new cfg::StaticProduction<AlphaT,22>(symbols);
-            case 23: return new cfg::StaticProduction<AlphaT,23>(symbols);
-            case 24: return new cfg::StaticProduction<AlphaT,24>(symbols);
-            case 25: return new cfg::StaticProduction<AlphaT,25>(symbols);
-            case 26: return new cfg::StaticProduction<AlphaT,26>(symbols);
-            case 27: return new cfg::StaticProduction<AlphaT,27>(symbols);
-            case 28: return new cfg::StaticProduction<AlphaT,28>(symbols);
-            case 29: return new cfg::StaticProduction<AlphaT,29>(symbols);
-            case 30: return new cfg::StaticProduction<AlphaT,30>(symbols);
-            case 31: return new cfg::StaticProduction<AlphaT,31>(symbols);
-            case 32: return new cfg::StaticProduction<AlphaT,32>(symbols);
-            default:
-                return new cfg::DynamicProduction<AlphaT>(symbols, num_symbols);
-            }
-            return 0;
-        }
     };
+
+    // initialize the static variables
+    template <typename AlphaT>
+    helper::StorageChain<helper::ListAllocator<
+        cfg::Variable<AlphaT>,
+        &cfg::Variable<AlphaT>::get_next_pointer
+    > > CFG<AlphaT>::variable_allocator;
+
+    template <typename AlphaT>
+    helper::StorageChain<helper::ListAllocator<
+        cfg::Production<AlphaT>,
+        &cfg::Production<AlphaT>::get_next_pointer
+    > > CFG<AlphaT>::production_allocator(CFG<AlphaT>::variable_allocator);
 }}
 
 #include "fltl/lib/cfg/ProductionBuilder.hpp"
 #include "fltl/lib/cfg/SymbolString.hpp"
 #include "fltl/lib/cfg/OpaqueProduction.hpp"
+
 
 namespace fltl { namespace mpl {
 

@@ -21,6 +21,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
 
         typedef OpaqueProduction<AlphaT> self_type;
+        typedef typename CFG<AlphaT>::variable_type variable_type;
         typedef typename CFG<AlphaT>::symbol_type symbol_type;
         typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
 
@@ -75,13 +76,15 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// access the variable of this production
-        inline typename CFG<AlphaT>::variable_type
+        inline variable_type
         variable(void) const throw() {
             assert(
                 0 != production &&
                 "Unable to access variable of non-existent production."
             );
-            return production->var;
+            return *reinterpret_cast<variable_type *>(
+                reinterpret_cast<void *>(&(production->var))
+            );
         }
 
         /// return the length of this production
@@ -110,21 +113,18 @@ namespace fltl { namespace lib { namespace cfg {
             return symbol(offset);
         }
 
-        inline symbol_type
+        inline const symbol_type &
         symbol(const unsigned offset) const throw() {
             assert(
                 0 != production &&
                 "Unable to access symbol of non-existent production."
             );
-            return production->get(
-                offset + Production<AlphaT>::FIRST_SYMBOL_OFFSET
-            );
+            return production->symbols.at(offset);
         }
 
         /// get a slice of symbols
-        inline symbol_string_type
-        symbols(void) const throw() {
-            return symbol_string_type(production);
+        inline symbol_string_type &symbols(void) const throw() {
+            return production->symbols;
         }
     };
 

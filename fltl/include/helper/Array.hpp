@@ -40,8 +40,8 @@ namespace fltl { namespace helper {
     private:
 
         pointer_type slots;
-        size_t num_slots;
-        mutable size_t num_used_slots;
+        unsigned num_slots;
+        mutable unsigned num_used_slots;
 
     public:
 
@@ -51,7 +51,7 @@ namespace fltl { namespace helper {
          , num_used_slots(0) { }
 
         /// basic constructor
-        Array(const size_t len) throw()
+        Array(const unsigned len) throw()
          : slots(0)
          , num_slots(0)
          , num_used_slots(0) {
@@ -76,7 +76,7 @@ namespace fltl { namespace helper {
         }
 
         /// access an element in a slot of the Array
-        inline reference_type get(const size_t offset) throw() {
+        inline reference_type get(const unsigned offset) throw() {
             assert(offset < num_slots && "Out-of-bounds get() to Array.");
             assert(0 != slots && "Array slots not allocated.");
 
@@ -87,7 +87,7 @@ namespace fltl { namespace helper {
             return slots[offset];
         }
 
-        inline reference_type operator[](const size_t offset) throw() {
+        inline reference_type operator[](const unsigned offset) throw() {
             return get(offset);
         }
 
@@ -97,7 +97,7 @@ namespace fltl { namespace helper {
         }
 
         /// update an element in a slot
-        inline void set(const size_t offset, const_reference_type item) throw() {
+        inline void set(const unsigned offset, const_reference_type item) throw() {
             assert(offset < num_used_slots && "Out-of-bounds set() to Array.");
             assert(0 != slots && "Array slots not allocated.");
 
@@ -105,7 +105,7 @@ namespace fltl { namespace helper {
         }
 
         /// swap two elements in the Array
-        inline void swap(const size_t i, const size_t j) throw() {
+        inline void swap(const unsigned i, const unsigned j) throw() {
             assert(0 != slots && "Array slots not allocated.");
             assert(i < num_used_slots && "Out-of-bounds swap() to Array.");
             assert(j < num_used_slots && "Out-of-bounds swap() to Array.");
@@ -116,7 +116,7 @@ namespace fltl { namespace helper {
         }
 
         /// get the length of the Array
-        inline size_t size(void) const throw() {
+        inline unsigned size(void) const throw() {
             return num_used_slots;
         }
 
@@ -127,18 +127,18 @@ namespace fltl { namespace helper {
                 return;
             }
 
-            const size_t old_len(num_used_slots);
+            const unsigned old_len(num_used_slots);
             reserve(old_len + other.num_used_slots, true);
             set_size(old_len + other.num_used_slots);
 
-            for(size_t i(0); i < other.num_used_slots; ++i) {
+            for(unsigned i(0); i < other.num_used_slots; ++i) {
                 slots[i + old_len] = other.slots[i];
             }
         }
 
         /// append an item to this Array
         void append(const_reference_type item) throw() {
-            const size_t old_len(num_used_slots);
+            const unsigned old_len(num_used_slots);
             reserve(old_len + 1, true);
             set_size(old_len + 1);
             slots[old_len] = item;
@@ -151,8 +151,8 @@ namespace fltl { namespace helper {
 
         /// reverse the order of items in this Array
         void reverse(void) throw() {
-            const size_t mid = num_used_slots / 2;
-            for (size_t j(0); j < mid; ++j) {
+            const unsigned mid = num_used_slots / 2;
+            for (unsigned j(0); j < mid; ++j) {
                 swap(j, num_used_slots - j - 1);
             }
         }
@@ -166,7 +166,7 @@ namespace fltl { namespace helper {
 
         /// remove an element from the Array and slide all elements that
         /// follow it back into its position
-        void remove(const size_t i) throw() {
+        void remove(const unsigned i) throw() {
             // is j in range?
             if (i >= num_used_slots) {
                 return;
@@ -174,14 +174,14 @@ namespace fltl { namespace helper {
 
             // remove T at index j
             --num_used_slots;
-            for (size_t j(i) ; j < num_used_slots; ++j) {
+            for (unsigned j(i) ; j < num_used_slots; ++j) {
                 slots[j] = slots[j + 1];
             }
         }
 
         /// guarantee that this Array can scale up to a minimum length
         FLTL_NO_INLINE void reserve(
-            const size_t min_slots,
+            const unsigned min_slots,
             const bool copy_old=true
         ) throw() {
 
@@ -189,8 +189,8 @@ namespace fltl { namespace helper {
                 return;
             }
 
-            const size_t old_num_slots(num_slots);
-            size_t new_num_slots(num_slots);
+            const unsigned old_num_slots(num_slots);
+            unsigned new_num_slots(num_slots);
 
             if(!(new_num_slots & 1)) {
                 ++new_num_slots;
@@ -211,7 +211,7 @@ namespace fltl { namespace helper {
 
             if(0 != slots) {
                 if(copy_old) {
-                    for(size_t i(0); i < old_num_slots; ++i) {
+                    for(unsigned i(0); i < old_num_slots; ++i) {
                         new_slots[i] = slots[i];
                     }
                 }
@@ -224,7 +224,7 @@ namespace fltl { namespace helper {
         }
 
         /// change the current length of the Array
-        inline void set_size(const size_t new_len) throw() {
+        inline void set_size(const unsigned new_len) throw() {
             assert(new_len <= num_slots && "Can't grow Array with set_size().");
             num_used_slots = new_len;
         }

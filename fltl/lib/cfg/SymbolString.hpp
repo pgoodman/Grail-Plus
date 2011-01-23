@@ -12,12 +12,13 @@
 #define FLTL_SYMBOLSTRING_HPP_
 
 #define FLTL_SYMBOL_STRING_NUM_ALLOCATORS 32
+#define FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE 64U
 #define FLTL_SYMBOL_STRING_MAKE_ALLOCATOR(n, _) \
     static helper::ListAllocator< \
         detail::SymbolArray<AlphaT, n>, \
         &detail::SymbolArray<AlphaT, \
         n \
-    >::get_next_pointer, 32U> alloc ## n ;
+    >::get_next_pointer, FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE> alloc ## n ;
 
 #define FLTL_SYMBOL_STRING_ALLOCATE(n,_) \
     case n: syms = (alloc ## n).allocate()->symbols; break;
@@ -34,7 +35,7 @@
     helper::ListAllocator< \
         detail::SymbolArray<AlphaT, n>, \
         &detail::SymbolArray<AlphaT, n >::get_next_pointer, \
-        32U \
+        FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE \
     > SymbolString<AlphaT>::alloc ## n;
 
 namespace fltl { namespace lib { namespace cfg {
@@ -48,12 +49,10 @@ namespace fltl { namespace lib { namespace cfg {
             typedef SymbolArray<AlphaT, num_symbols> self_type;
 
             // make sure that there's enough storage to hold a pointer; this
-            // should be captured by the +2 that accounts for the ref count
-            // and length of the string, but maybe in the future when this
-            // code is lost and forgotten, pointers will be wider than
-            // 64 bits.
+            // should be captured by the +3 that accounts for the ref count,
+            // hash, and string lengths.
             enum {
-                LEN = num_symbols + 2,
+                LEN = num_symbols + 3,
                 NUM_SLOTS = (
                     ((LEN * sizeof(unsigned)) < sizeof(self_type *))
                         ? (sizeof(self_type *) / sizeof(unsigned))
@@ -93,21 +92,16 @@ namespace fltl { namespace lib { namespace cfg {
         friend class Symbol<AlphaT>;
         friend class CFG<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
+        friend class ProductionBuilder<AlphaT>;
 
         typedef SymbolString<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
-        typedef typename CFG<AlphaT>::variable_type variable_type;
-        typedef typename CFG<AlphaT>::terminal_type terminal_type;
-
-        /// masks used to distinguish between a string from a production and
-        /// a normal string
-        static const uintptr_t SYMBOL_PTR_MASK_INV;
-        static const uintptr_t SYMBOL_PTR_MASK;
 
         enum {
             REF_COUNT = 0,
-            STRING_LENGTH = 1,
-            FIRST_SYMBOL = 2
+            HASH = 1,
+            STRING_LENGTH = 2,
+            FIRST_SYMBOL = 3
         };
 
         /// static allocators for short symbol strings
@@ -120,14 +114,6 @@ namespace fltl { namespace lib { namespace cfg {
         /// the symbols of this string
         symbol_type *symbols;
 
-        /// unmask a symbol pointer
-        inline static symbol_type *unmask(symbol_type *syms) throw() {
-            const uintptr_t masked(reinterpret_cast<uintptr_t>(syms));
-            return reinterpret_cast<symbol_type *>(
-                masked & SYMBOL_PTR_MASK
-            );
-        }
-
         /// allocate a new array of symbols and increase its reference count
         static symbol_type *
         allocate(const unsigned num_symbols) throw() {
@@ -136,6 +122,7 @@ namespace fltl { namespace lib { namespace cfg {
                 return 0;
             }
 
+            // allocate
             symbol_type *syms(0);
             switch(num_symbols) {
                 FLTL_REPEAT_LEFT(
@@ -143,9 +130,19 @@ namespace fltl { namespace lib { namespace cfg {
                     FLTL_SYMBOL_STRING_ALLOCATE,
                     void
                 )
-                default: syms = new symbol_type[num_symbols]; break;
+                default:
+                    syms = new symbol_type[num_symbols + FIRST_SYMBOL];
+                    break;
             }
 
+            // clear out the memory
+            memset(
+                &(syms[0]),
+                0,
+                sizeof(symbol_type) * (num_symbols + FIRST_SYMBOL)
+            );
+
+            // initialize
             incref(syms);
             syms[STRING_LENGTH].value = static_cast<internal_sym_type>(
                 num_symbols
@@ -156,43 +153,47 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// increase the reference count on a symbol array
         static void incref(symbol_type *syms) throw() {
-            symbol_type *unmasked_syms(unmask(syms));
-            if(0 != syms && unmasked_syms == syms) {
-                ++(unmasked_syms[REF_COUNT].value);
+            if(0 != syms) {
+                ++(syms[REF_COUNT].value);
             }
         }
 
         /// decrease the reference count on a symbol array
         static void decref(symbol_type *syms) throw() {
-            symbol_type *unmasked_syms(unmask(syms));
-
             // referencing into a production
-            if(0 == syms || unmasked_syms != syms) {
+            if(0 == syms) {
                 return;
             }
 
             // don't need to free, symbols being referenced elsewhere.
-            if(0 < --(unmasked_syms[REF_COUNT].value)) {
+            if(0 < --(syms[REF_COUNT].value)) {
                 return;
             }
 
-            switch(unmasked_syms[STRING_LENGTH].value) {
+            switch(syms[STRING_LENGTH].value) {
                 FLTL_REPEAT_LEFT(
                     FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
                     FLTL_SYMBOL_STRING_DEALLOCATE,
-                    unmasked_syms
+                    syms
                 )
             default:
-                delete [] unmasked_syms;
+                delete [] syms;
             }
         }
 
-        /// create a symbol string from a production
-        SymbolString(Production<AlphaT> *prod) throw()
-            : symbols(reinterpret_cast<symbol_type *>(
-                reinterpret_cast<uintptr_t>(&(prod->get(0))) | SYMBOL_PTR_MASK_INV
-            ))
-        { }
+        /// create a symbol string from an array of symbols
+        SymbolString(symbol_type *arr, const unsigned num_syms) throw()
+            : symbols(allocate(num_syms))
+        {
+            if(0 < num_syms) {
+                memcpy(
+                    &(symbols[FIRST_SYMBOL]),
+                    &(arr),
+                    sizeof(symbol_type) * num_syms
+                );
+                symbols[HASH].value = hash_array(arr, num_syms);
+            }
+        }
 
         /// append a symbol onto the end of this string
         inline self_type append_symbol(const symbol_type *sym) const throw() {
@@ -209,9 +210,16 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != len) {
                 memcpy(
                     &(ret.symbols[FIRST_SYMBOL]),
-                    &(unmask(symbols)[FIRST_SYMBOL]),
+                    &(symbols[FIRST_SYMBOL]),
                     sizeof(symbol_type) * len
                 );
+
+                ret.symbols[HASH].value = hash(
+                    symbols[HASH].value,
+                    sym->randomize()
+                );
+            } else {
+                ret.symbols[HASH].value = sym->randomize();
             }
 
             return ret;
@@ -232,12 +240,42 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != len) {
                 memcpy(
                     &(ret.symbols[FIRST_SYMBOL + 1U]),
-                    &(unmask(symbols)[FIRST_SYMBOL]),
+                    &(symbols[FIRST_SYMBOL]),
                     sizeof(symbol_type) * len
                 );
+
+                ret.symbols[HASH].value = hash(
+                    symbols[HASH].value,
+                    sym->randomize()
+                );
+            } else {
+                ret.symbols[HASH].value = sym->randomize();
             }
 
             return ret;
+        }
+
+        /// very simple commutative hash function in the group Z_53
+        inline static internal_sym_type hash(
+            const internal_sym_type a,
+            const internal_sym_type b
+        ) throw() {
+            return (a * b) % 3931;
+        }
+
+        /// hash an array
+        inline static internal_sym_type hash_array(
+            symbol_type *syms,
+            const unsigned num_syms
+        ) throw() {
+            internal_sym_type ihash(syms->randomize());
+            for(symbol_type *sym(syms + 1), *last(syms + num_syms);
+                sym < last;
+                ++sym) {
+
+                ihash = hash(ihash, sym->randomize());
+            }
+            return ihash;
         }
 
     public:
@@ -253,26 +291,7 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != sym.value) {
                 symbols = allocate(1U);
                 symbols[FIRST_SYMBOL] = sym;
-            }
-        }
-
-        /// constructor for a variable -> symbol string
-        explicit SymbolString(const variable_type &sym) throw()
-            : symbols(0)
-        {
-            if(0 != sym.value) {
-                symbols = allocate(1U);
-                symbols[FIRST_SYMBOL] = sym;
-            }
-        }
-
-        /// constructor for a terminal -> symbol string
-        explicit SymbolString(const terminal_type &sym) throw()
-            : symbols(0)
-        {
-            if(0 != sym.value) {
-                symbols = allocate(1U);
-                symbols[FIRST_SYMBOL] = sym;
+                symbols[HASH].value = sym.randomize();
             }
         }
 
@@ -287,6 +306,21 @@ namespace fltl { namespace lib { namespace cfg {
         ~SymbolString(void) throw() {
             decref(symbols);
             symbols = 0;
+        }
+
+        /// clear out this symbol string
+        void clear(void) throw() {
+            decref(symbols);
+            symbols = 0;
+        }
+
+        /// assign by reference contained in value
+        void assign(const self_type that) throw() {
+            if(symbols != that.symbols) {
+                decref(symbols);
+                symbols = const_cast<symbol_type *>(that.symbols);
+                incref(symbols);
+            }
         }
 
         /// assign by reference
@@ -317,9 +351,10 @@ namespace fltl { namespace lib { namespace cfg {
                 ));
 
                 symbols = allocate(str_length);
+                symbols[HASH] = that.symbols[HASH];
                 memcpy(
                     &(symbols[FIRST_SYMBOL]),
-                    &(unmask(that.symbols)[FIRST_SYMBOL]),
+                    &(that.symbols[FIRST_SYMBOL]),
                     str_length * sizeof(symbol_type)
                 );
             }
@@ -331,33 +366,42 @@ namespace fltl { namespace lib { namespace cfg {
                 return 0U;
             }
             return static_cast<unsigned>(
-                unmask(symbols)[STRING_LENGTH].value
+                symbols[STRING_LENGTH].value
             );
         }
 
         /// concatenation
-        inline self_type operator+(const self_type &other) const throw() {
+        inline self_type operator+(const self_type &that) const throw() {
 
             const unsigned len = length();
-            const unsigned other_len = other.length();
+            const unsigned other_len = that.length();
 
             self_type ret;
             ret.symbols = allocate(len + other_len);
+            if(0 != ret.symbols) {
 
-            if(0 != len) {
-                memcpy(
-                    &(ret.symbols[FIRST_SYMBOL]),
-                    &(unmask(symbols)[FIRST_SYMBOL]),
-                    sizeof(symbol_type) * len
-                );
-            }
+                internal_sym_type lhash(1);
+                internal_sym_type rhash(1);
 
-            if(0 != other_len) {
-                memcpy(
-                    &(ret.symbols[FIRST_SYMBOL + len]),
-                    &(unmask(other.symbols)[FIRST_SYMBOL]),
-                    sizeof(symbol_type) * other_len
-                );
+                if(0 != len) {
+                    memcpy(
+                        &(ret.symbols[FIRST_SYMBOL]),
+                        &(symbols[FIRST_SYMBOL]),
+                        sizeof(symbol_type) * len
+                    );
+                    lhash = symbols[HASH].value;
+                }
+
+                if(0 != other_len) {
+                    memcpy(
+                        &(ret.symbols[FIRST_SYMBOL + len]),
+                        &(that.symbols[FIRST_SYMBOL]),
+                        sizeof(symbol_type) * other_len
+                    );
+                    rhash = that.symbols[HASH].value;
+                }
+
+                ret.symbols[HASH].value = hash(lhash, rhash);
             }
 
             return ret;
@@ -365,14 +409,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// concatenate a symbol onto the end
         inline self_type operator+(const symbol_type &sym) const throw() {
-            return append_symbol(&sym);
-        }
-
-        inline self_type operator+(const variable_type &sym) const throw() {
-            return append_symbol(&sym);
-        }
-
-        inline self_type operator+(const terminal_type &sym) const throw() {
             return append_symbol(&sym);
         }
 
@@ -401,8 +437,14 @@ namespace fltl { namespace lib { namespace cfg {
             ret.symbols = allocate(stride);
             memcpy(
                 ret.symbols,
-                &(unmask(symbols)[start]),
+                &(symbols[FIRST_SYMBOL + start]),
                 stride * sizeof(symbol_type)
+            );
+
+            // hash the substring
+            ret.symbols[HASH].value = hash_array(
+                ret.symbols[FIRST_SYMBOL],
+                stride
             );
 
             return ret;
@@ -414,11 +456,12 @@ namespace fltl { namespace lib { namespace cfg {
                 return true;
             }
 
-            const symbol_type *this_syms = unmask(symbols);
-            const symbol_type *that_syms = unmask(that.symbols);
+            const symbol_type *this_syms(symbols);
+            const symbol_type *that_syms(that.symbols);
             const internal_sym_type len(this_syms[STRING_LENGTH].value);
 
-            if(len != that_syms[STRING_LENGTH].value) {
+            if(len != that_syms[STRING_LENGTH].value
+            || symbols[HASH].value != that_syms[HASH].value) {
                 return false;
             }
 
@@ -432,15 +475,31 @@ namespace fltl { namespace lib { namespace cfg {
         inline bool operator!=(const self_type &that) const throw() {
             return !(operator==(that));
         }
+
+        /// get a the symbol at a specific index
+        inline const symbol_type &at(const unsigned offset) const throw() {
+            assert(
+                0 != symbols &&
+                "Cannot access symbol in empty symbol string."
+            );
+
+            assert(
+                offset < static_cast<unsigned>(symbols[STRING_LENGTH].value) &&
+                "Symbol string index out of bounds."
+            );
+
+            return symbols[
+                FIRST_SYMBOL + static_cast<unsigned>(
+                    symbols[STRING_LENGTH].value
+                )
+            ];
+        }
+
+        inline const symbol_type &
+        operator[](const unsigned offset) const throw() {
+            return at(offset);
+        }
     };
-
-    template <typename AlphaT>
-    const uintptr_t SymbolString<AlphaT>::SYMBOL_PTR_MASK_INV(0x1U);
-
-    template <typename AlphaT>
-    const uintptr_t SymbolString<AlphaT>::SYMBOL_PTR_MASK(
-        ~SymbolString<AlphaT>::SYMBOL_PTR_MASK_INV
-    );
 
     FLTL_REPEAT_LEFT(
         FLTL_SYMBOL_STRING_NUM_ALLOCATORS,

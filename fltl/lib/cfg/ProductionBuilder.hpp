@@ -45,6 +45,13 @@ namespace fltl { namespace lib { namespace cfg {
             }
             return *this;
         }
+
+        SymbolString<AlphaT> symbols(void) throw() {
+            return SymbolString<AlphaT>(
+                &(buffer.get(0)),
+                buffer.size()
+            );
+        }
     };
 }}}
 
