@@ -94,6 +94,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class Symbol<AlphaT>;
         friend class CFG<AlphaT>;
+        friend class Production<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
 
@@ -137,13 +138,6 @@ namespace fltl { namespace lib { namespace cfg {
                     syms = new symbol_type[num_symbols + FIRST_SYMBOL];
                     break;
             }
-
-            // clear out the memory
-            /*memset(
-                &(syms[0]),
-                0,
-                sizeof(symbol_type) * (num_symbols + FIRST_SYMBOL)
-            );*/
 
             // initialize
             incref(syms);
@@ -244,12 +238,19 @@ namespace fltl { namespace lib { namespace cfg {
             return ret;
         }
 
-        /// very simple commutative hash function in the group Z_53
+        /// very simple commutative hash function in the group Z_3931
         FLTL_FORCE_INLINE static internal_sym_type hash(
             const internal_sym_type a,
             const internal_sym_type b
         ) throw() {
             return (a * b) % 3931;
+        }
+
+        FLTL_FORCE_INLINE internal_sym_type get_hash(void) const throw() {
+            if(0 == symbols) {
+                return 2180083513;
+            }
+            return symbols[HASH].value;
         }
 
         /// hash an array
@@ -499,9 +500,13 @@ namespace fltl { namespace lib { namespace cfg {
             ];
         }
 
-        inline const symbol_type &
+        FLTL_FORCE_INLINE const symbol_type &
         operator[](const unsigned offset) const throw() {
             return at(offset);
+        }
+
+        FLTL_FORCE_INLINE const bool is_empty(void) const throw() {
+            return 0 == symbols;
         }
     };
 

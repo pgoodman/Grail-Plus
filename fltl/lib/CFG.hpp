@@ -233,29 +233,29 @@ namespace fltl { namespace lib {
 
         /// add a production to the grammar
         FLTL_NO_INLINE production_type add_production(
-            const variable_type var,
+            const variable_type _var,
             production_builder_type &builder
         ) throw() {
 
             assert(
-                0 < var.value &&
-                var.value <= next_variable_id &&
+                0 < _var.value &&
+                _var.value <= next_variable_id &&
                 "Invalid variable passed to add_production()."
             );
 
-            cfg::Variable<AlphaT> *relation(variable_map.get(var.value));
+            cfg::Variable<AlphaT> *var(variable_map.get(_var.value));
 
             assert(
-                0 != relation &&
+                0 != var &&
                 "Invalid variable passed to add_production()."
             );
 
             cfg::Production<AlphaT> *prod(production_allocator->allocate());
-            prod->var = var;
+            prod->var = _var;
             prod->symbols.assign(builder.symbols());
 
             // make sure the production is unique
-            for(cfg::Production<AlphaT> *related_prod(relation->productions);
+            for(cfg::Production<AlphaT> *related_prod(var->productions);
                 0 != related_prod;
                 related_prod = related_prod->next) {
 
@@ -266,7 +266,7 @@ namespace fltl { namespace lib {
             }
 
             // add the production in
-            relation->add_production(prod);
+            var->add_production(prod);
             return production_type(prod);
         }
 
@@ -274,20 +274,9 @@ namespace fltl { namespace lib {
         void remove_production(production_type &_prod) throw() {
             cfg::Production<AlphaT> *prod(_prod.production);
             cfg::Variable<AlphaT> *var(variable_map.get(prod->get(0).value));
-
-            if(0 == prod->prev) {
-                var->productions = prod->next;
-            } else {
-                prod->prev->next = prod->next;
-            }
-
-            if(0 != prod->next) {
-                prod->next->prev = prod->prev;
-            }
-
+            var->remove_production(prod);
             prod->prev = 0;
             prod->next = 0;
-
             cfg::Production<AlphaT>::release(prod);
             prod = 0;
         }

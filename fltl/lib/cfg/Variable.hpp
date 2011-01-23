@@ -20,8 +20,13 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
 
+        /// id of this variable
         cfg::internal_sym_type id;
+
+        /// the next variable of this grammar
         Variable<AlphaT> *next;
+
+        /// the first production related to this variable
         Production<AlphaT> *productions;
 
         /// initialize the variable
@@ -47,6 +52,19 @@ namespace fltl { namespace lib { namespace cfg {
             prod->prev = 0;
             prod->next = productions;
             productions = prod;
+        }
+
+        inline void remove_production(cfg::Production<AlphaT> *prod) throw() {
+
+            if(0 == prod->prev) {
+                productions = prod->next;
+            } else {
+                prod->prev->next = prod->next;
+            }
+
+            if(0 != prod->next) {
+                prod->next->prev = prod->prev;
+            }
         }
 
     public:
