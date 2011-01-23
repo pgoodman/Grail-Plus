@@ -69,7 +69,7 @@ namespace fltl { namespace lib { namespace cfg {
             inline static self_type **
             get_next_pointer(self_type *self) throw() {
                 return reinterpret_cast<self_type **>(
-                    reinterpret_cast<void **>(reinterpret_cast<void *>(
+                    reinterpret_cast<char **>(reinterpret_cast<char *>(
                         &(self->symbols[0])
                     ))
                 );

@@ -90,7 +90,7 @@ namespace fltl { namespace helper {
         }
 
         FLTL_FORCE_INLINE T *operator->(void) throw() {
-            return reinterpret_cast<T *>(reinterpret_cast<void *>(storage));
+            return reinterpret_cast<T *>(reinterpret_cast<char *>(storage));
         }
     };
 
