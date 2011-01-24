@@ -68,11 +68,7 @@ namespace fltl { namespace lib { namespace cfg {
             // soo evil!
             inline static self_type **
             get_next_pointer(self_type *self) throw() {
-                return reinterpret_cast<self_type **>(
-                    reinterpret_cast<char **>(reinterpret_cast<char *>(
-                        &(self->symbols[0])
-                    ))
-                );
+                return mpl::unsafe_cast<self_type **>(&(self->symbols[0]));
             }
         };
     }

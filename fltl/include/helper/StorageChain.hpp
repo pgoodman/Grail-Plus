@@ -16,6 +16,8 @@
 
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
+#include "fltl/include/mpl/UnsafeCast.hpp"
+
 namespace fltl { namespace helper {
 
     /// storage chain meant for static usage where the order of the call of
@@ -90,7 +92,7 @@ namespace fltl { namespace helper {
         }
 
         FLTL_FORCE_INLINE T *operator->(void) throw() {
-            return reinterpret_cast<T *>(reinterpret_cast<char *>(storage));
+            return mpl::unsafe_cast<T *>(&(storage[0]));
         }
     };
 

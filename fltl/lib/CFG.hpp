@@ -20,6 +20,7 @@
 #include "fltl/include/helper/StorageChain.hpp"
 
 #include "fltl/include/mpl/If.hpp"
+#include "fltl/include/mpl/UnsafeCast.hpp"
 #include "fltl/include/mpl/Query.hpp"
 #include "fltl/include/mpl/Static.hpp"
 
