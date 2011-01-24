@@ -82,9 +82,7 @@ namespace fltl { namespace lib { namespace cfg {
                 0 != production &&
                 "Unable to access variable of non-existent production."
             );
-            return *reinterpret_cast<variable_type *>(
-                reinterpret_cast<void *>(&(production->var))
-            );
+            return *helper::unsafe_cast<variable_type *>(&(production->var));
         }
 
         /// return the length of this production
