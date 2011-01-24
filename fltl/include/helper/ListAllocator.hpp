@@ -18,7 +18,7 @@ namespace fltl { namespace helper {
 
     /// allocator for structures that contain a pointer to themselves and so
     /// can be naturally stringed into a linked list.
-    template <typename T, T **(*next_ptr)(T *), const unsigned BLOCK_SIZE=256U>
+    template <typename T, T **(*NEXT_PTR)(T *), const unsigned BLOCK_SIZE=256U>
     class ListAllocator : private trait::Uncopyable {
     private:
 
@@ -32,9 +32,9 @@ namespace fltl { namespace helper {
             {
                 T *last(&(slots[BLOCK_SIZE - 1]));
                 for(T *curr(&(slots[0])); curr <= last; ++curr) {
-                    *(next_ptr(curr)) = curr + 1;
+                    *(NEXT_PTR(curr)) = curr + 1;
                 }
-                *(next_ptr(last)) = 0;
+                *(NEXT_PTR(last)) = 0;
             }
 
             ~Block(void) throw() { }
@@ -66,12 +66,12 @@ namespace fltl { namespace helper {
             }
 
             T *next(free_list);
-            free_list = *(next_ptr(next));
+            free_list = *(NEXT_PTR(next));
             return next;
         }
 
         inline void deallocate(T *ptr) throw() {
-            *(next_ptr(ptr)) = free_list;
+            *(NEXT_PTR(ptr)) = free_list;
             free_list = ptr;
         }
     };
