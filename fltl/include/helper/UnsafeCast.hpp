@@ -16,7 +16,7 @@
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
 namespace fltl { namespace helper {
-
+#if 0
     namespace detail {
 
         template <typename FromT, typename ToT>
@@ -52,14 +52,20 @@ namespace fltl { namespace helper {
             }
         };
     }
+#endif
 
     template <typename ToT, typename FromT>
     FLTL_FORCE_INLINE ToT unsafe_cast(FromT v) throw() {
+        return *reinterpret_cast<ToT *>(
+            reinterpret_cast<uintptr_t>(&v)
+        );
+#if 0
         return detail::UnsafeCast<
             sizeof(detail::UnionCast<FromT,ToT>) == (sizeof(FromT *)),
             FromT,
             ToT
         >::cast(v);
+#endif
     }
 }}
 
