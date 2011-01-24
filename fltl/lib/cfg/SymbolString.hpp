@@ -505,7 +505,7 @@ namespace fltl { namespace lib { namespace cfg {
             return at(offset);
         }
 
-        FLTL_FORCE_INLINE const bool is_empty(void) const throw() {
+        FLTL_FORCE_INLINE bool is_empty(void) const throw() {
             return 0 == symbols;
         }
     };

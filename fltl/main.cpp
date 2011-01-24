@@ -5,22 +5,8 @@
  *      Author: Peter Goodman
  *     Version: $Id$
  */
-/*
-#include <iostream>
 
-#include "fltl/include/mpl/Sequence.hpp"
-#include "fltl/include/mpl/SizeOf.hpp"
-#include "fltl/include/mpl/Unit.hpp"
-//#include "fltl/include/mpl/Query.hpp"
-//#include "fltl/include/mpl/Expr.hpp"
-
-
-//#include "fltl/include/stl/Variant.hpp"
-//#include "fltl/include/stl/Tuple.hpp"
-//#include "fltl/include/stl/Grammar.hpp"
-
-#include "fltl/include/trait/PolyadicOperator.hpp"
-*/
+#include <cstdio>
 
 #include "fltl/lib/CFG.hpp"
 
