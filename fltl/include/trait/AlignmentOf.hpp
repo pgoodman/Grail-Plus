@@ -29,7 +29,6 @@ namespace fltl { namespace trait {
             VALUE = sizeof(detail::AlignmentFinder<T>) - sizeof(T)
         };
     };
-
 }}
 
 #endif /* FLTL_ALIGNMENTOF_HPP_ */

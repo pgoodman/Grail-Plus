@@ -15,7 +15,7 @@
 
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
-namespace fltl { namespace mpl {
+namespace fltl { namespace helper {
 
     namespace detail {
 

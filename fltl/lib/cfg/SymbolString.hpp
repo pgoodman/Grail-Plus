@@ -68,7 +68,9 @@ namespace fltl { namespace lib { namespace cfg {
             // soo evil!
             inline static self_type **
             get_next_pointer(self_type *self) throw() {
-                return mpl::unsafe_cast<self_type **>(&(self->symbols[0]));
+                return helper::unsafe_cast<self_type **>(
+                    helper::align<16>(&(self->symbols[0]))
+                );
             }
         };
     }

@@ -16,7 +16,7 @@
 
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
-#include "fltl/include/mpl/UnsafeCast.hpp"
+#include "fltl/include/helper/UnsafeCast.hpp"
 
 namespace fltl { namespace helper {
 
@@ -92,7 +92,7 @@ namespace fltl { namespace helper {
         }
 
         FLTL_FORCE_INLINE T *operator->(void) throw() {
-            return mpl::unsafe_cast<T *>(&(storage[0]));
+            return helper::unsafe_cast<T *>(&(storage[0]));
         }
     };
 
