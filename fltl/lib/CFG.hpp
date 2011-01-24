@@ -75,6 +75,12 @@ namespace fltl { namespace lib {
         template <typename> class ProductionBuilder;
         template <typename> class Symbol;
         template <typename> class SymbolString;
+
+        namespace detail {
+            // forward declaration
+            template <typename AlphaT, const unsigned num_symbols>
+            struct SymbolStringAllocator;
+        }
     }
 
 }}
@@ -100,7 +106,7 @@ namespace fltl { namespace lib {
         friend class cfg::Variable<AlphaT>;
         friend class cfg::ProductionBuilder<AlphaT>;
         friend class cfg::Production<AlphaT>;
-        friend class cfg::SymbolString<AlphaT>;
+        template <typename, const unsigned> friend class cfg::detail::SymbolStringAllocator;
 
         /// the next variable id that can be assigned, goes toward +inf
         cfg::internal_sym_type next_variable_id;
