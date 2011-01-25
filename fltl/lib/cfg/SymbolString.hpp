@@ -18,36 +18,7 @@
 // allocators
 #define FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE 64U
 
-#if 0
-#define FLTL_SYMBOL_STRING_MAKE_ALLOCATOR(n, _) \
-    static helper::StorageChain<helper::ListAllocator< \
-        detail::SymbolArray<AlphaT, n>, \
-        &detail::SymbolArray< \
-            AlphaT, \
-            n \
-        >::get_next_pointer, \
-        FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE \
-    > > alloc ## n ;
-
-#define FLTL_SYMBOL_STRING_ALLOCATE(n,_) \
-    case n: syms = (alloc ## n)->allocate()->symbols; break;
-
-#define FLTL_SYMBOL_STRING_DEALLOCATE(n,var) \
-    case n: \
-        (alloc ## n)->deallocate(static_cast<detail::SymbolArray<AlphaT, n> *>( \
-            reinterpret_cast<void *>(var) \
-        )); \
-        break;
-
-#define FLTL_SYMBOL_STRING_INIT_ALLOCATOR(n,alloc_var) \
-    template <typename AlphaT> \
-    helper::StorageChain<helper::ListAllocator< \
-        detail::SymbolArray<AlphaT, n>, \
-        &detail::SymbolArray<AlphaT, n >::get_next_pointer, \
-        FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE \
-    > > SymbolString<AlphaT>::alloc ## n(alloc_var);
-#endif
-
+// element in a statically initialized array for a de/allocator
 #define FLTL_SYMBOL_STRING_INIT_FUNC(n, func) \
     , &detail::SymbolArray<AlphaT,n>::func
 
@@ -179,13 +150,6 @@ namespace fltl { namespace lib { namespace cfg {
             FIRST_SYMBOL = 3
         };
 
-        /// static allocators for short symbol strings
-        /*FLTL_REPEAT_LEFT(
-            FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
-            FLTL_SYMBOL_STRING_MAKE_ALLOCATOR,
-            void
-        )*/
-
         typedef symbol_type *(allocator_func_type)(const unsigned);
         typedef void (deallocator_func_type)(symbol_type *);
 
@@ -211,18 +175,6 @@ namespace fltl { namespace lib { namespace cfg {
                 num_symbols % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
             ](num_symbols));
 
-#if 0
-            switch(num_symbols) {
-                FLTL_REPEAT_LEFT(
-                    FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
-                    FLTL_SYMBOL_STRING_ALLOCATE,
-                    void
-                )
-                default:
-                    syms = new symbol_type[num_symbols + FIRST_SYMBOL];
-                    break;
-            }
-#endif
             // initialize
             incref(syms);
             syms[STRING_LENGTH].value = static_cast<internal_sym_type>(
@@ -251,22 +203,10 @@ namespace fltl { namespace lib { namespace cfg {
                 return;
             }
 
+            // free
             deallocators[
                 syms[STRING_LENGTH].value % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
             ](syms);
-
-#if 0
-            switch(syms[STRING_LENGTH].value) {
-                FLTL_REPEAT_LEFT(
-                    FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
-                    FLTL_SYMBOL_STRING_DEALLOCATE,
-                    syms
-                )
-            default:
-                delete [] syms;
-            }
-#endif
-
         }
 
         /// append a symbol onto the end of this string
@@ -623,13 +563,6 @@ namespace fltl { namespace lib { namespace cfg {
         )
     };
 
-#if 0
-    FLTL_REPEAT_LEFT(
-        FLTL_SYMBOL_STRING_NUM_ALLOCATORS,
-        FLTL_SYMBOL_STRING_INIT_ALLOCATOR,
-        CFG<AlphaT>::production_allocator
-    )
-#endif
 }}}
 
 #endif /* FLTL_SYMBOLSTRING_HPP_ */

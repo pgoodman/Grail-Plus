@@ -47,7 +47,7 @@ int main(void) {
     printf("prod.variable() == prod.symbol(1) = %d\n", prod.variable() == prod.symbol(1));
 
     unsigned len(0);
-    for(unsigned i(0); i < 1000; ++i) {
+    for(unsigned i(0); i < 1000000; ++i) {
         len += (S + a + prod.symbols() + prod.symbols() + a).length();
         len += (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
         len += (((S + a)) == ((S + a)));
