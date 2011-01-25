@@ -46,18 +46,24 @@ int main(void) {
     printf("prod.length() = %u\n", prod.length());
     printf("prod.variable() == prod.symbol(1) = %d\n", prod.variable() == prod.symbol(1));
 
-    unsigned len(0);
+    unsigned len[4] = {0}, t;
     for(unsigned i(0); i < 1000000; ++i) {
-        len += (S + a + prod.symbols() + prod.symbols() + a).length();
-        len += (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
-        len += (((S + a)) == ((S + a)));
+        t = (S + a + prod.symbols() + prod.symbols() + a).length();
+        len[0] += t;
+        len[3] += t;
+        t = (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
+        len[1] += t;
+        len[3] += t;
+        t = (((S + a)) == ((S + a)));
+        len[2] += t;
+        len[3] += t;
 
         cfg.add_production(S, buffer.clear() << a << S);
         cfg.add_production(S, buffer.clear() << a);
         cfg.add_production(S, buffer.clear() << a << b << c);
     }
 
-    printf("allocated len = %u\n", len);
+    printf("allocated %u %u %u = %u\n", len[0], len[1], len[2], len[3]);
 
     return 0;
 }
