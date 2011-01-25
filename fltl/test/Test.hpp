@@ -21,27 +21,28 @@
         _FLTL_QUOTE( func ), \
         message \
     )
+#define _FLTL_TEST_MAKE_TEST(cond, message) \
+    if(cond) { \
+        ++(fltl::test::detail::TestBase::num_passed); \
+        printf("    PASSED(" #cond ")" message "\n"); \
+    } else { \
+        ++(fltl::test::detail::TestBase::num_failed); \
+        printf("    FAILED(" #cond ")" message "\n"); \
+    } \
+    ++(fltl::test::detail::TestBase::num_tests)
 
 #define FLTL_TEST_ASSERT_TRUE(cond) \
-    if(cond) { \
-        printf("    PASSED(" #cond ")\n"); \
-    } else { \
-        printf("    FAILED(" #cond ")\n"); \
-    }
+    _FLTL_TEST_MAKE_TEST(cond, "")
 
 #define FLTL_TEST_ASSERT(cond, message) \
-    if(cond) { \
-        printf("    PASSED(" #cond "): " message "\n"); \
-    } else { \
-        printf("    FAILED(" #cond "): " message "\n"); \
-    }
+    _FLTL_TEST_MAKE_TEST(cond, ": " message)
 
 #define FLTL_TEST_EQUAL(lhs,rhs) \
-    FLTL_TEST_ASSERT_TRUE(((lhs) == (rhs))) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) == (rhs))); \
     FLTL_TEST_ASSERT_TRUE(!((lhs) != (rhs)))
 
 #define FLTL_TEST_NOT_EQUAL(lhs,rhs) \
-    FLTL_TEST_ASSERT_TRUE(((lhs) != (rhs))) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) != (rhs))); \
     FLTL_TEST_ASSERT_TRUE(!((lhs) == (rhs)))
 
 namespace fltl { namespace test {
@@ -57,6 +58,10 @@ namespace fltl { namespace test {
 
             static TestBase *first_test;
             static TestBase *last_test;
+
+            static unsigned num_tests;
+            static unsigned num_passed;
+            static unsigned num_failed;
 
             TestBase(void) throw();
 

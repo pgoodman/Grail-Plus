@@ -24,10 +24,15 @@ namespace fltl { namespace test {
         TestBase *TestBase::first_test(0);
         TestBase *TestBase::last_test(0);
 
+        unsigned TestBase::num_tests(0U);
+        unsigned TestBase::num_passed(0U);
+        unsigned TestBase::num_failed(0U);
     }
 
     /// run all tests
     void run_tests(void) throw() {
+
+        printf("\nTesting...\n\n");
 
         for(detail::TestBase *curr(detail::TestBase::first_test);
             0 != curr;
@@ -35,6 +40,11 @@ namespace fltl { namespace test {
 
             curr->run_test();
         }
+
+        printf("\n");
+        printf("Number of tests: %u\n", detail::TestBase::num_tests);
+        printf("         passed: %u\n", detail::TestBase::num_passed);
+        printf("         failed: %u\n\n", detail::TestBase::num_failed);
     }
 
 }}
