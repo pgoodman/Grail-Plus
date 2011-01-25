@@ -46,9 +46,26 @@ int main(void) {
     printf("prod.length() = %u\n", prod.length());
     printf("prod.variable() == prod.symbol(1) = %d\n", prod.variable() == prod.symbol(1));
 
+    if((S + a) != (S + a)) {
+        printf("0 not equal, expected equal\n");
+    }
+
+    if((a + S) != (a + S)) {
+        printf("1 not equal, expected equal\n");
+    }
+
+    if((S + a) != (a + S)) {
+        printf("2 not equal, expected not equal\n");
+    }
+
+    if((S + S) != (S + S)) {
+        printf("3 not equal, expected equal\n");
+    }
+
+#if 0
     unsigned len[4] = {0}, t;
     for(unsigned i(0); i < 1000000; ++i) {
-        t = (S + a + prod.symbols() + prod.symbols() + a).length();
+        /*t = (S + a + prod.symbols() + prod.symbols() + a).length();
         len[0] += t;
         len[3] += t;
         t = (((S + a + prod.symbols() + prod.symbols() + a)) == ((S + a + prod.symbols() + prod.symbols() + a)));
@@ -56,7 +73,11 @@ int main(void) {
         len[3] += t;
         t = (((S + a)) == ((S + a)));
         len[2] += t;
-        len[3] += t;
+        len[3] += t;*/
+
+        if((S + a) != (S + a)) {
+            printf("not equal\n");
+        }
 
         cfg.add_production(S, buffer.clear() << a << S);
         cfg.add_production(S, buffer.clear() << a);
@@ -64,7 +85,7 @@ int main(void) {
     }
 
     printf("allocated %u %u %u = %u\n", len[0], len[1], len[2], len[3]);
-
+#endif
     return 0;
 }
 
