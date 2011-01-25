@@ -512,6 +512,18 @@ namespace fltl { namespace lib { namespace cfg {
             return !(operator==(that));
         }
 
+        inline bool operator==(const symbol_type &that) const throw() {
+            return (
+                length() == that.length() && that.randomize() == get_hash()
+            );
+        }
+
+        inline bool operator!=(const symbol_type &that) const throw() {
+            return (
+                length() != that.length() || that.randomize() != get_hash()
+            );
+        }
+
         /// get a the symbol at a specific index
         inline const symbol_type &at(const unsigned offset) const throw() {
             assert(

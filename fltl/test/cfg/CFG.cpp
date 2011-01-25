@@ -31,44 +31,45 @@ namespace fltl { namespace test { namespace cfg {
         CFG<char>::sym_t S_sym(S);
         CFG<char>::sym_t a_sym(a);
 
-        FLTL_TEST_ASSERT(S == S, "Variables are equivalent to themselves (1).");
-        FLTL_TEST_ASSERT(!(S != S), "Variables are equivalent to themselves (2).");
-        FLTL_TEST_ASSERT(S == S_sym, "Variables are equivalent to themselves (3).");
-        FLTL_TEST_ASSERT(S_sym == S, "Variables are equivalent to themselves (4).");
-        FLTL_TEST_ASSERT(!(S != S_sym), "Variables are equivalent to themselves (5).");
-        FLTL_TEST_ASSERT(!(S_sym != S), "Variables are equivalent to themselves (6).");
+        FLTL_TEST_EQUAL(S,S);
+        FLTL_TEST_EQUAL(S, S_sym);
+        FLTL_TEST_EQUAL(S_sym, S);
+        FLTL_TEST_NOT_EQUAL(S, T);
+        FLTL_TEST_NOT_EQUAL(S, a);
+        FLTL_TEST_NOT_EQUAL(a, S);
 
-        FLTL_TEST_ASSERT(S != T, "Distinct variables are not equivalent (1).");
-        FLTL_TEST_ASSERT(!(S == T), "Distinct variables are not equivalent (2).");
+        FLTL_TEST_EQUAL(a, a);
+        FLTL_TEST_EQUAL(a, a_sym);
+        FLTL_TEST_EQUAL(a_sym, a);
+        FLTL_TEST_EQUAL(a, a_prime);
+        FLTL_TEST_EQUAL(a_prime, a);
 
-        FLTL_TEST_ASSERT(S != a, "Variables and terminals are not equivalent (lhs; 1).");
-        FLTL_TEST_ASSERT(!(S == a), "Variables and terminals are not not equivalent (lhs; 2).");
+        FLTL_TEST_NOT_EQUAL(a, b);
+        FLTL_TEST_NOT_EQUAL(b, a);
 
-        FLTL_TEST_ASSERT(a != S, "Variables and terminals are not equivalent (rhs; 1).");
-        FLTL_TEST_ASSERT(!(a == S), "Variables and terminals are not not equivalent (rhs; 2).");
+        FLTL_TEST_EQUAL(epsilon, epsilon);
+        FLTL_TEST_EQUAL(epsilon, epsilon_prime);
+        FLTL_TEST_EQUAL(epsilon_prime, epsilon);
+        FLTL_TEST_EQUAL(epsilon_prime, epsilon_prime);
 
-        FLTL_TEST_ASSERT(a == a, "Terminals are equivalent to themselves (1).");
-        FLTL_TEST_ASSERT(!(a != a), "Terminals are equivalent to themselves (2).");
-        FLTL_TEST_ASSERT(a == a_sym, "Terminals are equivalent to themselves (3).");
-        FLTL_TEST_ASSERT(!(a != a_sym), "Terminals are equivalent to themselves (4).");
-        FLTL_TEST_ASSERT(a_sym == a, "Terminals are equivalent to themselves (5).");
-        FLTL_TEST_ASSERT(!(a != a_sym), "Terminals are equivalent to themselves (6).");
-        FLTL_TEST_ASSERT(a == a_prime, "Terminals are equivalent to themselves (7).");
-        FLTL_TEST_ASSERT(!(a != a_prime), "Terminals are equivalent to themselves (8).");
+        FLTL_TEST_EQUAL((a + a), (a + a));
+        FLTL_TEST_EQUAL((a + b), (a + b));
+        FLTL_TEST_EQUAL((b + a), (b + a));
+        FLTL_TEST_EQUAL((S + S), (S + S));
+        FLTL_TEST_EQUAL((S + epsilon), (S + epsilon));
+        FLTL_TEST_EQUAL((epsilon + S), (S + epsilon));
+        FLTL_TEST_EQUAL((S + epsilon), (epsilon + S));
+        FLTL_TEST_EQUAL(S, (S + epsilon));
+        FLTL_TEST_EQUAL(S, (epsilon + S));
+        FLTL_TEST_EQUAL((S + epsilon), S);
+        FLTL_TEST_EQUAL((epsilon + S), S);
 
-        FLTL_TEST_ASSERT(a != b, "Distinct terminals are not equivalent (1).");
-        FLTL_TEST_ASSERT(!(a == b), "Distinct terminals are not equivalent (2).");
-        FLTL_TEST_ASSERT(b != a, "Distinct terminals are not equivalent (3).");
-        FLTL_TEST_ASSERT(!(b == a), "Distinct terminals are not equivalent (4).");
-
-        FLTL_TEST_ASSERT(epsilon == epsilon, "Epsilon is equivalent to itself (1).");
-        FLTL_TEST_ASSERT(!(epsilon != epsilon), "Epsilon is equivalent to itself (2).");
-        FLTL_TEST_ASSERT(epsilon == epsilon_prime, "Epsilon is equivalent to itself (3).");
-        FLTL_TEST_ASSERT(!(epsilon != epsilon_prime), "Epsilon is equivalent to itself (4).");
-        FLTL_TEST_ASSERT(epsilon_prime == epsilon, "Epsilon is equivalent to itself (5).");
-        FLTL_TEST_ASSERT(!(epsilon_prime != epsilon), "Epsilon is equivalent to itself (6).");
-        FLTL_TEST_ASSERT(epsilon_prime == epsilon_prime, "Epsilon is equivalent to itself (7).");
-        FLTL_TEST_ASSERT(!(epsilon_prime != epsilon_prime), "Epsilon is equivalent to itself (8).");
+        FLTL_TEST_NOT_EQUAL((a + a), (a + b));
+        FLTL_TEST_NOT_EQUAL((a + a), (b + a));
+        FLTL_TEST_NOT_EQUAL((a + b), (a + a));
+        FLTL_TEST_NOT_EQUAL((b + a), (a + a));
+        FLTL_TEST_NOT_EQUAL((a + S), (S + a));
+        FLTL_TEST_NOT_EQUAL((S + a), (a + S));
     }
 
     void test_productions(void) throw() {

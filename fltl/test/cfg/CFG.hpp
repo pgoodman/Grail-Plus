@@ -17,11 +17,11 @@
 
 namespace fltl { namespace test { namespace cfg {
 
-    FLTL_TEST(test_equivalence_relations,
+    FLTL_TEST_CATEGORY(test_equivalence_relations,
         "Test for equivalence of variables, terminals, symbols, and symbol strings."
     );
 
-    FLTL_TEST(test_productions,
+    FLTL_TEST_CATEGORY(test_productions,
         "Test that productions are correctly added to the grammar and that duplicates are ignored."
     );
 }}}

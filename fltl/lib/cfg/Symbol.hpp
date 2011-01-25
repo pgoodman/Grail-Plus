@@ -71,6 +71,18 @@ namespace fltl { namespace lib { namespace cfg {
             return value != that.value;
         }
 
+        inline bool operator==(const symbol_string_type &that) const throw() {
+            return (
+                length() == that.length() && randomize() == that.get_hash()
+            );
+        }
+
+        inline bool operator!=(const symbol_string_type &that) const throw() {
+            return (
+                length() != that.length() || randomize() != that.get_hash()
+            );
+        }
+
         inline unsigned length(void) const throw() {
             return (0 == value) ? 0U : 1U;
         }

@@ -15,12 +15,19 @@
 
 #define _FLTL_QUOTE(x) #x
 
-#define FLTL_TEST(func,message) \
+#define FLTL_TEST_CATEGORY(func,message) \
     void func (void) throw(); \
     static fltl::test::detail::TestCase<& func > _test_ ## func ( \
         _FLTL_QUOTE( func ), \
         message \
     )
+
+#define FLTL_TEST_ASSERT_TRUE(cond) \
+    if(cond) { \
+        printf("    PASSED(" #cond ")\n"); \
+    } else { \
+        printf("    FAILED(" #cond ")\n"); \
+    }
 
 #define FLTL_TEST_ASSERT(cond, message) \
     if(cond) { \
@@ -28,6 +35,14 @@
     } else { \
         printf("    FAILED(" #cond "): " message "\n"); \
     }
+
+#define FLTL_TEST_EQUAL(lhs,rhs) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) == (rhs))) \
+    FLTL_TEST_ASSERT_TRUE(!((lhs) != (rhs)))
+
+#define FLTL_TEST_NOT_EQUAL(lhs,rhs) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) != (rhs))) \
+    FLTL_TEST_ASSERT_TRUE(!((lhs) == (rhs)))
 
 namespace fltl { namespace test {
 
