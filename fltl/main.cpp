@@ -8,6 +8,18 @@
 
 #include <cstdio>
 
+#include "fltl/test/Test.hpp"
+#include "fltl/test/cfg/CFG.hpp"
+
+int main(void) {
+
+    fltl::test::run_tests();
+
+    return 0;
+}
+
+#if 0
+
 #include "fltl/lib/CFG.hpp"
 
 int main(void) {
@@ -61,7 +73,9 @@ int main(void) {
     if((S + S) != (S + S)) {
         printf("3 not equal, expected equal\n");
     }
-
+    return 0;
+}
+#endif
 #if 0
     unsigned len[4] = {0}, t;
     for(unsigned i(0); i < 1000000; ++i) {
@@ -86,6 +100,5 @@ int main(void) {
 
     printf("allocated %u %u %u = %u\n", len[0], len[1], len[2], len[3]);
 #endif
-    return 0;
-}
+
 

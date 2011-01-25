@@ -9,7 +9,7 @@ CXX = ${DEFAULT_CXX}
 CXX_WARN_FLAGS = -pedantic -pedantic-errors -Wall -Werror -Wextra -fno-exceptions
 CXX_WARN_FLAGS += -Wno-unused-function -Wno-long-long #-Winline -finline-functions
 CXX_WARN_FLAGS += -fno-rtti -Wcast-qual -Wcast-align -fstrict-aliasing
-CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
+CXX_FLAGS = -O0 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 # are we compiling with the g++?
@@ -35,13 +35,21 @@ ifeq (${CXX}, ${DEFAULT_CXX})
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS}
+OBJS = bin/main.o bin/test/Test.o bin/test/cfg/CFG.o
+OUT = bin/main
 
-all: bin/main.o
+all: ${OBJS}
+	${CXX} ${LD_FLAGS} ${OBJS} -o ${OUT}
 
 bin/%.o: fltl/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
-	${CXX} ${LD_FLAGS} $@ -o bin/$*
+	
+bin/test/%.o: fltl/test/%.cpp
+	${CXX} ${CXX_FLAGS} -c $< -o $@
 
 clean:
+	-rm ${OUT}
 	-rm -rf bin/*.dSYM
 	-rm -rf bin/*.o
+	-rm -rf bin/test/*.o
+	-rm -rf bin/test/cfg/*.o
