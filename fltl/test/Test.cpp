@@ -18,6 +18,7 @@ namespace fltl { namespace test {
     namespace detail {
 
         TestBase::TestBase(void) throw() { }
+        TestBase::~TestBase(void) throw() { }
 
         /// the first and last tests to run
         TestBase *TestBase::first_test(0);

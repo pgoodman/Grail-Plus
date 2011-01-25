@@ -46,6 +46,8 @@ namespace fltl { namespace test {
             TestBase(void) throw();
 
             virtual void run_test(void) const throw() = 0;
+
+            virtual ~TestBase(void) throw();
         };
 
         /// a simple test case
@@ -88,6 +90,10 @@ namespace fltl { namespace test {
                 : TestBase()
             { }
 
+            /// destructor
+            virtual ~TestCase(void) throw() { }
+
+            /// run this category of tests
             virtual void run_test(void) const throw() {
                 printf("CATEGORY(%s): %s\n", func_name, message);
                 TEST_FUNC();
