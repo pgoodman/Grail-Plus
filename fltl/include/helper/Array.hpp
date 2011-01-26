@@ -17,6 +17,8 @@
 
 #include "fltl/include/preprocessor/NO_INLINE.hpp"
 
+#include "fltl/include/trait/Uncopyable.hpp"
+
 namespace fltl { namespace helper {
 
     /// base type representing some contiguous memory and those operations
@@ -29,7 +31,7 @@ namespace fltl { namespace helper {
     ///       constructor with all arguments having default value_types.
     ///
     template <typename T>
-    class Array {
+    class Array : private trait::Uncopyable {
     public:
 
         typedef typename mpl::AddReference<T>::type reference_type;
@@ -66,13 +68,18 @@ namespace fltl { namespace helper {
             extend(other);
         }
 
-        ~Array(void) {
+        ~Array(void) throw() {
             if(0 != slots) {
                 delete [] slots;
                 slots = 0;
             }
             num_slots = 0;
             num_used_slots = 0;
+        }
+
+        Array<T> &operator=(const Array<T> &) const throw() {
+            assert(false);
+            return *this;
         }
 
         /// access an element in a slot of the Array

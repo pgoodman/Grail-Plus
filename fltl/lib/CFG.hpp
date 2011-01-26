@@ -17,12 +17,11 @@
 
 #include "fltl/include/helper/Align.hpp"
 #include "fltl/include/helper/Array.hpp"
-#include "fltl/include/helper/ListAllocator.hpp"
+#include "fltl/include/helper/BlockAllocator.hpp"
 #include "fltl/include/helper/StorageChain.hpp"
 #include "fltl/include/helper/UnsafeCast.hpp"
 
 #include "fltl/include/mpl/If.hpp"
-#include "fltl/include/mpl/Query.hpp"
 #include "fltl/include/mpl/Static.hpp"
 
 #include "fltl/include/preprocessor/CATENATE.hpp"
@@ -63,10 +62,12 @@ namespace fltl { namespace lib {
         /// of a grammar.
         typedef int32_t internal_sym_type;
 
+#if 0
         /// tag classes for meta-programming
         class query_builder_tag { };
         class query_non_terminal_tag { };
         class query_terminal_tag { };
+#endif
 
         // forward declarations
         template <typename> class Variable;
@@ -126,21 +127,21 @@ namespace fltl { namespace lib {
         helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
         /// allocator for variables
-        static helper::StorageChain<helper::ListAllocator<
-            cfg::Variable<AlphaT>,
-            &cfg::Variable<AlphaT>::get_next_pointer
+        static helper::StorageChain<helper::BlockAllocator<
+            cfg::Variable<AlphaT>
         > > variable_allocator;
 
         /// allocator for productions
-        static helper::StorageChain<helper::ListAllocator<
-            cfg::Production<AlphaT>,
-            &cfg::Production<AlphaT>::get_next_pointer
+        static helper::StorageChain<helper::BlockAllocator<
+            cfg::Production<AlphaT>
         > > production_allocator;
 
     public:
 
+#if 0
         /// type tag for specializing
         typedef cfg::query_builder_tag query_builder_tag;
+#endif
 
         /// arbitrary symbol (terminal, non-terminal) of a grammar
         typedef cfg::Symbol<AlphaT> symbol_type;
@@ -150,13 +151,25 @@ namespace fltl { namespace lib {
 
         /// represents a terminal of a grammar
         class terminal_type : public cfg::Symbol<AlphaT> {
+        private:
             friend class CFG<AlphaT>;
+
+            explicit terminal_type(const cfg::internal_sym_type _value) throw()
+                : cfg::Symbol<AlphaT>(_value)
+            { }
         };
 
         /// represents a non-terminal of a grammar
         class variable_type : public cfg::Symbol<AlphaT> {
-        public:
+        private:
             friend class CFG<AlphaT>;
+
+            explicit variable_type(const cfg::internal_sym_type _value) throw()
+                : cfg::Symbol<AlphaT>(_value)
+            { }
+
+        public:
+
             variable_type(void) throw()
                 : cfg::Symbol<AlphaT>(0)
             { }
@@ -219,9 +232,8 @@ namespace fltl { namespace lib {
             ++next_variable_id;
             variable_map.append(var);
 
-            return *static_cast<variable_type *>(
-                reinterpret_cast<void *>(&var_id)
-            );
+            variable_type ret(var_id);
+            return ret;
         }
 
         /// get the terminal reference for a particular terminal.
@@ -234,9 +246,8 @@ namespace fltl { namespace lib {
                 terminal_map.append(term);
             }
 
-            return *static_cast<terminal_type *>(
-                reinterpret_cast<void *>(&term_id)
-            );
+            terminal_type ret(term_id);
+            return ret;
         }
 
         /// add a production to the grammar
@@ -297,15 +308,13 @@ namespace fltl { namespace lib {
 
     // initialize the static variables
     template <typename AlphaT>
-    helper::StorageChain<helper::ListAllocator<
-        cfg::Variable<AlphaT>,
-        &cfg::Variable<AlphaT>::get_next_pointer
+    helper::StorageChain<helper::BlockAllocator<
+        cfg::Variable<AlphaT>
     > > CFG<AlphaT>::variable_allocator;
 
     template <typename AlphaT>
-    helper::StorageChain<helper::ListAllocator<
-        cfg::Production<AlphaT>,
-        &cfg::Production<AlphaT>::get_next_pointer
+    helper::StorageChain<helper::BlockAllocator<
+        cfg::Production<AlphaT>
     > > CFG<AlphaT>::production_allocator(CFG<AlphaT>::variable_allocator);
 }}
 

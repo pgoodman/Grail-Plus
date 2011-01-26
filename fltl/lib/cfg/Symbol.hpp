@@ -29,10 +29,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         typedef SymbolString<AlphaT> symbol_string_type;
 
-        explicit Symbol(const cfg::internal_sym_type v) throw()
-            : value(v)
-        { }
-
         /// adapted from fmix32, from Murmurhash3, by Austin Appleby.
         // this function is adapted from code that is licensed under the
         // MIT license
@@ -46,9 +42,13 @@ namespace fltl { namespace lib { namespace cfg {
             return static_cast<internal_sym_type>(h);
         }
 
-    public:
-
         typedef Symbol<AlphaT> self_type;
+
+        explicit Symbol(const internal_sym_type _value) throw()
+            : value(_value)
+        { }
+
+    public:
 
         Symbol(void) throw()
             : value(0)
@@ -57,6 +57,8 @@ namespace fltl { namespace lib { namespace cfg {
         Symbol(const self_type &that) throw()
             : value(that.value)
         { }
+
+        virtual ~Symbol(void) { }
 
         inline self_type &operator=(const self_type &that) throw() {
             value = that.value;

@@ -50,14 +50,6 @@ namespace fltl { namespace lib { namespace cfg {
 
             Symbol<AlphaT> symbols[NUM_SLOTS];
 
-            // soo evil!
-            inline static self_type **
-            get_next_pointer(self_type *self) throw() {
-                return helper::unsafe_cast<self_type **>(
-                    helper::align<16>(&(self->symbols[0]))
-                );
-            }
-
             static Symbol<AlphaT> *allocate(const unsigned) throw() {
                 return SymbolStringAllocator<
                     AlphaT,num_symbols
@@ -80,9 +72,8 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename AlphaT, const unsigned num_symbols>
         struct SymbolStringAllocator {
         public:
-            static helper::StorageChain<helper::ListAllocator<
+            static helper::StorageChain<helper::BlockAllocator<
                 SymbolArray<AlphaT, num_symbols>,
-                &SymbolArray<AlphaT, num_symbols>::get_next_pointer,
                 FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE
             > > allocator;
 
@@ -91,9 +82,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// static initialize the symbol array's allocator
         template <typename AlphaT, const unsigned num_symbols>
-        helper::StorageChain<helper::ListAllocator<
+        helper::StorageChain<helper::BlockAllocator<
             SymbolArray<AlphaT, num_symbols>,
-            &SymbolArray<AlphaT, num_symbols>::get_next_pointer,
             FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE
         > > SymbolStringAllocator<AlphaT, num_symbols>::allocator(
             CFG<AlphaT>::production_allocator

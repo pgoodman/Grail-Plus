@@ -9,27 +9,25 @@
 #ifndef FLTL_TRAIT_UNCOPYABLE_HPP_
 #define FLTL_TRAIT_UNCOPYABLE_HPP_
 
-namespace fltl {
+namespace fltl { namespace trait {
 
-    namespace trait {
+    /// Don't allow for subtypes of this type to be copied
+    class Uncopyable {
+    protected:
 
-        /// Don't allow for subtypes of this type to be copied
-        class Uncopyable {
-        protected:
+        Uncopyable(void) throw() { }
 
-            Uncopyable(void) throw() { }
+        virtual ~Uncopyable(void) throw() { }
 
-            ~Uncopyable(void) throw() { }
+    private:
 
-        private:
+        Uncopyable(const Uncopyable &) throw() { }
 
-            Uncopyable(const Uncopyable &) throw() { }
+        Uncopyable &operator=(const Uncopyable &) throw() {
+            return *this;
+        }
+    };
 
-            Uncopyable &operator=(const Uncopyable &) throw() {
-                return *this;
-            }
-        };
-    }
-}
+}}
 
 #endif /* FLTL_TRAIT_UNCOPYABLE_HPP_ */

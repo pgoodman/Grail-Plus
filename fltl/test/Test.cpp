@@ -17,7 +17,19 @@ namespace fltl { namespace test {
 
     namespace detail {
 
-        TestBase::TestBase(void) throw() { }
+        TestBase::TestBase(void) throw()
+            : next(0)
+        { }
+
+        TestBase::TestBase(TestBase &that) throw()
+            : next(that.next)
+        { }
+
+        TestBase &TestBase::operator=(TestBase &that) throw() {
+            next = that.next;
+            return *this;
+        }
+
         TestBase::~TestBase(void) throw() { }
 
         /// the first and last tests to run

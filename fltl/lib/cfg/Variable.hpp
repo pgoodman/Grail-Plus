@@ -75,6 +75,14 @@ namespace fltl { namespace lib { namespace cfg {
             , productions(0)
         { }
 
+        Variable(const Variable<AlphaT> &) throw()
+            : id(0)
+            , next(0)
+            , productions(0)
+        {
+            assert(false);
+        }
+
         ~Variable(void) throw() {
 
             // free each variable's productions
@@ -87,11 +95,9 @@ namespace fltl { namespace lib { namespace cfg {
             }
         }
 
-        /// get a pointer to the next pointer of this variable. used by
-        /// the list allocator for variables in the grammar.
-        inline static Variable<AlphaT> **
-        get_next_pointer(Variable<AlphaT> *var) {
-            return &(var->next);
+        Variable<AlphaT> &operator=(const Variable<AlphaT> &) throw() {
+            assert(false);
+            return *this;
         }
     };
 

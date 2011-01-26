@@ -51,6 +51,9 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL(epsilon, epsilon_prime);
         FLTL_TEST_EQUAL(epsilon_prime, epsilon);
         FLTL_TEST_EQUAL(epsilon_prime, epsilon_prime);
+        FLTL_TEST_EQUAL(epsilon, (epsilon + epsilon));
+        FLTL_TEST_EQUAL((epsilon + epsilon), epsilon);
+        FLTL_TEST_EQUAL((epsilon + epsilon), (epsilon + epsilon));
 
         FLTL_TEST_EQUAL((a + a), (a + a));
         FLTL_TEST_EQUAL((a + b), (a + b));

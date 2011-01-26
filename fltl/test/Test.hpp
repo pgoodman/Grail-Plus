@@ -64,6 +64,8 @@ namespace fltl { namespace test {
             static unsigned num_failed;
 
             TestBase(void) throw();
+            TestBase(TestBase &) throw();
+            TestBase &operator=(TestBase &) throw();
 
             virtual void run_test(void) const throw() = 0;
 

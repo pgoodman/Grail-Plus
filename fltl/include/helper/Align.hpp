@@ -23,7 +23,7 @@ namespace fltl { namespace helper {
             (reinterpret_cast<uintptr_t>(ptr) + (align_to - 1)) & ~(align_to - 1)
         );
     }
-
+  
 }}
 
 #endif /* FLTL_ALIGN_HPP_ */

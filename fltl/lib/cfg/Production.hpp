@@ -100,14 +100,25 @@ namespace fltl { namespace lib { namespace cfg {
             , ref_count(0)
         { }
 
+        Production(const self_type &) throw()
+            : prev(0)
+            , next(0)
+            , var()
+            , symbols()
+            , ref_count(0)
+        {
+            assert(false);
+        }
+
         /// destructor
         ~Production(void) throw() {
             prev = 0;
             next = 0;
         }
 
-        inline static self_type **get_next_pointer(self_type *self) throw() {
-            return &(self->next);
+        self_type &operator=(const self_type &) throw() {
+            assert(false);
+            return *this;
         }
     };
 
