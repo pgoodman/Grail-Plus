@@ -93,10 +93,10 @@ namespace fltl { namespace lib { namespace cfg {
             return that.prepend_symbol(this);
         }
 
-        symbol_string_type operator+(const self_type &other) const throw() {
+        symbol_string_type operator+(const self_type &that) const throw() {
             symbol_string_type ret;
             const unsigned this_len = length();
-            const unsigned that_len = other.length();
+            const unsigned that_len = that.length();
             const unsigned total_len = this_len + that_len;
 
             if(0 == total_len) {
@@ -107,7 +107,21 @@ namespace fltl { namespace lib { namespace cfg {
             ret.symbols[symbol_string_type::FIRST_SYMBOL].value = value;
             ret.symbols[
                 symbol_string_type::FIRST_SYMBOL + this_len
-            ].value = other.value;
+            ].value = that.value;
+
+            if(0 == this_len) {
+                ret.symbols[symbol_string_type::HASH].value = that.randomize();
+            } else if(0 == that_len) {
+                ret.symbols[symbol_string_type::HASH].value = randomize();
+            } else {
+                ret.symbols[symbol_string_type::HASH].value = (
+                    symbol_string_type::hash(
+                        randomize(),
+                        that.randomize()
+                    )
+                );
+            }
+
             return ret;
         }
     };

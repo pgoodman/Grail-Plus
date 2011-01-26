@@ -149,6 +149,10 @@ namespace fltl { namespace lib { namespace cfg {
         /// deallocator jump table
         static deallocator_func_type *deallocators[];
 
+        /// epsilon symbol; pre-compute the hash of the epsilon symbol
+        static Symbol<AlphaT> EPSILON;
+        static internal_sym_type EPSILON_HASH;
+
         /// the symbols of this string
         symbol_type *symbols;
 
@@ -269,7 +273,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         FLTL_FORCE_INLINE internal_sym_type get_hash(void) const throw() {
             if(0 == symbols) {
-                return static_cast<internal_sym_type>(2180083513U);
+                return EPSILON_HASH;
             }
             return symbols[HASH].value;
         }
@@ -542,6 +546,12 @@ namespace fltl { namespace lib { namespace cfg {
             return 0 == symbols;
         }
     };
+
+    template <typename AlphaT>
+    Symbol<AlphaT> SymbolString<AlphaT>::EPSILON;
+
+    template <typename AlphaT>
+    internal_sym_type SymbolString<AlphaT>::EPSILON_HASH(EPSILON.randomize());
 
     template <typename AlphaT>
     typename SymbolString<AlphaT>::allocator_func_type *
