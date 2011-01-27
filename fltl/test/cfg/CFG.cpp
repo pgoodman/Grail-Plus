@@ -109,7 +109,53 @@ namespace fltl { namespace test { namespace cfg {
     void test_productions(void) throw() {
 
         CFG<char> cfg;
-        (void) cfg;
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 0);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 0);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 0);
+
+        FLTL_TEST_DOC(CFG<char>::var_t S(cfg.add_variable()));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 0);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 0);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        FLTL_TEST_DOC(cfg.add_production(S, cfg.epsilon()));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 0);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        FLTL_TEST_DOC(CFG<char>::term_t a(cfg.get_terminal('a')));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        FLTL_TEST_DOC(cfg.add_production(S, S));
+        FLTL_TEST_DOC(cfg.add_production(S, a));
+        FLTL_TEST_DOC(cfg.add_production(S, S + a));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 4);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        CFG<char>::prod_builder_t builder;
+
+        FLTL_TEST_DOC(cfg.add_production(S, builder.clear() << a << S));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 5);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        FLTL_TEST_DOC(cfg.add_production(S, builder.clear() << a << S));
+        FLTL_TEST_DOC(cfg.add_production(S, builder.clear() << S << a));
+        FLTL_TEST_DOC(cfg.add_production(S, S + a));
+        FLTL_TEST_DOC(cfg.add_production(S, a + S));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 5);
+        FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
+        FLTL_TEST_EQUAL(cfg.num_variables(), 1);
     }
 
 }}}

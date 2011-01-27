@@ -12,7 +12,6 @@
 #define FLTL_LISTALLOCATOR_HPP_
 
 #include <cassert>
-#include <cstring>
 #include <new>
 
 #include "fltl/include/helper/UnsafeCast.hpp"
@@ -54,15 +53,22 @@ namespace fltl { namespace helper {
         public:
 
             typedef BlockAllocatorBlock<T,NUM_SLOTS> self_type;
+            typedef BlockAllocatorSlot<T> slot_type;
 
             self_type *next;
 
-            BlockAllocatorSlot<T> slots[NUM_SLOTS];
+            slot_type slots[NUM_SLOTS];
 
             BlockAllocatorBlock(self_type *_next) throw()
                 : next(_next)
                 , slots()
-            { }
+            {
+                slot_type *last(&(slots[NUM_SLOTS - 1]));
+                for(slot_type *curr(&slots[0]); curr <= last; ++curr) {
+                    curr->next[0] = curr + 1;
+                }
+                last->next[0] = 0;
+            }
 
             BlockAllocatorBlock(const self_type &) throw()
                 : next(0)

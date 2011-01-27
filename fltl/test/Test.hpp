@@ -27,9 +27,15 @@
         printf("    \033[32m" #cond " " message "\033[0m\n"); \
     } else { \
         ++(fltl::test::detail::TestBase::num_failed); \
-        printf("    \033[31m\\033[1m" #cond " " message "\033[0m\n"); \
+        printf("    \033[31m\033[1m" #cond " " message "\033[0m\n"); \
     } \
     ++(fltl::test::detail::TestBase::num_tests)
+
+/// document a change in state to give context to some tests that depend on
+/// the state change
+#define FLTL_TEST_DOC(expr) \
+    printf("    \033[34m" #expr "\033[0m\n"); \
+    expr
 
 #define FLTL_TEST_ASSERT_TRUE(cond) \
     _FLTL_TEST_MAKE_TEST(cond, "")
@@ -69,7 +75,7 @@ namespace fltl { namespace test {
             static unsigned num_passed;
             static unsigned num_failed;
 
-            TestBase(void) throw();
+            TestBase(TestBase *) throw();
             TestBase(TestBase &) throw();
             TestBase &operator=(TestBase &) throw();
 
@@ -92,7 +98,7 @@ namespace fltl { namespace test {
             /// constructor that gets called at runtime when the tests are
             /// run
             TestCase(const char *_func_name, const char *_message) throw()
-                : TestBase()
+                : TestBase(this)
             {
                 if(!added_already) {
 
@@ -115,7 +121,7 @@ namespace fltl { namespace test {
 
             /// constructor that gets called before any tests are called
             TestCase(void) throw()
-                : TestBase()
+                : TestBase(this)
             { }
 
             /// destructor

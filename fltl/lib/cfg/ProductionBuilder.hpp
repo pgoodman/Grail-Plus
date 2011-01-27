@@ -34,12 +34,12 @@ namespace fltl { namespace lib { namespace cfg {
             buffer.append(mpl::Static<typename CFG<AlphaT>::variable_type>::VALUE);
         }
 
-        self_type &clear(void) throw() {
+        inline self_type &clear(void) throw() {
             buffer.set_size(0U);
             return *this;
         }
 
-        self_type &operator<<(const symbol_type &sym) throw() {
+        inline self_type &operator<<(const symbol_type &sym) throw() {
             if(0 != sym.value) {
                 buffer.append(sym);
             }

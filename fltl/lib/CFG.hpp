@@ -126,6 +126,9 @@ namespace fltl { namespace lib {
         /// variable.
         helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
+        /// number of productions
+        unsigned _num_productions;
+
         /// allocator for variables
         static helper::StorageChain<helper::BlockAllocator<
             cfg::Variable<AlphaT>
@@ -197,6 +200,7 @@ namespace fltl { namespace lib {
             , terminal_map()
             , terminal_map_inv()
             , variable_map()
+            , _num_productions(0)
         {
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
@@ -250,34 +254,22 @@ namespace fltl { namespace lib {
             return ret;
         }
 
-        /// add a production to the grammar
-        FLTL_NO_INLINE production_type add_production(
+        /// add a production to the grammar from a symbol string
+        production_type add_production(
             const variable_type _var,
-            production_builder_type &builder
+            symbol_string_type str
         ) throw() {
 
-            assert(
-                0 < _var.value &&
-                _var.value < next_variable_id &&
-                "Invalid variable passed to add_production()."
-            );
-
-            cfg::Variable<AlphaT> *var(variable_map.get(_var.value));
-
-            assert(
-                0 != var &&
-                "Invalid variable passed to add_production()."
-            );
-
+            cfg::Variable<AlphaT> *var(get_variable(_var));
             cfg::Production<AlphaT> *prod(production_allocator->allocate());
+
             prod->var = _var;
-            prod->symbols.assign(builder.symbols());
+            prod->symbols.assign(str);
 
             // make sure the production is unique
             for(cfg::Production<AlphaT> *related_prod(var->productions);
                 0 != related_prod;
                 related_prod = related_prod->next) {
-
                 if(related_prod->is_equivalent_to(*prod)) {
                     production_allocator->deallocate(prod);
                     return production_type(related_prod);
@@ -285,8 +277,25 @@ namespace fltl { namespace lib {
             }
 
             // add the production in
+            ++_num_productions;
             var->add_production(prod);
             return production_type(prod);
+        }
+
+        /// add a production to the grammar from a symbol
+        inline production_type add_production(
+            const variable_type _var,
+            const symbol_type _sym
+        ) throw() {
+            return add_production(_var, _sym + epsilon());
+        }
+
+        /// add a production to the grammar from a production builder
+        inline production_type add_production(
+            const variable_type _var,
+            production_builder_type &builder
+        ) throw() {
+            return add_production(_var, builder.symbols());
         }
 
         /// remove a production from the grammar
@@ -303,6 +312,42 @@ namespace fltl { namespace lib {
         /// get the variable representing the empty string, epsilon
         inline variable_type epsilon(void) const throw() {
             return mpl::Static<variable_type>::VALUE;
+        }
+
+        /// get the number of variables in this CFG
+        inline unsigned num_variables(void) const throw() {
+            return variable_map.size() - 1U;
+        }
+
+        /// get the number of productions in the CFG
+        inline unsigned num_productions(void) const throw() {
+            return _num_productions;
+        }
+
+        /// get the number of terminals in the CFG; note: not all terminals
+        /// are necessarily reachable
+        inline unsigned num_terminals(void) const throw() {
+            return terminal_map.size() - 1U;
+        }
+
+    private:
+
+        inline cfg::Variable<AlphaT> *
+        get_variable(const variable_type _var) throw() {
+            assert(
+                0 < _var.value &&
+                _var.value < next_variable_id &&
+                "Invalid variable passed to add_production()."
+            );
+
+            cfg::Variable<AlphaT> *var(variable_map.get(_var.value));
+
+            assert(
+                0 != var &&
+                "Invalid variable passed to add_production()."
+            );
+
+            return var;
         }
     };
 

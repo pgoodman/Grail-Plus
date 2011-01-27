@@ -18,8 +18,8 @@ namespace fltl { namespace test {
     namespace detail {
 
         // this is evil; it is usually set *before* it is constructed
-        TestBase::TestBase(void) throw()
-            : next(this->next)
+        TestBase::TestBase(TestBase *self) throw()
+            : next(self->next)
         { }
 
         TestBase::TestBase(TestBase &that) throw()

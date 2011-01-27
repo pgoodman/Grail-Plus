@@ -136,7 +136,7 @@ namespace fltl { namespace lib { namespace cfg {
         enum {
             REF_COUNT = 0,
             HASH = 1,
-            STRING_LENGTH = 2,
+            LENGTH = 2,
             FIRST_SYMBOL = 3
         };
 
@@ -154,7 +154,7 @@ namespace fltl { namespace lib { namespace cfg {
         static internal_sym_type EPSILON_HASH;
 
         /// the symbols of this string
-        symbol_type *symbols;
+        mutable symbol_type *symbols;
 
         /// allocate a new array of symbols and increase its reference count
         static symbol_type *
@@ -171,7 +171,7 @@ namespace fltl { namespace lib { namespace cfg {
 
             // initialize
             incref(syms);
-            syms[STRING_LENGTH].value = static_cast<internal_sym_type>(
+            syms[LENGTH].value = static_cast<internal_sym_type>(
                 num_symbols
             );
 
@@ -199,7 +199,7 @@ namespace fltl { namespace lib { namespace cfg {
 
             // free
             deallocators[
-                syms[STRING_LENGTH].value % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
+                syms[LENGTH].value % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
             ](syms);
         }
 
@@ -275,6 +275,7 @@ namespace fltl { namespace lib { namespace cfg {
             );
         }
 
+        /// get the hash of this symbol
         FLTL_FORCE_INLINE internal_sym_type get_hash(void) const throw() {
             if(0 == symbols) {
                 return EPSILON_HASH;
@@ -295,6 +296,19 @@ namespace fltl { namespace lib { namespace cfg {
                 ihash = hash(ihash, sym->hash());
             }
             return ihash;
+        }
+
+        /// works even if symbol_type has a virtual destructor, whereas
+        /// memcpy gives memory errors
+        inline static bool symbol_memcmp(
+            const symbol_type *first_a,
+            const symbol_type *first_b,
+            const symbol_type *last_a
+        ) throw() {
+            for(;
+                first_a <= last_a && *first_a == *first_b;
+                ++first_a, ++first_b) { }
+            return first_a > last_a;
         }
 
         /// create a symbol string from an array of symbols
@@ -381,7 +395,7 @@ namespace fltl { namespace lib { namespace cfg {
             } else if(symbols != that.symbols) {
 
                 const unsigned str_length(static_cast<unsigned>(
-                    that.symbols[STRING_LENGTH].value
+                    that.symbols[LENGTH].value
                 ));
 
                 symbols = allocate(str_length);
@@ -400,7 +414,7 @@ namespace fltl { namespace lib { namespace cfg {
                 return 0U;
             }
             return static_cast<unsigned>(
-                symbols[STRING_LENGTH].value
+                symbols[LENGTH].value
             );
         }
 
@@ -490,20 +504,44 @@ namespace fltl { namespace lib { namespace cfg {
                 return true;
             }
 
+            const internal_sym_type this_len(length());
+            const internal_sym_type that_len(that.length());
+
+            if(this_len != that_len) {
+                return false;
+            } else if(0 == this_len) {
+                return true;
+            }
+
             const symbol_type *this_syms(symbols);
             const symbol_type *that_syms(that.symbols);
-            const internal_sym_type len(this_syms[STRING_LENGTH].value);
 
-            if(len != that_syms[STRING_LENGTH].value
-            || symbols[HASH].value != that_syms[HASH].value) {
+            if(symbols[HASH].value != that_syms[HASH].value) {
                 return false;
             }
 
-            return 0 == memcmp(
+            if(symbol_memcmp(
                 &(this_syms[FIRST_SYMBOL]),
                 &(that_syms[FIRST_SYMBOL]),
-                static_cast<size_t>(len) * sizeof(symbol_type)
-            );
+
+                // make sure to compute the address of the last symbol without
+                // actually accessing it
+                &(this_syms[LENGTH + this_len])
+            )) {
+                // TODO: this might be overkill
+                if(this_syms[REF_COUNT].value < that_syms[REF_COUNT].value) {
+                    decref(const_cast<symbol_type *>(this_syms));
+                    symbols = const_cast<symbol_type *>(that_syms);
+                    incref(const_cast<symbol_type *>(that_syms));
+                } else {
+                    decref(const_cast<symbol_type *>(that_syms));
+                    that.symbols = const_cast<symbol_type *>(this_syms);
+                    incref(const_cast<symbol_type *>(this_syms));
+                }
+
+                return true;
+            }
+            return false;
         }
 
         inline bool operator!=(const self_type &that) const throw() {
@@ -530,13 +568,13 @@ namespace fltl { namespace lib { namespace cfg {
             );
 
             assert(
-                offset < static_cast<unsigned>(symbols[STRING_LENGTH].value) &&
+                offset < static_cast<unsigned>(symbols[LENGTH].value) &&
                 "Symbol string index out of bounds."
             );
 
             return symbols[
                 FIRST_SYMBOL + static_cast<unsigned>(
-                    symbols[STRING_LENGTH].value
+                    symbols[LENGTH].value
                 )
             ];
         }

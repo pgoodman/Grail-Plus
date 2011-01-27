@@ -64,18 +64,20 @@ namespace fltl { namespace lib { namespace cfg {
             : value(that.value)
         { }
 
-        virtual ~Symbol(void) { }
+        ~Symbol(void) { }
 
         inline self_type &operator=(const self_type &that) throw() {
             value = that.value;
             return *this;
         }
 
-        inline bool operator==(const self_type &that) const throw() {
+        FLTL_FORCE_INLINE bool
+        operator==(const self_type &that) const throw() {
             return value == that.value;
         }
 
-        inline bool operator!=(const self_type &that) const throw() {
+        FLTL_FORCE_INLINE bool
+        operator!=(const self_type &that) const throw() {
             return value != that.value;
         }
 

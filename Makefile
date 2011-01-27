@@ -22,8 +22,7 @@ ifeq (${CXX}, g++)
     				  -Wstack-protector \
     				  -Wstrict-aliasing=2 \
     				  -std=gnu++98 \
-    				  -Weffc++ \
-    				  -Wold-style-cast
+    				  -Wold-style-cast # -Weffc++
 endif
 
 # are we compiling with icc?

@@ -206,7 +206,7 @@ namespace fltl { namespace helper {
             for(; new_num_slots < min_slots; new_num_slots *= 2) {
                 // do do la la de do
             }
-
+            
             pointer_type new_slots(new value_type[new_num_slots]);
 
             assert(0 != new_slots && "Unable to reserve new space for Array.");

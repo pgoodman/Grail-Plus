@@ -17,7 +17,7 @@ namespace fltl { namespace trait {
 
         Uncopyable(void) throw() { }
 
-        virtual ~Uncopyable(void) throw() { }
+        ~Uncopyable(void) throw() { }
 
     private:
 
