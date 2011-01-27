@@ -24,10 +24,10 @@
 #define _FLTL_TEST_MAKE_TEST(cond, message) \
     if(cond) { \
         ++(fltl::test::detail::TestBase::num_passed); \
-        printf("    PASSED(" #cond ")" message "\n"); \
+        printf("    \033[32m" #cond " " message "\033[0m\n"); \
     } else { \
         ++(fltl::test::detail::TestBase::num_failed); \
-        printf("    FAILED(" #cond ")" message "\n"); \
+        printf("    \033[31m\\033[1m" #cond " " message "\033[0m\n"); \
     } \
     ++(fltl::test::detail::TestBase::num_tests)
 
@@ -37,13 +37,19 @@
 #define FLTL_TEST_ASSERT(cond, message) \
     _FLTL_TEST_MAKE_TEST(cond, ": " message)
 
-#define FLTL_TEST_EQUAL(lhs,rhs) \
+#define FLTL_TEST_EQUAL_REL(lhs,rhs) \
     FLTL_TEST_ASSERT_TRUE(((lhs) == (rhs))); \
     FLTL_TEST_ASSERT_TRUE(!((lhs) != (rhs)))
 
-#define FLTL_TEST_NOT_EQUAL(lhs,rhs) \
+#define FLTL_TEST_NOT_EQUAL_REL(lhs,rhs) \
     FLTL_TEST_ASSERT_TRUE(((lhs) != (rhs))); \
     FLTL_TEST_ASSERT_TRUE(!((lhs) == (rhs)))
+
+#define FLTL_TEST_EQUAL(lhs,rhs) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) == (rhs)))
+
+#define FLTL_TEST_NOT_EQUAL(lhs,rhs) \
+    FLTL_TEST_ASSERT_TRUE(((lhs) != (rhs)))
 
 namespace fltl { namespace test {
 
@@ -117,7 +123,7 @@ namespace fltl { namespace test {
 
             /// run this category of tests
             virtual void run_test(void) const throw() {
-                printf("CATEGORY(%s): %s\n", func_name, message);
+                printf("\n\033[4m%s\033[0m: %s\n", func_name, message);
                 TEST_FUNC();
             }
         };

@@ -209,7 +209,7 @@ namespace fltl { namespace lib {
         ~CFG(void) throw() {
 
             // free the variables
-            if(0 < variable_map.size()) {
+            if(1 < variable_map.size()) {
 
                 for(cfg::Variable<AlphaT> *var(variable_map.get(1U)), *next_var(0);
                     0 != var;
@@ -258,7 +258,7 @@ namespace fltl { namespace lib {
 
             assert(
                 0 < _var.value &&
-                _var.value <= next_variable_id &&
+                _var.value < next_variable_id &&
                 "Invalid variable passed to add_production()."
             );
 

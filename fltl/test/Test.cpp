@@ -17,8 +17,9 @@ namespace fltl { namespace test {
 
     namespace detail {
 
+        // this is evil; it is usually set *before* it is constructed
         TestBase::TestBase(void) throw()
-            : next(0)
+            : next(this->next)
         { }
 
         TestBase::TestBase(TestBase &that) throw()
@@ -44,12 +45,11 @@ namespace fltl { namespace test {
     /// run all tests
     void run_tests(void) throw() {
 
-        printf("\nTesting...\n\n");
+        printf("\nTesting...\n");
 
         for(detail::TestBase *curr(detail::TestBase::first_test);
             0 != curr;
             curr = curr->next) {
-
             curr->run_test();
         }
 

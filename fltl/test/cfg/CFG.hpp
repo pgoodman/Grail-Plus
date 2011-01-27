@@ -21,6 +21,10 @@ namespace fltl { namespace test { namespace cfg {
         "Test for equivalence of variables, terminals, symbols, and symbol strings."
     );
 
+    FLTL_TEST_CATEGORY(test_string_lengths,
+        "Test the length of symbols and symbol strings."
+    );
+
     FLTL_TEST_CATEGORY(test_productions,
         "Test that productions are correctly added to the grammar and that duplicates are ignored."
     );

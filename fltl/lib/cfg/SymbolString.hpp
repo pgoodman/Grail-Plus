@@ -224,10 +224,10 @@ namespace fltl { namespace lib { namespace cfg {
 
                 ret.symbols[HASH].value = hash(
                     symbols[HASH].value,
-                    sym->randomize()
+                    sym->hash()
                 );
             } else {
-                ret.symbols[HASH].value = sym->randomize();
+                ret.symbols[HASH].value = sym->hash();
             }
 
             return ret;
@@ -254,21 +254,25 @@ namespace fltl { namespace lib { namespace cfg {
 
                 ret.symbols[HASH].value = hash(
                     symbols[HASH].value,
-                    sym->randomize()
+                    sym->hash()
                 );
             } else {
-                ret.symbols[HASH].value = sym->randomize();
+                ret.symbols[HASH].value = sym->hash();
             }
 
             return ret;
         }
 
-        /// very simple commutative hash function in the group Z_3931
+        /// very simple associative, non-commutative hash function
         FLTL_FORCE_INLINE static internal_sym_type hash(
             const internal_sym_type a,
             const internal_sym_type b
         ) throw() {
-            return (a * b) % 3931;
+            //return (a * b) % 3931;
+            return symbol_type::mix32(
+            //    ((b & 0xFF0000FF) | (a & 0x00FFFF00)) *
+                ((a & 0x0FFF000F) | (b & 0xF000FFF0))
+            );
         }
 
         FLTL_FORCE_INLINE internal_sym_type get_hash(void) const throw() {
@@ -283,12 +287,12 @@ namespace fltl { namespace lib { namespace cfg {
             symbol_type *syms,
             const unsigned num_syms
         ) throw() {
-            internal_sym_type ihash(syms->randomize());
+            internal_sym_type ihash(syms->hash());
             for(symbol_type *sym(syms + 1), *last(syms + num_syms);
                 sym < last;
                 ++sym) {
 
-                ihash = hash(ihash, sym->randomize());
+                ihash = hash(ihash, sym->hash());
             }
             return ihash;
         }
@@ -321,7 +325,7 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != sym.value) {
                 symbols = allocate(1U);
                 symbols[FIRST_SYMBOL] = sym;
-                symbols[HASH].value = sym.randomize();
+                symbols[HASH].value = sym.hash();
             }
         }
 
@@ -508,13 +512,13 @@ namespace fltl { namespace lib { namespace cfg {
 
         inline bool operator==(const symbol_type &that) const throw() {
             return (
-                length() == that.length() && that.randomize() == get_hash()
+                length() == that.length() && that.hash() == get_hash()
             );
         }
 
         inline bool operator!=(const symbol_type &that) const throw() {
             return (
-                length() != that.length() || that.randomize() != get_hash()
+                length() != that.length() || that.hash() != get_hash()
             );
         }
 
@@ -551,7 +555,7 @@ namespace fltl { namespace lib { namespace cfg {
     Symbol<AlphaT> SymbolString<AlphaT>::EPSILON;
 
     template <typename AlphaT>
-    internal_sym_type SymbolString<AlphaT>::EPSILON_HASH(EPSILON.randomize());
+    internal_sym_type SymbolString<AlphaT>::EPSILON_HASH(EPSILON.hash());
 
     template <typename AlphaT>
     typename SymbolString<AlphaT>::allocator_func_type *
