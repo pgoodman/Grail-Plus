@@ -6,22 +6,22 @@ ROOT_DIR = ./
 
 DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
 CXX = ${DEFAULT_CXX}
-CXX_WARN_FLAGS = -pedantic -pedantic-errors 
+CXX_FEATURES = -fno-rtti -fstrict-aliasing -fno-exceptions
 CXX_WARN_FLAGS += -Wall -Werror -Wextra -Wno-unused-function -Wno-long-long 
 CXX_WARN_FLAGS += -Wcast-qual -Wcast-align #-Winline -finline-functions
-CXX_WARN_FLAGS += -fno-rtti -fstrict-aliasing -fno-exceptions
-CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
+CXX_FLAGS = -O2 -g -ansi -pedantic -pedantic-errors  -I${ROOT_DIR}
 LD_FLAGS =
 
 # are we compiling with the g++?
 ifeq (${CXX}, g++)
+	#CXX_FEATURES += -flto
+	CXX_FLAGS += -std=gnu++98
 	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith \
 				      -Wwrite-strings \
 				      -Wfloat-equal -Wconversion -Wredundant-decls \
     				  -Wvolatile-register-var -fno-stack-protector \
     				  -Wstack-protector \
     				  -Wstrict-aliasing=2 \
-    				  -std=gnu++98 \
     				  -Wold-style-cast # -Weffc++
 endif
 
@@ -37,7 +37,7 @@ ifeq (${CXX}, ${DEFAULT_CXX})
 	CXX_FLAGS += -fcatch-undefined-behavior
 endif
 
-CXX_FLAGS += ${CXX_WARN_FLAGS}
+CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES}
 OBJS = bin/main.o bin/test/Test.o bin/test/cfg/CFG.o
 OUT = bin/main
 

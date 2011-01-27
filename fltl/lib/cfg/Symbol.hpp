@@ -101,13 +101,13 @@ namespace fltl { namespace lib { namespace cfg {
         /// symbol onto the beginning of the other symbol string and return
         /// the result
         FLTL_FORCE_INLINE symbol_string_type
-        operator+(symbol_string_type &that) const throw() {
+        operator+(symbol_string_type that) const throw() {
             return that.prepend_symbol(this);
         }
 
         /// concatenate this symbol with another symbol and return the symbol
         /// string.
-        symbol_string_type operator+(const self_type &that) const throw() {
+        symbol_string_type operator+(const self_type that) const throw() {
             symbol_string_type ret;
             const unsigned this_len = length();
             const unsigned that_len = that.length();

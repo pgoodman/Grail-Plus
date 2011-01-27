@@ -25,8 +25,12 @@ namespace fltl { namespace test { namespace cfg {
         "Test the length of symbols and symbol strings."
     );
 
-    FLTL_TEST_CATEGORY(test_productions,
+    FLTL_TEST_CATEGORY(test_add_productions,
         "Test that productions are correctly added to the grammar and that duplicates are ignored."
+    );
+
+    FLTL_TEST_CATEGORY(test_extract_symbols,
+        "Test that symbols and symbol strings can be extracted from productions and symbol strings."
     );
 }}}
 

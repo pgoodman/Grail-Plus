@@ -282,6 +282,15 @@ namespace fltl { namespace lib {
             return production_type(prod);
         }
 
+        /// add a production to the grammar that has the sames symbols as
+        /// another production
+        inline production_type add_production(
+            const variable_type _var,
+            production_type _prod
+        ) throw() {
+            return add_production(_var, _prod.symbols());
+        }
+
         /// add a production to the grammar from a symbol
         inline production_type add_production(
             const variable_type _var,

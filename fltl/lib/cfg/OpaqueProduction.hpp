@@ -108,11 +108,11 @@ namespace fltl { namespace lib { namespace cfg {
         ///             prod[0] <==> prod.symbol(0) <==> B.
         inline symbol_type
         operator[](const unsigned offset) const throw() {
-            return symbol(offset);
+            return symbol_at(offset);
         }
 
         inline const symbol_type &
-        symbol(const unsigned offset) const throw() {
+        symbol_at(const unsigned offset) const throw() {
             assert(
                 0 != production &&
                 "Unable to access symbol of non-existent production."

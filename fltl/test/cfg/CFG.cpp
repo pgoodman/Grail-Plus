@@ -68,6 +68,14 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL_REL(S, (epsilon + S));
         FLTL_TEST_EQUAL_REL((S + epsilon), S);
         FLTL_TEST_EQUAL_REL((epsilon + S), S);
+        FLTL_TEST_EQUAL_REL(((S + a) + S), (S + (a + S)));
+
+        FLTL_TEST_EQUAL_REL((S + a + a + S), (S + a + a + S));
+        FLTL_TEST_EQUAL_REL(((S + a) + a + S), (S + a + a + S));
+        FLTL_TEST_EQUAL_REL((S + (a + a) + S), (S + a + a + S));
+        FLTL_TEST_EQUAL_REL((S + a + (a + S)), (S + a + a + S));
+        FLTL_TEST_EQUAL_REL(((S + a) + (a + S)), (S + a + a + S));
+        FLTL_TEST_EQUAL_REL((S + ((a + a) + S)), (S + a + a + S));
 
         FLTL_TEST_NOT_EQUAL_REL((a + a), (a + b));
         FLTL_TEST_NOT_EQUAL_REL((a + a), (b + a));
@@ -106,7 +114,7 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL((a + S + epsilon).length(), 2);
     }
 
-    void test_productions(void) throw() {
+    void test_add_productions(void) throw() {
 
         CFG<char> cfg;
 
@@ -156,6 +164,47 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL(cfg.num_productions(), 5);
         FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
         FLTL_TEST_EQUAL(cfg.num_variables(), 1);
+
+        CFG<char>::prod_t p(cfg.add_production(S, builder.clear() << a << S));
+        CFG<char>::prod_t p_prime(cfg.add_production(S, builder.clear() << a << S));
+        CFG<char>::prod_t not_p(cfg.add_production(S, builder.clear() << S << a));
+
+        FLTL_TEST_EQUAL_REL(p, p_prime);
+        FLTL_TEST_NOT_EQUAL_REL(p, not_p);
+        FLTL_TEST_NOT_EQUAL_REL(p_prime, not_p);
+
+        CFG<char>::sym_str_t p_str(a + S);
+        CFG<char>::sym_str_t not_p_str(S + a);
+
+        FLTL_TEST_EQUAL_REL(p.symbols(), p_str);
+        FLTL_TEST_NOT_EQUAL_REL(p.symbols(), not_p_str);
+
+        FLTL_TEST_NOT_EQUAL_REL(not_p.symbols(), p_str);
+        FLTL_TEST_EQUAL_REL(not_p.symbols(), not_p_str);
     }
 
+    void test_extract_symbols(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::var_t S(cfg.add_variable());
+        CFG<char>::term_t a(cfg.get_terminal('a'));
+        CFG<char>::sym_t epsilon(cfg.epsilon());
+
+        CFG<char>::sym_str_t aS(a + S);
+        CFG<char>::prod_t S_aS(cfg.add_production(S, a + S));
+
+        FLTL_TEST_EQUAL(aS[0], a);
+        FLTL_TEST_EQUAL(aS[1], S);
+        FLTL_TEST_EQUAL(aS.at(0), a);
+        FLTL_TEST_EQUAL(aS.at(1), S);
+        FLTL_TEST_EQUAL(aS.substring(0, 2), aS);
+        FLTL_TEST_EQUAL(aS.substring(1, 1), S);
+        FLTL_TEST_EQUAL(aS.substring(0, 1), a);
+        FLTL_TEST_EQUAL(aS.substring(0, 0), epsilon);
+        FLTL_TEST_EQUAL(aS.substring(1, 0), epsilon);
+
+        FLTL_TEST_EQUAL(S_aS.symbols(), aS);
+        FLTL_TEST_EQUAL(S_aS.symbol_at(0), a);
+        FLTL_TEST_EQUAL(S_aS.symbol_at(1), S);
+        FLTL_TEST_EQUAL(S_aS.variable(), S);
+    }
 }}}

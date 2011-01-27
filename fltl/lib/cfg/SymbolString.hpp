@@ -263,16 +263,18 @@ namespace fltl { namespace lib { namespace cfg {
             return ret;
         }
 
-        /// very simple associative, non-commutative hash function
+        /// very simple associative, commutative hash function
         FLTL_FORCE_INLINE static internal_sym_type hash(
             const internal_sym_type a,
             const internal_sym_type b
         ) throw() {
+            return a * b;
+            //return symbol_type::mix32(a * b);
             //return (a * b) % 3931;
-            return symbol_type::mix32(
+            /*return symbol_type::mix32(
             //    ((b & 0xFF0000FF) | (a & 0x00FFFF00)) *
                 ((a & 0x0FFF000F) | (b & 0xF000FFF0))
-            );
+            );*/
         }
 
         /// get the hash of this symbol
@@ -419,7 +421,7 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// concatenation
-        inline self_type operator+(const self_type &that) const throw() {
+        inline self_type operator+(const self_type that) const throw() {
 
             const unsigned len = length();
             const unsigned other_len = that.length();
@@ -456,7 +458,7 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// concatenate a symbol onto the end
-        inline self_type operator+(const symbol_type &sym) const throw() {
+        inline self_type operator+(const symbol_type sym) const throw() {
             return append_symbol(&sym);
         }
 
@@ -466,32 +468,36 @@ namespace fltl { namespace lib { namespace cfg {
         substring(const unsigned start, const unsigned stride) const throw() {
 
             self_type ret;
-            const int len = length();
-
-            if(0 == len || 0 == stride) {
-                return ret;
-            }
+            const unsigned len = length();
 
             assert(
                 start < len &&
                 "Substring of symbol string starts past end of string."
             );
 
+            if(0 == len || 0 == stride) {
+                return ret;
+            }
+
             assert(
                 (start + stride) <= len &&
                 "Substring of symbol string is longer than string."
             );
 
+            if(len == stride) {
+                return *this;
+            }
+
             ret.symbols = allocate(stride);
             memcpy(
-                ret.symbols,
+                &(ret.symbols[FIRST_SYMBOL]),
                 &(symbols[FIRST_SYMBOL + start]),
                 stride * sizeof(symbol_type)
             );
 
             // hash the substring
             ret.symbols[HASH].value = hash_array(
-                ret.symbols[FIRST_SYMBOL],
+                &(ret.symbols[FIRST_SYMBOL]),
                 stride
             );
 
@@ -572,11 +578,7 @@ namespace fltl { namespace lib { namespace cfg {
                 "Symbol string index out of bounds."
             );
 
-            return symbols[
-                FIRST_SYMBOL + static_cast<unsigned>(
-                    symbols[LENGTH].value
-                )
-            ];
+            return symbols[FIRST_SYMBOL + offset];
         }
 
         FLTL_FORCE_INLINE const symbol_type &
