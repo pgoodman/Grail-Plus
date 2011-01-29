@@ -16,26 +16,43 @@ namespace fltl { namespace lib { namespace cfg {
     namespace detail {
 
         template <typename AlphaT>
-        bool default_gen_next(Generator<AlphaT> *, void *) throw() {
+        bool default_gen_next(Generator<AlphaT> *) throw() {
             return false;
         }
+
+        template <typename AlphaT>
+        void default_gen_reset(Generator<AlphaT> *) throw() { }
 
         template <typename AlphaT>
         class SimpleGenerator {
         public:
 
+            static void
+            reset_next_production(Generator<AlphaT> *state) throw() {
+                state->production = 0;
+                state->variable = state->cfg->variable_map.get(0);
+            }
+
             /// generate productions
-            static bool find_next_production(
-                Generator<AlphaT> *state,
-                void *_binder
-            ) throw() {
+            static bool
+            bind_next_production(Generator<AlphaT> *state) throw() {
+
+                // get the binder
+                OpaqueProduction<AlphaT> *binder(
+                    helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
+                        state->binder
+                    )
+                );
 
                 if(0 == state->variable) {
+                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
                     return false;
                 }
 
                 Variable<AlphaT> *var(state->variable);
                 Production<AlphaT> *prod(state->production);
+
+            get_next_production:
 
                 // move to the next production if we can
                 if(0 != prod) {
@@ -59,16 +76,19 @@ namespace fltl { namespace lib { namespace cfg {
                 if(0 == var || 0 == prod) {
                     state->variable = 0;
                     state->production = 0;
+                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
                     return false;
                 } else {
+
+                    // make sure to skip over deleted productions that are
+                    // still hanging around
+                    if(prod->is_deleted) {
+                        goto get_next_production;
+                    }
+
                     state->variable = var;
                     state->production = prod;
                 }
-
-                // get the binder
-                OpaqueProduction<AlphaT> *binder(
-                    helper::unsafe_cast<OpaqueProduction<AlphaT> *>(_binder)
-                );
 
                 // bind the production
                 OpaqueProduction<AlphaT> oprod(prod);
@@ -77,44 +97,52 @@ namespace fltl { namespace lib { namespace cfg {
                 return true;
             }
 
+            /// reset the variable generator
+            static void reset_next_variable(Generator<AlphaT> *state) throw() {
+                state->variable = state->cfg->variable_map.get(0);
+            }
+
             /// generate variables
-            static bool find_next_variable(
-                Generator<AlphaT> *state,
-                void *_binder
-            ) throw() {
+            static bool bind_next_variable(Generator<AlphaT> *state) throw() {
+
+                Symbol<AlphaT> *binder(
+                    helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
+                );
+
                 if(0 == state->variable) {
+                    binder->value = 0;
                     return false;
                 }
 
                 state->variable = state->variable->next;
 
                 if(0 == state->variable) {
+                    binder->value = 0;
                     return false;
                 }
-
-                Symbol<AlphaT> *binder(
-                    helper::unsafe_cast<Symbol<AlphaT> *>(_binder)
-                );
 
                 // bind the variable
                 binder->value = state->variable->id;
                 return true;
             }
 
+            /// reset the terminal generator
+            static void reset_next_terminal(Generator<AlphaT> *state) throw() {
+                state->terminal_offset = 1U;
+            }
+
             /// generate terminals
-            static bool find_next_terminal(
-                Generator<AlphaT> *state,
-                void *_binder
-            ) throw() {
+            static bool bind_next_terminal(Generator<AlphaT> *state) throw() {
+                Symbol<AlphaT> *binder(
+                    helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
+                );
+
                 ++(state->terminal_offset);
 
                 if(state->terminal_offset > state->cfg->terminal_map.size()) {
+                    binder->value = 0;
                     return false;
                 }
-
-                Symbol<AlphaT> *binder(
-                    helper::unsafe_cast<Symbol<AlphaT> *>(_binder)
-                );
 
                 // bind the variable
                 binder->value = -1 * static_cast<internal_sym_type>(
@@ -134,7 +162,9 @@ namespace fltl { namespace lib { namespace cfg {
         friend class detail::SimpleGenerator<AlphaT>;
 
         typedef Generator<AlphaT> self_type;
-        typedef bool (bind_next_type)(self_type *, void *);
+
+        typedef void (reset_gen_type)(self_type *);
+        typedef bool (bind_next_type)(self_type *);
 
         /// CFG from which we are generating stuff
         CFG<AlphaT> *cfg;
@@ -155,6 +185,9 @@ namespace fltl { namespace lib { namespace cfg {
         /// we can keep going
         bind_next_type *binder_func;
 
+        /// reset the generator
+        reset_gen_type *reset_func;
+
         /// private constructor for use by CFG
         Generator(
             CFG<AlphaT> *_cfg,
@@ -162,7 +195,8 @@ namespace fltl { namespace lib { namespace cfg {
             Production<AlphaT> *_production,
             const unsigned _terminal_offset,
             void *_binder,
-            bind_next_type *_binder_func
+            bind_next_type *_binder_func,
+            reset_gen_type *_reset_func
         ) throw()
             : cfg(_cfg)
             , variable(_variable)
@@ -170,9 +204,9 @@ namespace fltl { namespace lib { namespace cfg {
             , terminal_offset(_terminal_offset)
             , binder(_binder)
             , binder_func(_binder_func)
-        {
+            , reset_func(_reset_func)
+        { }
 
-        }
 
     public:
 
@@ -183,6 +217,7 @@ namespace fltl { namespace lib { namespace cfg {
             , terminal_offset(0)
             , binder(0)
             , binder_func(&detail::default_gen_next)
+            , reset_func(&detail::default_gen_reset)
         { }
 
         /// copy constructor for public use
@@ -193,20 +228,35 @@ namespace fltl { namespace lib { namespace cfg {
             , terminal_offset(that.terminal_offset)
             , binder(that.binder)
             , binder_func(that.binder_func)
+            , reset_func(that.reset_func)
         { }
 
         self_type &operator=(self_type &that) throw() {
+            assert(
+                0 == cfg &&
+                "Illegal assignment to an initialized generator."
+            );
+
             cfg = that.cfg;
             variable = that.variable;
             production = that.production;
             terminal_offset = that.terminal_offset;
             binder = that.binder;
             binder_func = that.binder_func;
+            reset_func = that.reset_func;
             return *this;
         }
 
-        bool find_next(void) throw() {
-            return binder_func(this, binder);
+        /// rewind the generator to its initial conditions
+        inline void rewind(void) throw() {
+            reset_func(this);
+        }
+
+        /// try to generate the next object(s) according to the binder
+        /// conditions and then bind the binder objects. returns true if
+        /// we were able to find a successful binding, false otherwise.
+        inline bool bind_next(void) throw() {
+            return binder_func(this);
         }
     };
 }}}

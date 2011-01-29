@@ -30,14 +30,14 @@ int main(void) {
     cfg.add_production(S, S);
     cfg.add_production(S, a + b + S);
     cfg.add_production(S, S + a);
-
     cfg.add_production(U, S + b);
 
     printf("searching for productions\n");
     CFG<char>::prod_t P;
     CFG<char>::gen_t productions(cfg.search(~P));
 
-    while(productions.find_next()) {
+    for(; productions.bind_next(); productions.rewind()) {
+        cfg.remove_production(P);
         cfg.debug(P);
     }
 
@@ -45,7 +45,7 @@ int main(void) {
     CFG<char>::var_t V;
     CFG<char>::gen_t variables(cfg.search(~V));
 
-    while(variables.find_next()) {
+    while(variables.bind_next()) {
         cfg.debug(V);
     }
 
@@ -53,7 +53,7 @@ int main(void) {
     CFG<char>::term_t t;
     CFG<char>::gen_t terminals(cfg.search(~t));
 
-    while(terminals.find_next()) {
+    while(terminals.bind_next()) {
         cfg.debug(t);
     }
 

@@ -72,7 +72,12 @@ namespace fltl { namespace lib { namespace cfg {
         typedef Unbound<AlphaT, typename CFG<AlphaT>::variable_type>
                 self_type;
 
-        typename CFG<AlphaT>::variable_type *var;
+        typedef typename CFG<AlphaT>::variable_type variable_type;
+        typedef typename CFG<AlphaT>::terminal_type terminal_type;
+        typedef typename CFG<AlphaT>::symbol_type symbol_type;
+        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
+
+        variable_type *var;
 
         Unbound(typename CFG<AlphaT>::variable_type *_var)
             : var(_var)
@@ -80,18 +85,21 @@ namespace fltl { namespace lib { namespace cfg {
 
     public:
 
-        template <typename RHS>
-        Pattern<
-            AlphaT,
-            self_type,
-            cfg::detail::PatternElem<AlphaT, RHS>
-        > operator->*(RHS rhs) const throw() {
-            return Pattern<
-                AlphaT,
-                self_type,
-                cfg::detail::PatternElem<AlphaT, RHS>
-            >(this, rhs);
-        }
+        /// making a query where the variable is (un)bound
+        FLTL_CFG_PRODUCTION_PATTERN(variable_type, 0U)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(variable_type, 0U)
+
+        /// making a query where the terminal is (un)bound
+        FLTL_CFG_PRODUCTION_PATTERN(terminal_type, 0U)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(terminal_type, 0U)
+
+        /// making a query where the symbol is bound
+        FLTL_CFG_PRODUCTION_PATTERN(symbol_type, 0U)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_type, 0U)
+
+        /// making a query where the symbol string is (un)bound
+        FLTL_CFG_PRODUCTION_PATTERN(symbol_string_type, 0U)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_string_type, 1U)
     };
 
     /// an unbound production

@@ -62,11 +62,16 @@ namespace fltl { namespace lib { namespace cfg {
 
         self_type &operator=(const self_type &that) throw() {
             if(production != that.production) {
+
                 if(0 != production) {
                     Production<AlphaT>::release(production);
                 }
+
                 production = that.production;
-                Production<AlphaT>::hold(production);
+
+                if(0 != production) {
+                    Production<AlphaT>::hold(production);
+                }
             }
             return *this;
         }
@@ -83,7 +88,8 @@ namespace fltl { namespace lib { namespace cfg {
                 0 != production &&
                 "Unable to access variable of non-existent production."
             );
-            return *helper::unsafe_cast<variable_type *>(&(production->var));
+            return variable_type(production->var->id);
+            //return *helper::unsafe_cast<variable_type *>(&(production->var));
         }
 
         /// return the length of this production

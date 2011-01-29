@@ -41,13 +41,16 @@ namespace fltl { namespace lib { namespace cfg {
         self_type *next;
 
         /// variable of this production
-        Symbol<AlphaT> var;
+        Variable<AlphaT> *var;
 
         /// symbols of this production
         SymbolString<AlphaT> symbols;
 
         /// reference counter
         uint32_t ref_count;
+
+        /// was this production deleted?
+        bool is_deleted;
 
         /// get the number of symbols in this production
         inline unsigned length(void) const throw() {
@@ -84,6 +87,7 @@ namespace fltl { namespace lib { namespace cfg {
             );
 
             if(0 == --(prod->ref_count)) {
+                prod->var->remove_production(prod);
                 prod->symbols.clear();
                 CFG<AlphaT>::production_allocator->deallocate(prod);
                 prod = 0;
@@ -99,6 +103,7 @@ namespace fltl { namespace lib { namespace cfg {
             , var()
             , symbols()
             , ref_count(0)
+            , is_deleted(false)
         { }
 
         Production(const self_type &) throw()
@@ -107,6 +112,7 @@ namespace fltl { namespace lib { namespace cfg {
             , var()
             , symbols()
             , ref_count(0)
+            , is_deleted(false)
         {
             assert(false);
         }
@@ -115,6 +121,7 @@ namespace fltl { namespace lib { namespace cfg {
         ~Production(void) throw() {
             prev = 0;
             next = 0;
+            is_deleted = true;
         }
 
         self_type &operator=(const self_type &) throw() {

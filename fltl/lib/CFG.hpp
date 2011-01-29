@@ -30,29 +30,21 @@
 
 #include "fltl/include/trait/Uncopyable.hpp"
 
-/// the class name of a query let'ed variable
-#define FLTL_CFG_LET_VAR_CLASS_NAME(var_name) \
-    cfg_var__ ## var_name ## __
+/// make a method for pattern builder
+#define FLTL_CFG_PRODUCTION_PATTERN(type, state) \
+    FLTL_FORCE_INLINE cfg::Pattern<AlphaT,cfg::detail::MatchSingle<type>, state> \
+    operator->*(type expr) throw() { \
+        return cfg::Pattern< \
+            AlphaT, \
+            cfg::detail::MatchSingle<type>, \
+            state \
+        >(cfg::detail::MatchSingle<type>(expr)); \
+    }
 
-#define FLTL_CFG_LET_VAR_OPAQUE_CLASS_NAME(var_name) \
-    cfg_var__ ## var_name ## __opaque
+#define _FLTL_CFG_UNBOUND(type) cfg::Unbound<AlphaT,type>
 
-/// macro for building query variables to be used specifically for
-/// CFG queries.
-#define FLTL_CFG_LET_(type,var_name) \
-    typedef struct FLTL_CFG_LET_VAR_OPAQUE_CLASS_NAME(var_name) *FLTL_CFG_LET_VAR_CLASS_NAME(var_name); \
-    fltl::mpl::Expr< \
-        type, \
-        FLTL_CFG_LET_VAR_CLASS_NAME(var_name) \
-    > var_name
-
-/// macros for building (non-)terminal query variables
-#define FLTL_CFG_LET_NON_TERM(var_name) FLTL_CFG_LET_(fltl::lib::cfg::query_non_terminal_tag, var_name)
-#define FLTL_CFG_LET_TERM(var_name) FLTL_CFG_LET_(fltl::lib::cfg::query_terminal_tag, var_name)
-
-#ifndef unbound
-#define unbound const static
-#endif
+#define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(type, state) \
+    FLTL_CFG_PRODUCTION_PATTERN(_FLTL_CFG_UNBOUND(type),state)
 
 namespace fltl { namespace lib {
 
@@ -66,13 +58,6 @@ namespace fltl { namespace lib {
         /// of a grammar.
         typedef int32_t internal_sym_type;
 
-#if 0
-        /// tag classes for meta-programming
-        class query_builder_tag { };
-        class query_non_terminal_tag { };
-        class query_terminal_tag { };
-#endif
-
         // forward declarations
         template <typename> class Variable;
         template <typename> class Production;
@@ -81,23 +66,18 @@ namespace fltl { namespace lib {
         template <typename> class Symbol;
         template <typename> class SymbolString;
         template <typename, typename> class Unbound;
-        template <typename AlphaT> class Generator;
-        template <typename AlphaT, typename LHS, typename RHS> class Pattern;
+        template <typename> class Generator;
+        template <typename, typename, const unsigned> class Pattern;
 
         namespace detail {
 
             // forward declarations
-            template <typename AlphaT, const unsigned num_symbols>
+            template <typename, const unsigned>
             struct SymbolStringAllocator;
 
-            template <typename AlphaT, typename T>
-            class PatternElem;
-
-            template <typename AlphaT, typename T0, typename T1>
-            class PatternPair;
-
-            template <typename AlphaT>
-            class SimpleGenerator;
+            template <typename> class MatchSingle;
+            template <typename, typename> class MatchPair;
+            template <typename> class SimpleGenerator;
         }
     }
 
@@ -145,7 +125,7 @@ namespace fltl { namespace lib {
         helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
         /// number of productions
-        unsigned _num_productions;
+        unsigned num_productions_;
 
         /// allocator for variables
         static helper::StorageChain<helper::BlockAllocator<
@@ -162,16 +142,20 @@ namespace fltl { namespace lib {
 
     public:
 
-#if 0
-        /// type tag for specializing
-        typedef cfg::query_builder_tag query_builder_tag;
-#endif
-
         /// arbitrary symbol (terminal, non-terminal) of a grammar
         typedef cfg::Symbol<AlphaT> symbol_type;
 
         /// type of a production builder
         typedef cfg::ProductionBuilder<AlphaT> production_builder_type;
+
+        /// represents a production
+        typedef cfg::OpaqueProduction<AlphaT> production_type;
+
+        /// string of symbols
+        typedef cfg::SymbolString<AlphaT> symbol_string_type;
+
+        /// generator of search results
+        typedef cfg::Generator<AlphaT> generator_type;
 
         /// represents a terminal of a grammar
         class terminal_type : public cfg::Symbol<AlphaT> {
@@ -198,7 +182,9 @@ namespace fltl { namespace lib {
         /// represents a non-terminal of a grammar
         class variable_type : public cfg::Symbol<AlphaT> {
         private:
+
             friend class CFG<AlphaT>;
+            friend class cfg::OpaqueProduction<AlphaT>;
 
             explicit variable_type(const cfg::internal_sym_type _value) throw()
                 : cfg::Symbol<AlphaT>(_value)
@@ -216,32 +202,23 @@ namespace fltl { namespace lib {
                 return cfg::Unbound<AlphaT,variable_type>(this);
             }
 
-            /// making a query where the variable is bound
-            template <typename RHS>
-            cfg::Pattern<
-                AlphaT,
-                variable_type,
-                cfg::detail::PatternElem<AlphaT, RHS>
-            >
-            operator->*(RHS rhs) const throw() {
-                (void) rhs;
+            /// making a query where the variable is (un)bound
+            FLTL_CFG_PRODUCTION_PATTERN(variable_type, 0U)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(variable_type, 0U)
 
-                return cfg::Pattern<
-                    AlphaT,
-                    variable_type,
-                    cfg::detail::PatternElem<AlphaT, RHS>
-                >();
-            }
+            /// making a query where the terminal is (un)bound
+            FLTL_CFG_PRODUCTION_PATTERN(terminal_type, 0U)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(terminal_type, 0U)
+
+            /// making a query where the symbol is bound
+            FLTL_CFG_PRODUCTION_PATTERN(symbol_type, 0U)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_type, 0U)
+
+            /// making a query where the symbol string is (un)bound
+            FLTL_CFG_PRODUCTION_PATTERN(symbol_string_type, 0U)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_string_type, 1U)
+
         };
-
-        /// represents a production
-        typedef cfg::OpaqueProduction<AlphaT> production_type;
-
-        /// string of symbols
-        typedef cfg::SymbolString<AlphaT> symbol_string_type;
-
-        /// generator of search results
-        typedef cfg::Generator<AlphaT> generator_type;
 
         /// short forms
         typedef symbol_type sym_t;
@@ -260,7 +237,7 @@ namespace fltl { namespace lib {
             , terminal_map()
             , terminal_map_inv()
             , variable_map()
-            , _num_productions(0)
+            , num_productions_(0)
         {
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
@@ -321,7 +298,7 @@ namespace fltl { namespace lib {
             cfg::Variable<AlphaT> *var(get_variable(_var));
             cfg::Production<AlphaT> *prod(production_allocator->allocate());
 
-            prod->var = _var;
+            prod->var = var;
             prod->symbols.assign(str);
 
             // make sure the production is unique
@@ -329,13 +306,21 @@ namespace fltl { namespace lib {
                 0 != related_prod;
                 related_prod = related_prod->next) {
                 if(related_prod->is_equivalent_to(*prod)) {
+
+                    // was the related production deleted?
+                    if(related_prod->is_deleted) {
+                        related_prod->is_deleted = false;
+                        cfg::Production<AlphaT>::hold(prod);
+                    }
+
                     production_allocator->deallocate(prod);
                     return production_type(related_prod);
                 }
             }
 
             // inductive step: add the production to the current variable
-            ++_num_productions;
+            ++num_productions_;
+            cfg::Production<AlphaT>::hold(prod);
             var->add_production(prod);
             return production_type(prod);
         }
@@ -367,12 +352,22 @@ namespace fltl { namespace lib {
 
         /// remove a production from the grammar
         void remove_production(production_type &_prod) throw() {
+
+            assert(
+                0 != _prod.production &&
+                "Cannot remove invalid production."
+            );
+
+            assert(
+                !_prod.production->is_deleted &&
+                "Cannot remove production that has already been removed."
+            );
+
             cfg::Production<AlphaT> *prod(_prod.production);
-            cfg::Variable<AlphaT> *var(variable_map.get(prod->get(0).value));
-            var->remove_production(prod);
-            prod->prev = 0;
-            prod->next = 0;
+            prod->is_deleted = true;
             cfg::Production<AlphaT>::release(prod);
+            --num_productions_;
+
             prod = 0;
         }
 
@@ -388,7 +383,7 @@ namespace fltl { namespace lib {
 
         /// get the number of productions in the CFG
         inline unsigned num_productions(void) const throw() {
-            return _num_productions;
+            return num_productions_;
         }
 
         /// get the number of terminals in the CFG; note: not all terminals
@@ -406,7 +401,8 @@ namespace fltl { namespace lib {
                 0,
                 0U,
                 reinterpret_cast<void *>(sym.var),
-                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_variable)
+                &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
             );
         }
 
@@ -419,7 +415,8 @@ namespace fltl { namespace lib {
                 0,
                 1U,
                 reinterpret_cast<void *>(sym.term),
-                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_terminal)
+                &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal)
             );
         }
 
@@ -432,7 +429,8 @@ namespace fltl { namespace lib {
                 0,
                 0U,
                 reinterpret_cast<void *>(uprod.prod),
-                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_production)
+                &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
             );
         }
 
@@ -519,22 +517,6 @@ namespace fltl { namespace lib {
 #include "fltl/lib/cfg/OpaqueProduction.hpp"
 #include "fltl/lib/cfg/Unbound.hpp"
 #include "fltl/lib/cfg/Generator.hpp"
-
-#if 0
-namespace fltl { namespace mpl {
-
-    /// Classes for template variables.
-    namespace detail {
-        template <typename TagT, typename>
-        class CFGQueryVar { };
-    }
-
-    template <typename T>
-    class QueryBuilder<T,fltl::lib::cfg::query_builder_tag> {
-    public:
-    };
-
-}}
-#endif
+#include "fltl/lib/cfg/Pattern.hpp"
 
 #endif /* FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_ */

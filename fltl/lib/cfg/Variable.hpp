@@ -20,6 +20,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
+        friend class Production<AlphaT>;
+        friend class OpaqueProduction<AlphaT>;
 
         /// id of this variable
         cfg::internal_sym_type id;
@@ -46,7 +48,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// add a production to this variable
         void add_production(cfg::Production<AlphaT> *prod) throw() {
-            cfg::Production<AlphaT>::hold(prod);
 
             if(0 != first_production) {
                 prod->prev = first_production->prev;
