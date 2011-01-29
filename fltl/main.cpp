@@ -15,6 +15,48 @@ int main(void) {
 
     fltl::test::run_tests();
 
+    using fltl::lib::CFG;
+    CFG<char> cfg;
+
+    CFG<char>::term_t a(cfg.get_terminal('a'));
+    CFG<char>::term_t b(cfg.get_terminal('b'));
+    CFG<char>::term_t c(cfg.get_terminal('c'));
+    CFG<char>::var_t S(cfg.add_variable());
+    CFG<char>::var_t T(cfg.add_variable());
+    CFG<char>::var_t U(cfg.add_variable());
+
+    (void) c;
+
+    cfg.add_production(S, S);
+    cfg.add_production(S, a + b + S);
+    cfg.add_production(S, S + a);
+
+    cfg.add_production(U, S + b);
+
+    printf("searching for productions\n");
+    CFG<char>::prod_t P;
+    CFG<char>::gen_t productions(cfg.search(~P));
+
+    while(productions.find_next()) {
+        cfg.debug(P);
+    }
+
+    printf("searching for variables\n");
+    CFG<char>::var_t V;
+    CFG<char>::gen_t variables(cfg.search(~V));
+
+    while(variables.find_next()) {
+        cfg.debug(V);
+    }
+
+    printf("searching for terminals\n");
+    CFG<char>::term_t t;
+    CFG<char>::gen_t terminals(cfg.search(~t));
+
+    while(terminals.find_next()) {
+        cfg.debug(t);
+    }
+
     return 0;
 }
 

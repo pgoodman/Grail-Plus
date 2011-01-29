@@ -60,6 +60,22 @@ namespace fltl { namespace mpl {
     public:
         typedef ThenT type;
     };
+
+    template <typename T0, typename T1>
+    class IfTypesEqual {
+    public:
+        enum {
+            RESULT = 0
+        };
+    };
+
+    template <typename T0>
+    class IfTypesEqual<T0,T0> {
+    public:
+        enum {
+            RESULT = 1
+        };
+    };
 }}
 
 #endif /* FLTL_IF_HPP_ */

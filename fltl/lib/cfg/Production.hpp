@@ -32,6 +32,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
         friend class Variable<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
+        friend class detail::SimpleGenerator<AlphaT>;
 
         typedef Production<AlphaT> self_type;
 

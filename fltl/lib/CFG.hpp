@@ -50,6 +50,10 @@
 #define FLTL_CFG_LET_NON_TERM(var_name) FLTL_CFG_LET_(fltl::lib::cfg::query_non_terminal_tag, var_name)
 #define FLTL_CFG_LET_TERM(var_name) FLTL_CFG_LET_(fltl::lib::cfg::query_terminal_tag, var_name)
 
+#ifndef unbound
+#define unbound const static
+#endif
+
 namespace fltl { namespace lib {
 
     // forward declaration
@@ -76,11 +80,24 @@ namespace fltl { namespace lib {
         template <typename> class ProductionBuilder;
         template <typename> class Symbol;
         template <typename> class SymbolString;
+        template <typename, typename> class Unbound;
+        template <typename AlphaT> class Generator;
+        template <typename AlphaT, typename LHS, typename RHS> class Pattern;
 
         namespace detail {
-            // forward declaration
+
+            // forward declarations
             template <typename AlphaT, const unsigned num_symbols>
             struct SymbolStringAllocator;
+
+            template <typename AlphaT, typename T>
+            class PatternElem;
+
+            template <typename AlphaT, typename T0, typename T1>
+            class PatternPair;
+
+            template <typename AlphaT>
+            class SimpleGenerator;
         }
     }
 
@@ -107,6 +124,7 @@ namespace fltl { namespace lib {
         friend class cfg::Variable<AlphaT>;
         friend class cfg::ProductionBuilder<AlphaT>;
         friend class cfg::Production<AlphaT>;
+        friend class cfg::detail::SimpleGenerator<AlphaT>;
         template <typename, const unsigned> friend class cfg::detail::SymbolStringAllocator;
 
         /// the next variable id that can be assigned, goes toward +inf
@@ -139,6 +157,9 @@ namespace fltl { namespace lib {
             cfg::Production<AlphaT>
         > > production_allocator;
 
+        /// temporary generator
+        static cfg::Generator<AlphaT> gen_ref;
+
     public:
 
 #if 0
@@ -160,6 +181,18 @@ namespace fltl { namespace lib {
             explicit terminal_type(const cfg::internal_sym_type _value) throw()
                 : cfg::Symbol<AlphaT>(_value)
             { }
+
+        public:
+
+            terminal_type(void) throw()
+                : cfg::Symbol<AlphaT>(0)
+            { }
+
+            /// return an "unbound" version of this symbol
+            /// note: *not* const!!
+            cfg::Unbound<AlphaT,terminal_type> operator~(void) throw() {
+                return cfg::Unbound<AlphaT,terminal_type>(this);
+            }
         };
 
         /// represents a non-terminal of a grammar
@@ -176,6 +209,29 @@ namespace fltl { namespace lib {
             variable_type(void) throw()
                 : cfg::Symbol<AlphaT>(0)
             { }
+
+            /// return an "unbound" version of this symbol
+            /// note: *not* const!!
+            cfg::Unbound<AlphaT,variable_type> operator~(void) throw() {
+                return cfg::Unbound<AlphaT,variable_type>(this);
+            }
+
+            /// making a query where the variable is bound
+            template <typename RHS>
+            cfg::Pattern<
+                AlphaT,
+                variable_type,
+                cfg::detail::PatternElem<AlphaT, RHS>
+            >
+            operator->*(RHS rhs) const throw() {
+                (void) rhs;
+
+                return cfg::Pattern<
+                    AlphaT,
+                    variable_type,
+                    cfg::detail::PatternElem<AlphaT, RHS>
+                >();
+            }
         };
 
         /// represents a production
@@ -184,6 +240,9 @@ namespace fltl { namespace lib {
         /// string of symbols
         typedef cfg::SymbolString<AlphaT> symbol_string_type;
 
+        /// generator of search results
+        typedef cfg::Generator<AlphaT> generator_type;
+
         /// short forms
         typedef symbol_type sym_t;
         typedef production_builder_type prod_builder_t;
@@ -191,6 +250,7 @@ namespace fltl { namespace lib {
         typedef variable_type var_t;
         typedef production_type prod_t;
         typedef symbol_string_type sym_str_t;
+        typedef generator_type gen_t;
 
         /// constructor
         CFG(void) throw()
@@ -206,34 +266,32 @@ namespace fltl { namespace lib {
             variable_map.reserve(256U);
 
             terminal_map.append(mpl::Static<AlphaT>::VALUE);
-            variable_map.append(0);
+            variable_map.append(variable_allocator->allocate());
         }
 
         /// destructor
         ~CFG(void) throw() {
 
             // free the variables
-            if(1 < variable_map.size()) {
+            for(cfg::Variable<AlphaT> *var(variable_map.get(0)), *next_var(0);
+                0 != var;
+                var = next_var) {
 
-                for(cfg::Variable<AlphaT> *var(variable_map.get(1U)), *next_var(0);
-                    0 != var;
-                    var = next_var) {
-
-                    next_var = var->next;
-                    variable_map.set(var->id, 0);
-                    variable_allocator->deallocate(var);
-                }
+                next_var = var->next;
+                variable_map.set(var->id, 0);
+                variable_allocator->deallocate(var);
             }
         }
 
         /// add a new variable to the
-        variable_type add_variable(void) throw() {
+        const variable_type add_variable(void) throw() {
             cfg::Variable<AlphaT> *var(variable_allocator->allocate());
             var->init(next_variable_id, variable_map.back());
 
             cfg::internal_sym_type var_id(next_variable_id);
 
             ++next_variable_id;
+            variable_map.back()->next = var;
             variable_map.append(var);
 
             variable_type ret(var_id);
@@ -241,7 +299,7 @@ namespace fltl { namespace lib {
         }
 
         /// get the terminal reference for a particular terminal.
-        terminal_type get_terminal(const AlphaT term) throw() {
+        const terminal_type get_terminal(const AlphaT term) throw() {
             cfg::internal_sym_type &term_id(terminal_map_inv[term]);
 
             if(0 == term_id) {
@@ -255,7 +313,7 @@ namespace fltl { namespace lib {
         }
 
         /// add a production to the grammar from a symbol string
-        production_type add_production(
+        const production_type add_production(
             const variable_type _var,
             symbol_string_type str
         ) throw() {
@@ -267,7 +325,7 @@ namespace fltl { namespace lib {
             prod->symbols.assign(str);
 
             // make sure the production is unique
-            for(cfg::Production<AlphaT> *related_prod(var->productions);
+            for(cfg::Production<AlphaT> *related_prod(var->first_production);
                 0 != related_prod;
                 related_prod = related_prod->next) {
                 if(related_prod->is_equivalent_to(*prod)) {
@@ -276,7 +334,7 @@ namespace fltl { namespace lib {
                 }
             }
 
-            // add the production in
+            // inductive step: add the production to the current variable
             ++_num_productions;
             var->add_production(prod);
             return production_type(prod);
@@ -284,7 +342,7 @@ namespace fltl { namespace lib {
 
         /// add a production to the grammar that has the sames symbols as
         /// another production
-        inline production_type add_production(
+        inline const production_type add_production(
             const variable_type _var,
             production_type _prod
         ) throw() {
@@ -292,7 +350,7 @@ namespace fltl { namespace lib {
         }
 
         /// add a production to the grammar from a symbol
-        inline production_type add_production(
+        inline const production_type add_production(
             const variable_type _var,
             const symbol_type _sym
         ) throw() {
@@ -300,7 +358,7 @@ namespace fltl { namespace lib {
         }
 
         /// add a production to the grammar from a production builder
-        inline production_type add_production(
+        inline const production_type add_production(
             const variable_type _var,
             production_builder_type &builder
         ) throw() {
@@ -319,7 +377,7 @@ namespace fltl { namespace lib {
         }
 
         /// get the variable representing the empty string, epsilon
-        inline variable_type epsilon(void) const throw() {
+        inline const variable_type epsilon(void) const throw() {
             return mpl::Static<variable_type>::VALUE;
         }
 
@@ -337,6 +395,58 @@ namespace fltl { namespace lib {
         /// are necessarily reachable
         inline unsigned num_terminals(void) const throw() {
             return terminal_map.size() - 1U;
+        }
+
+        /// create a variable generator
+        inline generator_type
+        search(cfg::Unbound<AlphaT, variable_type> sym) throw() {
+            return generator_type(
+                this,
+                variable_map.get(0),
+                0,
+                0U,
+                reinterpret_cast<void *>(sym.var),
+                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_variable)
+            );
+        }
+
+        /// create a terminal generator
+        inline generator_type
+        search(cfg::Unbound<AlphaT, terminal_type> sym) throw() {
+            return generator_type(
+                this,
+                0,
+                0,
+                1U,
+                reinterpret_cast<void *>(sym.term),
+                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_terminal)
+            );
+        }
+
+        /// create a production generator
+        inline generator_type
+        search(cfg::Unbound<AlphaT, production_type> uprod) throw() {
+            return generator_type(
+                this,
+                variable_map.get(0),
+                0,
+                0U,
+                reinterpret_cast<void *>(uprod.prod),
+                &(cfg::detail::SimpleGenerator<AlphaT>::find_next_production)
+            );
+        }
+
+        /// return an empty generator for
+        inline generator_type search(cfg::Unbound<AlphaT, symbol_type>) throw() {
+            return gen_ref;
+        }
+
+        template <typename T>
+        inline generator_type &search(const T expr) throw() {
+            (void) expr;
+            generator_type gen(this);
+            gen_ref = gen;
+            return gen_ref;
         }
 
     private:
@@ -358,6 +468,35 @@ namespace fltl { namespace lib {
 
             return var;
         }
+
+    public:
+
+        void debug(const production_type &prod) throw() {
+            if(!prod.valid()) {
+                printf("<empty production>\n");
+            } else {
+                printf("\033[33m%d\033[0m -> ", prod.variable().value);
+                symbol_string_type syms(prod.symbols());
+                for(unsigned i(0); i < syms.length(); ++i) {
+                    if(0 < syms[i].value) {
+                        printf("\033[33m%d ", syms[i].value);
+                    } else {
+                        printf("\033[35m%c ", terminal_map.get(-1 * syms[i].value));
+                    }
+                }
+                printf("\033[0m\n");
+            }
+        }
+
+        void debug(const symbol_type &sym) throw() {
+            if(0 == sym.value) {
+                printf("\x27\n");
+            } else if(0 < sym.value) {
+                printf("\033[33m%d\033[0m\n", sym.value);
+            } else {
+                printf("\033[35m%c\033[0m\n", terminal_map.get(-1 * sym.value));
+            }
+        }
     };
 
     // initialize the static variables
@@ -370,11 +509,16 @@ namespace fltl { namespace lib {
     helper::StorageChain<helper::BlockAllocator<
         cfg::Production<AlphaT>
     > > CFG<AlphaT>::production_allocator(CFG<AlphaT>::variable_allocator);
+
+    template <typename AlphaT>
+    cfg::Generator<AlphaT> CFG<AlphaT>::gen_ref;
 }}
 
 #include "fltl/lib/cfg/ProductionBuilder.hpp"
 #include "fltl/lib/cfg/SymbolString.hpp"
 #include "fltl/lib/cfg/OpaqueProduction.hpp"
+#include "fltl/lib/cfg/Unbound.hpp"
+#include "fltl/lib/cfg/Generator.hpp"
 
 #if 0
 namespace fltl { namespace mpl {

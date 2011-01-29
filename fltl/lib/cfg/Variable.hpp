@@ -19,6 +19,7 @@ namespace fltl { namespace lib { namespace cfg {
     private:
 
         friend class CFG<AlphaT>;
+        friend class detail::SimpleGenerator<AlphaT>;
 
         /// id of this variable
         cfg::internal_sym_type id;
@@ -27,7 +28,7 @@ namespace fltl { namespace lib { namespace cfg {
         Variable<AlphaT> *next;
 
         /// the first production related to this variable
-        Production<AlphaT> *productions;
+        Production<AlphaT> *first_production;
 
         /// initialize the variable
         void init(
@@ -46,18 +47,22 @@ namespace fltl { namespace lib { namespace cfg {
         /// add a production to this variable
         void add_production(cfg::Production<AlphaT> *prod) throw() {
             cfg::Production<AlphaT>::hold(prod);
-            if(0 != productions) {
-                productions->prev = prod;
+
+            if(0 != first_production) {
+                prod->prev = first_production->prev;
+                first_production->prev = prod;
+            } else {
+                prod->prev = 0;
             }
-            prod->prev = 0;
-            prod->next = productions;
-            productions = prod;
+
+            prod->next = first_production;
+            first_production = prod;
         }
 
         inline void remove_production(cfg::Production<AlphaT> *prod) throw() {
 
             if(0 == prod->prev) {
-                productions = prod->next;
+                first_production = prod->next;
             } else {
                 prod->prev->next = prod->next;
             }
@@ -72,21 +77,21 @@ namespace fltl { namespace lib { namespace cfg {
         Variable(void) throw()
             : id(0)
             , next(0)
-            , productions(0)
+            , first_production(0)
         { }
 
         Variable(const Variable<AlphaT> &) throw()
             : id(0)
             , next(0)
-            , productions(0)
+            , first_production(0)
         {
             assert(false);
         }
 
         ~Variable(void) throw() {
 
-            // free each variable's productions
-            for(cfg::Production<AlphaT> *prod(productions), *next_prod(0);
+            // free each variable's first_production
+            for(cfg::Production<AlphaT> *prod(first_production), *next_prod(0);
                 0 != prod;
                 prod = next_prod) {
 

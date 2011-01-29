@@ -18,7 +18,7 @@ namespace fltl { namespace lib { namespace cfg {
     class Symbol {
     protected:
 
-        internal_sym_type value;
+        mutable internal_sym_type value;
 
         friend class CFG<AlphaT>;
         friend class Variable<AlphaT>;
@@ -26,6 +26,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
         friend class SymbolString<AlphaT>;
+        friend class detail::SimpleGenerator<AlphaT>;
 
         typedef SymbolString<AlphaT> symbol_string_type;
 
@@ -111,7 +112,7 @@ namespace fltl { namespace lib { namespace cfg {
             symbol_string_type ret;
             const unsigned this_len = length();
             const unsigned that_len = that.length();
-            const unsigned total_len = this_len + that_len;
+            const unsigned total_len(this_len + that_len);
 
             if(0 == total_len) {
                 return ret;
@@ -137,6 +138,12 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             return ret;
+        }
+
+        /// return an "unbound" version of this symbol
+        /// note: *not* const!!
+        cfg::Unbound<AlphaT,self_type> operator~(void) throw() {
+            return cfg::Unbound<AlphaT,self_type>(this);
         }
     };
 

@@ -66,6 +66,9 @@ namespace fltl { namespace lib { namespace cfg {
                 );
             }
 
+            SymbolArray(void)
+                : symbols()
+            { }
         };
 
         /// static allocator for symbol arrays
@@ -76,8 +79,6 @@ namespace fltl { namespace lib { namespace cfg {
                 SymbolArray<AlphaT, num_symbols>,
                 FLTL_SYMBOL_STRING_ALLOC_LIST_SIZE
             > > allocator;
-
-
         };
 
         /// static initialize the symbol array's allocator

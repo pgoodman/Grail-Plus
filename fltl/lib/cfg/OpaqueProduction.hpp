@@ -19,6 +19,7 @@ namespace fltl { namespace lib { namespace cfg {
     private:
 
         friend class CFG<AlphaT>;
+        friend class detail::SimpleGenerator<AlphaT>;
 
         typedef OpaqueProduction<AlphaT> self_type;
         typedef typename CFG<AlphaT>::variable_type variable_type;
@@ -106,7 +107,7 @@ namespace fltl { namespace lib { namespace cfg {
         /// access a symbol from the production. uses 0 indexing, i.e. if we
         /// have a production of the form prod = A -> B C D then:
         ///             prod[0] <==> prod.symbol(0) <==> B.
-        inline symbol_type
+        inline const symbol_type &
         operator[](const unsigned offset) const throw() {
             return symbol_at(offset);
         }
@@ -123,6 +124,10 @@ namespace fltl { namespace lib { namespace cfg {
         /// get a slice of symbols
         inline symbol_string_type &symbols(void) const throw() {
             return production->symbols;
+        }
+
+        Unbound<AlphaT, self_type> operator~(void) throw() {
+            return Unbound<AlphaT, self_type>(this);
         }
     };
 
