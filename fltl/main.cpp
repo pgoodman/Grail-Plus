@@ -13,7 +13,7 @@
 
 int main(void) {
 
-    fltl::test::run_tests();
+    //fltl::test::run_tests();
 
     using fltl::lib::CFG;
     CFG<char> cfg;
@@ -30,19 +30,39 @@ int main(void) {
     cfg.add_production(S, S);
     cfg.add_production(S, a + b + S);
     cfg.add_production(S, S + a);
-    cfg.add_production(U, S + b);
+    cfg.add_production(U, U + b);
+    cfg.add_production(S, a + b);
+    cfg.add_production(S, a + b + b);
+    cfg.add_production(U, cfg.epsilon());
 
     printf("searching for productions\n");
     CFG<char>::prod_t P;
+    CFG<char>::var_t V;
+    CFG<char>::sym_str_t prefix;
+    CFG<char>::sym_str_t suffix;
     CFG<char>::gen_t productions(cfg.search(~P));
 
-    for(; productions.bind_next(); productions.rewind()) {
-        cfg.remove_production(P);
+    for(; productions.bind_next(); ) {
+        printf("found production: ");
         cfg.debug(P);
+
+        if((P.variable() --->* ~prefix + ~V + ~suffix).destructuring_bind(P)) {
+            printf("    first variable: ");
+            cfg.debug(V);
+        } else {
+            printf("    no first variable\n");
+        }
+
+        if((P.variable() --->* cfg.epsilon()).destructuring_bind(P)) {
+            printf("    nullable\n");
+        }
+
+        if((P.variable() --->* a + b + ~suffix).destructuring_bind(P)) {
+            printf("    starts with \"a b\"\n");
+        }
     }
 
     printf("searching for variables\n");
-    CFG<char>::var_t V;
     CFG<char>::gen_t variables(cfg.search(~V));
 
     while(variables.bind_next()) {

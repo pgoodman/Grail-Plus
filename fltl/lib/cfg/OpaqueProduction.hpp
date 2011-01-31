@@ -128,7 +128,8 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// get a slice of symbols
-        inline symbol_string_type &symbols(void) const throw() {
+        inline const symbol_string_type &
+        symbols(void) const throw() {
             return production->symbols;
         }
 

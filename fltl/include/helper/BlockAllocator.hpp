@@ -28,24 +28,15 @@ namespace fltl { namespace helper {
 
             typedef BlockAllocatorSlot<T> self_type;
 
-            self_type *next[(sizeof(T) + sizeof(self_type *) - 1) / sizeof(self_type *)];
+            T obj;
+            self_type *next;
 
             BlockAllocatorSlot(void)
-                : next()
-            {
-                next[0] = 0;
-            }
-
-            BlockAllocatorSlot(const self_type &) throw() {
-                assert(false);
-            }
+                : obj()
+                , next(0)
+            { }
 
             ~BlockAllocatorSlot() { }
-
-            self_type &operator=(const self_type &) throw() {
-                assert(false);
-                return *this;
-            }
         };
 
         template <typename T, const unsigned NUM_SLOTS>
@@ -56,7 +47,6 @@ namespace fltl { namespace helper {
             typedef BlockAllocatorSlot<T> slot_type;
 
             self_type *next;
-
             slot_type slots[NUM_SLOTS];
 
             BlockAllocatorBlock(self_type *_next) throw()
@@ -64,10 +54,10 @@ namespace fltl { namespace helper {
                 , slots()
             {
                 slot_type *last(&(slots[NUM_SLOTS - 1]));
-                for(slot_type *curr(&slots[0]); curr <= last; ++curr) {
-                    curr->next[0] = curr + 1;
+                for(slot_type *curr(&(slots[0])); curr <= last; ++curr) {
+                    curr->next = curr + 1;
                 }
-                last->next[0] = 0;
+                last->next = 0;
             }
 
             BlockAllocatorBlock(const self_type &) throw()
@@ -128,22 +118,40 @@ namespace fltl { namespace helper {
         }
 
         inline T *allocate(void) throw() {
+
             if(0 == free_list) {
                 block_list = new block_type(block_list);
                 free_list = &(block_list->slots[0]);
             }
 
             slot_type *obj(free_list);
-            free_list = obj->next[0];
+            free_list = obj->next;
 
-            return new (reinterpret_cast<void *>(obj)) T;
+            return &(obj->obj);
         }
 
         inline void deallocate(T *ptr) throw() {
-            ptr->~T();
 
-            slot_type *new_head(new (reinterpret_cast<void *>(ptr)) slot_type);
-            new_head->next[0] = free_list;
+            // destroy and re-instantiate
+            ptr->~T();
+            new (ptr) T;
+
+            const ptrdiff_t diff(
+                reinterpret_cast<char *>(&(block_list->slots[0].obj)) -
+                reinterpret_cast<char *>(&(block_list->slots[0]))
+            );
+
+            slot_type *new_head(0);
+
+            if(diff > 0) {
+                new_head = helper::unsafe_cast<slot_type *>(
+                    reinterpret_cast<char *>(ptr) - diff
+                );
+            } else {
+                new_head = helper::unsafe_cast<slot_type *>(ptr);
+            }
+
+            new_head->next = free_list;
             free_list = new_head;
         }
     };

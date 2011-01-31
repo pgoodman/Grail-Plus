@@ -33,19 +33,10 @@ namespace fltl { namespace lib { namespace cfg {
                 state->variable = state->cfg->variable_map.get(0);
             }
 
-            /// generate productions
             static bool
-            bind_next_production(Generator<AlphaT> *state) throw() {
-
-                // get the binder
-                OpaqueProduction<AlphaT> *binder(
-                    helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
-                        state->binder
-                    )
-                );
+            find_next_production(Generator<AlphaT> *state) throw() {
 
                 if(0 == state->variable) {
-                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
                     return false;
                 }
 
@@ -76,7 +67,6 @@ namespace fltl { namespace lib { namespace cfg {
                 if(0 == var || 0 == prod) {
                     state->variable = 0;
                     state->production = 0;
-                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
                     return false;
                 } else {
 
@@ -90,11 +80,28 @@ namespace fltl { namespace lib { namespace cfg {
                     state->production = prod;
                 }
 
-                // bind the production
-                OpaqueProduction<AlphaT> oprod(prod);
-                *binder = oprod;
-
                 return true;
+            }
+
+            /// generate productions
+            static bool
+            bind_next_production(Generator<AlphaT> *state) throw() {
+
+                // get the binder
+                OpaqueProduction<AlphaT> *binder(
+                    helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
+                        state->binder
+                    )
+                );
+
+                if(find_next_production(state)) {
+                    OpaqueProduction<AlphaT> prod(state->production);
+                    *binder = prod;
+                    return true;
+                } else {
+                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
+                    return false;
+                }
             }
 
             /// reset the variable generator
@@ -151,6 +158,12 @@ namespace fltl { namespace lib { namespace cfg {
 
                 return true;
             }
+        };
+
+        /// template for complex patterns
+        template <typename AlphaT>
+        class PatternGenerator {
+        public:
         };
     }
 

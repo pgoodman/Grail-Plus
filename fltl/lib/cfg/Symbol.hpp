@@ -58,7 +58,7 @@ namespace fltl { namespace lib { namespace cfg {
     public:
 
         Symbol(void) throw()
-            : value(0)
+            : value(1)
         { }
 
         Symbol(const self_type &that) throw()
@@ -95,20 +95,21 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         inline unsigned length(void) const throw() {
-            return (0 == value) ? 0U : 1U;
+            return 1U;
         }
 
         /// concatenate this symbol with a symbol string, i.e. prepend this
         /// symbol onto the beginning of the other symbol string and return
         /// the result
-        FLTL_FORCE_INLINE symbol_string_type
+        FLTL_FORCE_INLINE const symbol_string_type
         operator+(symbol_string_type that) const throw() {
             return that.prepend_symbol(this);
         }
 
         /// concatenate this symbol with another symbol and return the symbol
         /// string.
-        symbol_string_type operator+(const self_type that) const throw() {
+        const symbol_string_type
+        operator+(const self_type that) const throw() {
             symbol_string_type ret;
             const unsigned this_len = length();
             const unsigned that_len = that.length();
@@ -138,6 +139,16 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             return ret;
+        }
+
+        /// is this a variable?
+        FLTL_FORCE_INLINE bool is_variable(void) const throw() {
+            return value > 0;
+        }
+
+        /// is this a terminal?
+        FLTL_FORCE_INLINE bool is_terminal(void) const throw() {
+            return value < 0;
         }
 
         /// return an "unbound" version of this symbol

@@ -25,8 +25,8 @@ namespace fltl { namespace test { namespace cfg {
         CFG<char>::term_t b(cfg.get_terminal('b'));
         CFG<char>::term_t a_prime(cfg.get_terminal('a'));
 
-        CFG<char>::sym_t epsilon(cfg.epsilon());
-        CFG<char>::sym_t epsilon_prime;
+        CFG<char>::sym_str_t epsilon(cfg.epsilon());
+        CFG<char>::sym_str_t epsilon_prime;
 
         CFG<char>::sym_t S_sym(S);
         CFG<char>::sym_t a_sym(a);
@@ -89,7 +89,7 @@ namespace fltl { namespace test { namespace cfg {
         CFG<char> cfg;
         CFG<char>::var_t S(cfg.add_variable());
         CFG<char>::term_t a(cfg.get_terminal('a'));
-        CFG<char>::sym_t epsilon(cfg.epsilon());
+        CFG<char>::sym_str_t epsilon(cfg.epsilon());
 
         FLTL_TEST_EQUAL(S.length(), 1);
         FLTL_TEST_EQUAL((epsilon + S).length(), 1);
@@ -187,7 +187,7 @@ namespace fltl { namespace test { namespace cfg {
         CFG<char> cfg;
         CFG<char>::var_t S(cfg.add_variable());
         CFG<char>::term_t a(cfg.get_terminal('a'));
-        CFG<char>::sym_t epsilon(cfg.epsilon());
+        CFG<char>::sym_str_t epsilon(cfg.epsilon());
 
         CFG<char>::sym_str_t aS(a + S);
         CFG<char>::prod_t S_aS(cfg.add_production(S, a + S));

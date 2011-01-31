@@ -129,7 +129,12 @@ namespace fltl { namespace lib { namespace cfg {
         friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
 
+        template <typename, typename> friend class Unbound;
+
         template <typename,const unsigned> friend class detail::SymbolArray;
+
+        template <typename, typename, const unsigned, typename, typename>
+        friend class detail::Match2;
 
         typedef SymbolString<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
@@ -288,11 +293,11 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// hash an array
         inline static internal_sym_type hash_array(
-            symbol_type *syms,
+            const symbol_type *syms,
             const unsigned num_syms
         ) throw() {
             internal_sym_type ihash(syms->hash());
-            for(symbol_type *sym(syms + 1), *last(syms + num_syms);
+            for(const symbol_type *sym(syms + 1), *last(syms + num_syms);
                 sym < last;
                 ++sym) {
 
@@ -315,7 +320,7 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// create a symbol string from an array of symbols
-        SymbolString(symbol_type *arr, const unsigned num_syms) throw()
+        SymbolString(const symbol_type *arr, const unsigned num_syms) throw()
             : symbols(0)
         {
             if(0 < num_syms) {
@@ -422,7 +427,8 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// concatenation
-        inline self_type operator+(const self_type that) const throw() {
+        inline const self_type
+        operator+(const self_type that) const throw() {
 
             const unsigned len = length();
             const unsigned other_len = that.length();
@@ -459,13 +465,14 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// concatenate a symbol onto the end
-        inline self_type operator+(const symbol_type sym) const throw() {
+        inline const self_type
+        operator+(const symbol_type sym) const throw() {
             return append_symbol(&sym);
         }
 
         /// get a slice of symbols. gets a slice of symbols in the range
         /// [from, from+stride[.
-        inline self_type
+        inline const self_type
         substring(const unsigned start, const unsigned stride) const throw() {
 
             self_type ret;
@@ -568,7 +575,8 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// get a the symbol at a specific index
-        inline const symbol_type &at(const unsigned offset) const throw() {
+        inline const symbol_type &
+        at(const unsigned offset) const throw() {
             assert(
                 0 != symbols &&
                 "Cannot access symbol in empty symbol string."
@@ -589,6 +597,11 @@ namespace fltl { namespace lib { namespace cfg {
 
         FLTL_FORCE_INLINE bool is_empty(void) const throw() {
             return 0 == symbols;
+        }
+
+        /// return an "unbound" version of this symbol string
+        cfg::Unbound<AlphaT,self_type> operator~(void) throw() {
+            return cfg::Unbound<AlphaT,self_type>(this);
         }
     };
 
