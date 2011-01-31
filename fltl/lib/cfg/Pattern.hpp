@@ -207,7 +207,7 @@ namespace fltl { namespace lib { namespace cfg {
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::variable_type>, void> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len > 1) {
+                if(len > 1 || !symbols->is_variable()) {
                     return false;
                 }
 
@@ -222,7 +222,7 @@ namespace fltl { namespace lib { namespace cfg {
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::terminal_type>, void> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len > 1) {
+                if(len > 1 || !symbols->is_terminal()) {
                     return false;
                 }
 
@@ -358,7 +358,7 @@ namespace fltl { namespace lib { namespace cfg {
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::variable_type>, T> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len >= 1) {
+                if(len >= 1 && symbols->is_variable()) {
                     *(slots->as_unbound_variable->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
 
                     return Match2<
@@ -378,7 +378,7 @@ namespace fltl { namespace lib { namespace cfg {
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::terminal_type>, T> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len >= 1) {
+                if(len >= 1 && symbols->is_terminal()) {
                     *(slots->as_unbound_terminal->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
 
                     return Match2<

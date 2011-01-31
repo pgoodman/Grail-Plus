@@ -13,7 +13,7 @@
 
 int main(void) {
 
-    //fltl::test::run_tests();
+    fltl::test::run_tests();
 
     using fltl::lib::CFG;
     CFG<char> cfg;
