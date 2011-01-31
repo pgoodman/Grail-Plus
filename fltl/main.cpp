@@ -33,6 +33,8 @@ int main(void) {
     cfg.add_production(U, U + b);
     cfg.add_production(S, a + b);
     cfg.add_production(S, a + b + b);
+    cfg.add_production(T, a + a);
+    cfg.add_production(T, a + a + a + a);
     cfg.add_production(U, cfg.epsilon());
 
     printf("searching for productions\n");
@@ -59,6 +61,11 @@ int main(void) {
 
         if((P.variable() --->* a + b + ~suffix).destructuring_bind(P)) {
             printf("    starts with \"a b\"\n");
+        }
+
+        if((P.variable() --->* ~prefix + prefix).destructuring_bind(P)) {
+            printf("    copy & paste prefix: ");
+            cfg.debug(prefix);
         }
     }
 

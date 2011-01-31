@@ -182,7 +182,7 @@ namespace fltl { namespace lib { namespace cfg {
                 return SymbolString<AlphaT>::symbol_memcmp(
                     symbols,
                     &(slots->as_symbol_string->at(0)),
-                    symbols + len
+                    symbols + str_len - 1
                 );
             }
         };
@@ -315,7 +315,7 @@ namespace fltl { namespace lib { namespace cfg {
                     const bool prefix_is_str(SymbolString<AlphaT>::symbol_memcmp(
                         symbols,
                         &(slots->as_symbol_string->at(0)),
-                        symbols + str_len
+                        symbols + str_len - 1
                     ));
 
                     if(!prefix_is_str) {
@@ -398,11 +398,9 @@ namespace fltl { namespace lib { namespace cfg {
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::symbol_string_type>, T> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                //SymbolString<AlphaT> str(symbols, len);
-                //*(slots->as_unbound_symbol_string->string) = str;
-                //return true;
 
                 for(unsigned i(0); i < len; ++i) {
+
                     SymbolString<AlphaT> str(symbols, i);
                     *(slots->as_unbound_symbol_string->string) = str;
 
@@ -418,6 +416,10 @@ namespace fltl { namespace lib { namespace cfg {
                         return true;
                     }
                 }
+
+                // unbind it
+                SymbolString<AlphaT> epsilon;
+                *(slots->as_unbound_symbol_string->string) = epsilon;
 
                 return false;
             }
