@@ -61,6 +61,8 @@ namespace fltl { namespace lib { namespace cfg {
             Unbound<AlphaT, symbol_string_type> *as_unbound_symbol_string;
         };
 
+        ///
+
         template <typename AlphaT,typename T, const unsigned offset>
         class Factor {
         public:
@@ -84,6 +86,17 @@ namespace fltl { namespace lib { namespace cfg {
         };
 
         template <typename AlphaT, const unsigned offset>
+        class Factor<AlphaT,AnySymbolString<AlphaT>,offset> {
+        public:
+            enum {
+                WIDTH = 1,
+                MIN_NUM_SYMBOLS = 0,
+                OFFSET = offset,
+                NEXT_OFFSET = OFFSET + WIDTH
+            };
+        };
+
+        template <typename AlphaT, const unsigned offset>
         class Factor<AlphaT,Unbound<AlphaT, typename CFG<AlphaT>::symbol_string_type>,offset> {
         public:
             enum {
@@ -93,6 +106,8 @@ namespace fltl { namespace lib { namespace cfg {
                 NEXT_OFFSET = OFFSET + WIDTH
             };
         };
+
+        /// concatenate facotrs/concatenations together
 
         template <typename AlphaT,typename T0, typename T1>
         class Catenation {
@@ -104,6 +119,10 @@ namespace fltl { namespace lib { namespace cfg {
                 NEXT_OFFSET = OFFSET + WIDTH
             };
         };
+
+        /// extract out a specific type stored in a factor from the pattern
+        /// type tree that represents the types of the factors in the pattern
+        /// string
 
         template <typename AlphaT,typename T, const unsigned offset>
         class GetFactor {
@@ -125,6 +144,8 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             typedef T type;
         };
+
+        /// match symbols from the pattern
 
         template <typename AlphaT, typename StringT, const unsigned offset, typename T0, typename T1>
         class Match2;
@@ -187,6 +208,15 @@ namespace fltl { namespace lib { namespace cfg {
             }
         };
 
+        /// trailing ignore
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class Match2<AlphaT,StringT,offset,AnySymbol<AlphaT>, void> {
+        public:
+            inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned len) throw() {
+                return 1 == len;
+            }
+        };
+
         /// trailing unbound symbol
         template <typename AlphaT, typename StringT, const unsigned offset>
         class Match2<AlphaT,StringT,offset,Unbound<AlphaT,typename CFG<AlphaT>::symbol_type>, void> {
@@ -239,6 +269,15 @@ namespace fltl { namespace lib { namespace cfg {
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 SymbolString<AlphaT> str(symbols, len);
                 *(slots->as_unbound_symbol_string->string) = str;
+                return true;
+            }
+        };
+
+        /// trailing any symbol string
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class Match2<AlphaT,StringT,offset,AnySymbolString<AlphaT>, void> {
+        public:
+            inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned) throw() {
                 return true;
             }
         };
@@ -330,6 +369,21 @@ namespace fltl { namespace lib { namespace cfg {
                     T,
                     typename GetFactor<AlphaT,StringT,offset + 2>::type
                 >::bind(slots + 1, symbols + str_len, len - str_len);
+            }
+        };
+
+        /// ignore + T
+        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+        class Match2<AlphaT,StringT,offset,AnySymbol<AlphaT>, T> {
+        public:
+            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
+                return (len >= 1) && Match2<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<AlphaT,StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + 1, len - 1);
             }
         };
 
@@ -425,9 +479,72 @@ namespace fltl { namespace lib { namespace cfg {
             }
         };
 
+        /// any symbol string + T
+        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+        class Match2<AlphaT,StringT,offset,AnySymbolString<AlphaT>, T> {
+        public:
+            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+                for(unsigned i(0); i < len; ++i) {
+                    const bool matched_next_at_i(Match2<
+                        AlphaT,
+                        StringT,
+                        offset + 1,
+                        T,
+                        typename GetFactor<AlphaT,StringT,offset + 2>::type
+                    >::bind(slots + 1, symbols + i, len - i));
+                    if(matched_next_at_i) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        };
+
+        /// reset the unbound strings in the pattern
+
+        template <typename AlphaT, typename StringT, typename CurrT,const unsigned offset>
+        class ResetPattern {
+        public:
+            inline static void reset(Slot<AlphaT> *slots) throw() {
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<AlphaT,StringT,offset + 1>::type,
+                    offset + 1
+                >::reset(slots);
+            }
+        };
+
+        template <typename AlphaT, typename StringT,const unsigned offset>
+        class ResetPattern<AlphaT,StringT,void,offset> {
+        public:
+            inline static void reset(Slot<AlphaT> *) throw() { }
+        };
+
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class ResetPattern<AlphaT,StringT,Unbound<AlphaT,SymbolString<AlphaT> >,offset> {
+        public:
+            inline static void reset(Slot<AlphaT> *slots) throw() {
+
+                // reset the unbound symbol string
+                SymbolString<AlphaT> epsilon;
+                *(slots[offset].as_unbound_symbol_string->string) = epsilon;
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<AlphaT,StringT,offset + 1>::type,
+                    offset + 1
+                >::reset(slots);
+            }
+        };
+
         template <typename AlphaT, typename VarT, typename PatternT, typename StringT>
         class DestructuringBind;
 
+        /// check the variable of the pattern
         template <typename AlphaT, typename StringT>
         class DestructuringBind<
             AlphaT,
@@ -443,6 +560,19 @@ namespace fltl { namespace lib { namespace cfg {
                 Pattern<AlphaT, typename CFG<AlphaT>::variable_type> &pattern,
                 const production_type &prod
             ) {
+                if(!prod.is_valid()) {
+                    return false;
+                }
+
+                Slot<AlphaT> *slots(&(pattern.slots[0]));
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<AlphaT,StringT,0>::type,
+                    0
+                >::reset(slots);
+
                 if(pattern.var != prod.variable()) {
                     return false;
                 }
@@ -457,13 +587,14 @@ namespace fltl { namespace lib { namespace cfg {
                         0,
                         typename GetFactor<AlphaT,StringT,0>::type,
                         typename GetFactor<AlphaT,StringT,1>::type
-                    >::bind(&(pattern.slots[0]), 0 == str_len ? 0 : &(str.at(0)), str_len);
+                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
                 }
 
                 return false;
             }
         };
 
+        /// bind the variable
         template <typename AlphaT, typename StringT>
         class DestructuringBind<
             AlphaT,
@@ -479,6 +610,19 @@ namespace fltl { namespace lib { namespace cfg {
                 Pattern<AlphaT, Unbound<AlphaT, typename CFG<AlphaT>::variable_type> > &pattern,
                 const production_type &prod
             ) {
+                if(!prod.is_valid()) {
+                    return false;
+                }
+
+                Slot<AlphaT> *slots(&(pattern.slots[0]));
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<AlphaT,StringT,0>::type,
+                    0
+                >::reset(slots);
+
                 *(pattern.var.symbol) = prod.variable();
 
                 const SymbolString<AlphaT> &str(prod.symbols());
@@ -491,7 +635,49 @@ namespace fltl { namespace lib { namespace cfg {
                         0,
                         typename GetFactor<AlphaT,StringT,0>::type,
                         typename GetFactor<AlphaT,StringT,1>::type
-                    >::bind(&(pattern.slots[0]), &(str.at(0)), str_len);
+                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
+                }
+
+                return false;
+            }
+        };
+
+        /// ignore the variable
+        template <typename AlphaT, typename StringT>
+        class DestructuringBind<
+            AlphaT,
+            AnySymbol<AlphaT>,
+            Pattern<AlphaT, AnySymbol<AlphaT> >,
+            StringT
+        > {
+        public:
+
+            typedef typename CFG<AlphaT>::production_type production_type;
+
+            inline static bool bind(
+                Pattern<AlphaT, AnySymbol<AlphaT> > &pattern,
+                const production_type &prod
+            ) {
+                Slot<AlphaT> *slots(&(pattern.slots[0]));
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<AlphaT,StringT,0>::type,
+                    0
+                >::reset(slots);
+
+                const SymbolString<AlphaT> &str(prod.symbols());
+                const unsigned str_len(str.length());
+
+                if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
+                    return Match2<
+                        AlphaT,
+                        StringT,
+                        0,
+                        typename GetFactor<AlphaT,StringT,0>::type,
+                        typename GetFactor<AlphaT,StringT,1>::type
+                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
                 }
 
                 return false;
@@ -502,11 +688,21 @@ namespace fltl { namespace lib { namespace cfg {
         class PatternBuilder<AlphaT,PatternT,StringT,0U> {
         public:
 
+            enum {
+                IS_BOUND_TO_VAR = PatternT::IS_BOUND
+            };
+
+            friend class CFG<AlphaT>;
+
+            template <typename, typename>
+            friend class PatternGenerator;
+
             typedef typename CFG<AlphaT>::variable_type variable_type;
             typedef typename CFG<AlphaT>::terminal_type terminal_type;
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
+            typedef PatternT pattern_type;
 
             PatternT *pattern;
 
@@ -516,6 +712,9 @@ namespace fltl { namespace lib { namespace cfg {
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(variable_type, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, 0)
+
+            FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, 0)
+            FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolString<AlphaT>, 1)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(terminal_type, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, 0)
@@ -526,7 +725,7 @@ namespace fltl { namespace lib { namespace cfg {
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_string_type, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_string_type, 1)
 
-            inline bool destructuring_bind(const production_type &prod) {
+            inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
                     AlphaT,
                     typename PatternT::lhs_type,
@@ -534,21 +733,46 @@ namespace fltl { namespace lib { namespace cfg {
                     StringT
                 >::bind(*pattern, prod);
             }
+
+        private:
+
+            inline static bool static_match(
+                void *_pattern,
+                const production_type &prod
+            ) throw() {
+
+                return DestructuringBind<
+                    AlphaT,
+                    typename PatternT::lhs_type,
+                    PatternT,
+                    StringT
+                >::bind(*helper::unsafe_cast<PatternT *>(_pattern), prod);
+            }
         };
 
         template <typename AlphaT, typename PatternT, typename StringT>
         class PatternBuilder<AlphaT,PatternT,StringT,1U> {
         public:
 
+            enum {
+                IS_BOUND_TO_VAR = PatternT::IS_BOUND
+            };
+
+            friend class CFG<AlphaT>;
+
+            template <typename, typename>
+            friend class PatternGenerator;
+
             typedef typename CFG<AlphaT>::variable_type variable_type;
             typedef typename CFG<AlphaT>::terminal_type terminal_type;
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
+            typedef PatternT pattern_type;
 
             PatternT *pattern;
 
-            FLTL_FORCE_INLINE PatternBuilder(PatternT *_pattern)
+            FLTL_FORCE_INLINE PatternBuilder(PatternT *_pattern) throw()
                 : pattern(_pattern)
             { }
 
@@ -562,13 +786,28 @@ namespace fltl { namespace lib { namespace cfg {
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_string_type, 0)
 
-            inline bool destructuring_bind(const production_type &prod) {
+            inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
                     AlphaT,
                     typename PatternT::lhs_type,
                     PatternT,
                     StringT
                 >::bind(*pattern, prod);
+            }
+
+        private:
+
+            inline static bool static_match(
+                void *_pattern,
+                const production_type &prod
+            ) throw() {
+
+                return DestructuringBind<
+                    AlphaT,
+                    typename PatternT::lhs_type,
+                    PatternT,
+                    StringT
+                >::bind(*helper::unsafe_cast<PatternT *>(_pattern), prod);
             }
         };
     }
@@ -578,6 +817,11 @@ namespace fltl { namespace lib { namespace cfg {
     private:
 
         friend class CFG<AlphaT>;
+
+        friend class detail::SimpleGenerator<AlphaT>;
+
+        template <typename, typename>
+        friend class detail::PatternGenerator;
 
         template <typename,typename,typename,const unsigned>
         friend class detail::PatternBuilder;
@@ -637,6 +881,18 @@ namespace fltl { namespace lib { namespace cfg {
             ++(next_slot);
         }
 
+        void extend(const AnySymbol<AlphaT> *) throw() {
+            ++(next_slot);
+        }
+
+        void extend(const AnySymbolString<AlphaT> *) throw() {
+            ++(next_slot);
+        }
+
+        const void *get_var(void) const throw() {
+            return reinterpret_cast<const void *>(&var);
+        }
+
     public:
 
         Pattern(V &_var) throw()
@@ -658,6 +914,9 @@ namespace fltl { namespace lib { namespace cfg {
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(symbol_string_type, 0)
         FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(symbol_string_type, 1)
+
+        FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbol<AlphaT>, 0)
+        FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbolString<AlphaT>, 1)
     };
 }}}
 

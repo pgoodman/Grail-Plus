@@ -35,8 +35,8 @@
 
 #define FLTL_CFG_PRODUCTION_PATTERN \
     FLTL_FORCE_INLINE cfg::Pattern<AlphaT,self_type> \
-    operator--(int) throw() { \
-        return cfg::Pattern<AlphaT,self_type>(*this); \
+    operator--(int) const throw() { \
+        return cfg::Pattern<AlphaT,self_type>(*const_cast<self_type *>(this)); \
     }
 
 namespace fltl { namespace lib {
@@ -60,7 +60,10 @@ namespace fltl { namespace lib {
         template <typename> class SymbolString;
         template <typename, typename> class Unbound;
         template <typename> class Generator;
+
         template <typename, typename> class Pattern;
+        template <typename> class AnySymbol;
+        template <typename> class AnySymbolString;
 
         namespace detail {
 
@@ -68,13 +71,20 @@ namespace fltl { namespace lib {
             template <typename, const unsigned>
             struct SymbolStringAllocator;
 
-            template <typename> class SimpleGenerator;
+            template <typename>
+            class SimpleGenerator;
+
+            template <typename, typename>
+            class PatternGenerator;
 
             template <typename, typename, typename, const unsigned>
             class PatternBuilder;
 
             template <typename, typename, const unsigned, typename, typename>
             class Match2;
+
+            template <typename, typename, typename, const unsigned>
+            class ResetPattern;
 
             template <typename, typename, typename, typename>
             class DestructuringBind;
@@ -105,7 +115,12 @@ namespace fltl { namespace lib {
         friend class cfg::ProductionBuilder<AlphaT>;
         friend class cfg::Production<AlphaT>;
         friend class cfg::detail::SimpleGenerator<AlphaT>;
-        template <typename, const unsigned> friend class cfg::detail::SymbolStringAllocator;
+
+        template <typename, typename>
+        friend class cfg::detail::PatternGenerator;
+
+        template <typename, const unsigned>
+        friend class cfg::detail::SymbolStringAllocator;
 
         /// the next variable id that can be assigned, goes toward +inf
         cfg::internal_sym_type next_variable_id;
@@ -126,6 +141,10 @@ namespace fltl { namespace lib {
 
         /// number of productions
         unsigned num_productions_;
+
+        /// the first production in the variable, i.e. the first production
+        /// of the smallest variable.
+        cfg::Production<AlphaT> *first_production;
 
         /// allocator for variables
         static helper::StorageChain<helper::BlockAllocator<
@@ -204,6 +223,63 @@ namespace fltl { namespace lib {
             FLTL_CFG_PRODUCTION_PATTERN
         };
 
+        /// pattern type, nicely encapsulates a destructuring production
+        /// pattern
+        class pattern_type {
+        private:
+
+            friend class CFG<AlphaT>;
+
+            void *pattern;
+            bool (*match_pattern)(void *, const production_type &);
+            bool (*gen_next)(generator_type *);
+            void (*gen_reset)(generator_type *);
+
+        public:
+
+            template <typename PatternT, typename StringT, const unsigned state>
+            pattern_type(
+                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
+            ) throw()
+                : pattern(reinterpret_cast<void *>(pattern_builder.pattern))
+                , match_pattern(&(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match))
+                , gen_next(&(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::bind_next_pattern))
+                , gen_reset(&(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::reset_next_pattern))
+            { }
+
+            ~pattern_type(void) throw() {
+                pattern = 0;
+            }
+
+            template <typename PatternT, typename StringT, const unsigned state>
+            pattern_type &operator=(
+                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
+            ) throw() {
+                pattern = reinterpret_cast<void *>(pattern_builder.pattern);
+                match_pattern = &(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match);
+                gen_next = &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::bind_next_pattern);
+                gen_reset = &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::reset_next_pattern);
+                return *this;
+            }
+
+            /// try to match against the pattern
+            inline bool match(const production_type &prod) const throw() {
+                return match_pattern(pattern, prod);
+            }
+        };
+
         /// short forms
         typedef symbol_type sym_t;
         typedef production_builder_type prod_builder_t;
@@ -211,7 +287,12 @@ namespace fltl { namespace lib {
         typedef variable_type var_t;
         typedef production_type prod_t;
         typedef symbol_string_type sym_str_t;
-        typedef generator_type gen_t;
+        typedef generator_type generator_t;
+        typedef pattern_type pattern_t;
+
+        /// represents any single symbol in a production
+        const cfg::AnySymbol<AlphaT> _;
+        const cfg::AnySymbolString<AlphaT> __;
 
         /// constructor
         CFG(void) throw()
@@ -222,6 +303,9 @@ namespace fltl { namespace lib {
             , terminal_map_inv()
             , variable_map()
             , num_productions_(0)
+            , first_production(0)
+            , _()
+            , __()
         {
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
@@ -242,6 +326,9 @@ namespace fltl { namespace lib {
                 variable_map.set(var->id, 0);
                 variable_allocator->deallocate(var);
             }
+
+            first_production = 0;
+            num_productions_ = 0;
         }
 
         /// add a new variable to the
@@ -302,6 +389,15 @@ namespace fltl { namespace lib {
                 }
             }
 
+            // keep track of the first production
+            if(0 != first_production) {
+                if(var->id <= first_production->var->id) {
+                    first_production = prod;
+                }
+            } else {
+                first_production = prod;
+            }
+
             // inductive step: add the production to the current variable
             ++num_productions_;
             cfg::Production<AlphaT>::hold(prod);
@@ -348,6 +444,34 @@ namespace fltl { namespace lib {
             );
 
             cfg::Production<AlphaT> *prod(_prod.production);
+
+            // was this the first production?
+            if(first_production == prod) {
+                cfg::Production<AlphaT> *next_prod(prod->next);
+                cfg::Variable<AlphaT> *curr_var(prod->var);
+
+                // go look for the next production
+                while(true) {
+                    for(; 0 != next_prod; next_prod = next_prod->next) {
+                        if(!next_prod->is_deleted) {
+                            goto found_next_prod;
+                        }
+                    }
+
+                    curr_var = curr_var->next;
+
+                    if(0 == curr_var) {
+                        goto found_next_prod;
+                    }
+
+                    next_prod = curr_var->first_production;
+                }
+
+            found_next_prod:
+
+                first_production = next_prod;
+            }
+
             prod->is_deleted = true;
             cfg::Production<AlphaT>::release(prod);
             --num_productions_;
@@ -379,47 +503,59 @@ namespace fltl { namespace lib {
         /// create a variable generator
         inline generator_type
         search(cfg::Unbound<AlphaT, variable_type> sym) throw() {
-            return generator_type(
+            generator_type gen(
                 this,
-                variable_map.get(0),
-                0,
-                0U,
-                reinterpret_cast<void *>(sym.symbol),
+                reinterpret_cast<void *>(sym.symbol), // binder
+                reinterpret_cast<void *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
             );
+
+            gen.cursor.variable = variable_map.get(0);
+
+            return gen;
         }
 
         /// create a terminal generator
         inline generator_type
         search(cfg::Unbound<AlphaT, terminal_type> sym) throw() {
-            return generator_type(
+            generator_type gen(
                 this,
-                0,
-                0,
-                1U,
-                reinterpret_cast<void *>(sym.symbol),
+                reinterpret_cast<void *>(sym.symbol), // binder
+                reinterpret_cast<void *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal)
             );
+
+            gen.cursor.terminal_offset = 1U;
+
+            return gen;
         }
 
         /// create a production generator
         inline generator_type
         search(cfg::Unbound<AlphaT, production_type> uprod) throw() {
-            return generator_type(
+
+            if(0 == first_production) {
+                return cfg::Generator<AlphaT>();
+            }
+
+            generator_type gen(
                 this,
-                variable_map.get(0),
-                0,
-                0U,
-                reinterpret_cast<void *>(uprod.prod),
+                reinterpret_cast<void *>(uprod.prod), // binder
+                reinterpret_cast<void *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
             );
+
+            gen.cursor.production = first_production;
+
+            return gen;
         }
 
-        /// return an empty generator for
-        inline generator_type search(cfg::Unbound<AlphaT, symbol_type>) throw() {
+        /// return an empty generator for symbols
+        inline generator_type
+        search(cfg::Unbound<AlphaT, symbol_type>) throw() {
             return cfg::Generator<AlphaT>();
         }
 
@@ -432,33 +568,23 @@ namespace fltl { namespace lib {
             cfg::Unbound<AlphaT, production_type> uprod,
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
-
-            printf("sizeof pattern_builder = %lu \n", sizeof pattern_builder);
-            printf("sizeof *(pattern_builder.pattern) = %lu\n", sizeof *(pattern_builder.pattern));
-
-
-
-            PatternT *pattern(pattern_builder.pattern);
-
-            (void) uprod;
-            (void) pattern;
-
-            if(PatternT::IS_BOUND) {
-                printf("bound\n");
-            } else {
-                printf("unbound\n");
-            }
-
-            return cfg::Generator<AlphaT>();
-            /*
-            return cfg::Generator<AlphaT>(
+            generator_type gen(
                 this,
-                variable_map.get(0),
-                0U,
-                reinterpret_cast<void *>(&pattern),
-                &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
-                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
-            );*/
+                reinterpret_cast<void *>(uprod.prod), // binder
+                reinterpret_cast<void *>(pattern_builder.pattern), // pattern
+                &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::bind_next_pattern),
+                &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::reset_next_pattern)
+            );
+
+            gen.cursor.production = first_production;
+
+            return gen;
         }
 
         /// go find all productions that fit a certain pattern. destructure
@@ -468,30 +594,59 @@ namespace fltl { namespace lib {
         search(
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
-
-            printf("sizeof pattern_builder = %lu \n", sizeof pattern_builder);
-            printf("sizeof *(pattern_builder.pattern) = %lu\n", sizeof *(pattern_builder.pattern));
-
-            PatternT *pattern(pattern_builder.pattern);
-
-            (void) pattern;
-
-            if(PatternT::IS_BOUND) {
-                printf("bound\n");
-            } else {
-                printf("unbound\n");
-            }
-
-            return cfg::Generator<AlphaT>();
-            /*
-            return cfg::Generator<AlphaT>(
+            generator_type gen(
                 this,
-                variable_map.get(0),
-                0U,
-                reinterpret_cast<void *>(&pattern),
-                &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
-                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
-            );*/
+                reinterpret_cast<void *>(0), // binder
+                reinterpret_cast<void *>(pattern_builder.pattern), // pattern
+                &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::bind_next_pattern),
+                &(cfg::detail::PatternGenerator<
+                    AlphaT,
+                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                >::reset_next_pattern)
+            );
+
+            gen.cursor.production = first_production;
+
+            return gen;
+        }
+
+        /// go find all productions that fit a certain pattern. destructure
+        /// each production according to the pattern.
+        inline generator_type search(pattern_type &pattern) throw() {
+            generator_type gen(
+                this,
+                reinterpret_cast<void *>(0), // binder
+                reinterpret_cast<void *>(pattern.pattern), // pattern
+                pattern.gen_next,
+                pattern.gen_reset
+            );
+
+            gen.cursor.production = first_production;
+
+            return gen;
+        }
+
+        /// go find all productions that fit a certain pattern. bind each
+        /// production to uprod, and also destructure each production
+        /// according to the pattern.
+        inline generator_type search(
+            cfg::Unbound<AlphaT, production_type> uprod,
+            pattern_type &pattern
+        ) throw() {
+            generator_type gen(
+                this,
+                reinterpret_cast<void *>(uprod.prod), // binder
+                reinterpret_cast<void *>(pattern.pattern), // pattern
+                pattern.gen_next,
+                pattern.gen_reset
+            );
+
+            gen.cursor.production = first_production;
+
+            return gen;
         }
 
     private:
@@ -517,7 +672,7 @@ namespace fltl { namespace lib {
     public:
 
         void debug(const production_type &prod) throw() {
-            if(!prod.valid()) {
+            if(!prod.is_valid()) {
                 printf("<empty production>\n");
             } else {
                 printf("\033[33m%d\033[0m -> ", prod.variable().value);

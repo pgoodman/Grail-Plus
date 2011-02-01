@@ -21,6 +21,9 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
 
+        template <typename, typename>
+        friend class detail::PatternGenerator;
+
         typedef OpaqueProduction<AlphaT> self_type;
         typedef typename CFG<AlphaT>::variable_type variable_type;
         typedef typename CFG<AlphaT>::symbol_type symbol_type;
@@ -33,11 +36,9 @@ namespace fltl { namespace lib { namespace cfg {
         OpaqueProduction(Production<AlphaT> *prod) throw()
             : production(prod)
         {
-            assert(
-                0 != prod &&
-                "Invalid production given to OpaqueProduction."
-            );
-            Production<AlphaT>::hold(production);
+            if(0 != prod) {
+                Production<AlphaT>::hold(production);
+            }
         }
 
     public:
@@ -77,7 +78,7 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// is this production valid?
-        inline bool valid(void) const throw() {
+        inline bool is_valid(void) const throw() {
             return 0 != production;
         }
 

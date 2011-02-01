@@ -28,6 +28,9 @@ namespace fltl { namespace lib { namespace cfg {
         friend class SymbolString<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
 
+        template <typename, typename>
+        friend class detail::PatternGenerator;
+
         typedef SymbolString<AlphaT> symbol_string_type;
 
         /// adapted from fmix32, from Murmurhash3, by Austin Appleby.

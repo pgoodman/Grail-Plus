@@ -29,10 +29,11 @@ namespace fltl { namespace lib { namespace cfg {
 
             static void
             reset_next_production(Generator<AlphaT> *state) throw() {
-                state->production = 0;
-                state->variable = state->cfg->variable_map.get(0);
+                state->cursor.production = state->cfg->first_production;
             }
 
+
+#if 0
             static bool
             find_next_production(Generator<AlphaT> *state) throw() {
 
@@ -82,6 +83,33 @@ namespace fltl { namespace lib { namespace cfg {
 
                 return true;
             }
+#endif
+
+            static Production<AlphaT> *
+            find_next_production(Production<AlphaT> *prod) throw() {
+                // go look for the next production
+                cfg::Production<AlphaT> *next_prod(prod->next);
+                cfg::Variable<AlphaT> *curr_var(prod->var);
+
+                while(true) {
+                    for(; 0 != next_prod; next_prod = next_prod->next) {
+                        if(!next_prod->is_deleted) {
+                            goto found_next_prod;
+                        }
+                    }
+
+                    curr_var = curr_var->next;
+
+                    if(0 == curr_var) {
+                        goto found_next_prod;
+                    }
+
+                    next_prod = curr_var->first_production;
+                }
+
+            found_next_prod:
+                return next_prod;
+            }
 
             /// generate productions
             static bool
@@ -94,14 +122,19 @@ namespace fltl { namespace lib { namespace cfg {
                     )
                 );
 
-                if(find_next_production(state)) {
-                    OpaqueProduction<AlphaT> prod(state->production);
-                    *binder = prod;
-                    return true;
-                } else {
-                    *binder = mpl::Static<OpaqueProduction<AlphaT> >::VALUE;
+                // update or clear the binding
+                cfg::Production<AlphaT> *prod(state->cursor.production);
+                OpaqueProduction<AlphaT> opaque_prod(prod);
+
+                *binder = opaque_prod;
+
+                if(0 == prod) {
                     return false;
                 }
+
+                state->cursor.production = find_next_production(prod);
+
+                return true;
             }
 
             /// reset the variable generator
@@ -116,12 +149,14 @@ namespace fltl { namespace lib { namespace cfg {
                     helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
                 );
 
-                if(0 == state->variable) {
+                Variable<AlphaT> *&var(state->cursor.variable);
+
+                if(0 == var) {
                     binder->value = 0;
                     return false;
                 }
 
-                state->variable = state->variable->next;
+                var = var->next;
 
                 if(0 == state->variable) {
                     binder->value = 0;
@@ -129,13 +164,13 @@ namespace fltl { namespace lib { namespace cfg {
                 }
 
                 // bind the variable
-                binder->value = state->variable->id;
+                binder->value = var->id;
                 return true;
             }
 
             /// reset the terminal generator
             static void reset_next_terminal(Generator<AlphaT> *state) throw() {
-                state->terminal_offset = 1U;
+                state->cursor.terminal_offset = 1U;
             }
 
             /// generate terminals
@@ -144,16 +179,18 @@ namespace fltl { namespace lib { namespace cfg {
                     helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
                 );
 
-                ++(state->terminal_offset);
+                unsigned &offset(state->cursor.terminal_offset);
 
-                if(state->terminal_offset > state->cfg->terminal_map.size()) {
+                ++offset;
+
+                if(offset > state->cfg->terminal_map.size()) {
                     binder->value = 0;
                     return false;
                 }
 
                 // bind the variable
                 binder->value = -1 * static_cast<internal_sym_type>(
-                    state->terminal_offset - 1
+                    offset - 1
                 );
 
                 return true;
@@ -161,9 +198,63 @@ namespace fltl { namespace lib { namespace cfg {
         };
 
         /// template for complex patterns
-        template <typename AlphaT>
+        template <typename AlphaT, typename PatternBuilderT>
         class PatternGenerator {
         public:
+
+            static bool bind_next_pattern(Generator<AlphaT> *state) throw() {
+                Production<AlphaT> *&prod(state->cursor.production);
+                Production<AlphaT> *bound_prod(0);
+
+                if(0 == prod) {
+                    return false;
+                }
+
+                do {
+                    OpaqueProduction<AlphaT> opaque_prod(prod);
+
+                    bound_prod = prod;
+                    prod = SimpleGenerator<AlphaT>::find_next_production(prod);
+
+                    // bind the pattern
+                    if(PatternBuilderT::static_match(state->pattern, opaque_prod)) {
+                        break;
+                    } else {
+                        bound_prod = 0;
+                    }
+
+                } while(0 != prod);
+
+                // bind the production
+                if(0 != state->binder) {
+                    OpaqueProduction<AlphaT> opaque_prod(bound_prod);
+                    OpaqueProduction<AlphaT> *binder(
+                        helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
+                            state->binder
+                        )
+                    );
+
+                    *binder = opaque_prod;
+                }
+
+                return 0 != bound_prod;
+            }
+
+            static void reset_next_pattern(Generator<AlphaT> *state) throw() {
+                if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
+                    state->cursor.production = state->cfg->variable_map.get(
+                        static_cast<unsigned>(
+                            helper::unsafe_cast<const typename CFG<AlphaT>::variable_type *>(
+                                helper::unsafe_cast<typename PatternBuilderT::pattern_type *>(
+                                    state->pattern
+                                )->get_var()
+                            )->value
+                        )
+                    )->first_production;
+                } else {
+                    state->cursor.production = state->cfg->first_production;
+                }
+            }
         };
     }
 
@@ -174,25 +265,35 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
 
+        template <typename, typename>
+        friend class detail::PatternGenerator;
+
         typedef Generator<AlphaT> self_type;
+        typedef typename CFG<AlphaT>::production_type production_type;
 
         typedef void (reset_gen_type)(self_type *);
         typedef bool (bind_next_type)(self_type *);
+        typedef bool (pattern_func_type)(void *, const production_type &);
 
         /// CFG from which we are generating stuff
         CFG<AlphaT> *cfg;
 
-        /// the last variable bound by the generator
-        Variable<AlphaT> *variable;
+        union {
 
-        /// the last production bound by the generator
-        Production<AlphaT> *production;
+            /// the last variable bound by the generator
+            Variable<AlphaT> *variable;
 
-        /// offset into the terminals into which we're looking
-        unsigned terminal_offset;
+            /// the last production bound by the generator
+            Production<AlphaT> *production;
+
+            /// offset into the terminals into which we're looking
+            unsigned terminal_offset;
+
+        } cursor;
 
         /// pointer to some sort of type to which we are binding results
         void *binder;
+        void *pattern;
 
         /// the binder function, does the variable binding and tells us if
         /// we can keep going
@@ -201,6 +302,7 @@ namespace fltl { namespace lib { namespace cfg {
         /// reset the generator
         reset_gen_type *reset_func;
 
+        /*
         /// private constructor for use by CFG
         Generator(
             CFG<AlphaT> *_cfg,
@@ -214,35 +316,71 @@ namespace fltl { namespace lib { namespace cfg {
             : cfg(_cfg)
             , variable(_variable)
             , production(_production)
-            , terminal_offset(_terminal_offset)
             , binder(_binder)
             , binder_func(_binder_func)
             , reset_func(_reset_func)
-        { }
+        {
+            val.terminal_offset = _terminal_offset;
+        }
 
+        Generator(
+            CFG<AlphaT> *_cfg,
+            Variable<AlphaT> *_variable,
+            Production<AlphaT> *_production,
+            pattern_func_type _pattern_func,
+            void *_binder,
+            bind_next_type *_binder_func,
+            reset_gen_type *_reset_func
+        ) throw()
+            : cfg(_cfg)
+            , variable(_variable)
+            , production(_production)
+            , binder(_binder)
+            , binder_func(_binder_func)
+            , reset_func(_reset_func)
+        {
+            val.pattern_func = _pattern_func;
+        }
+    */
+
+        Generator(
+            CFG<AlphaT> *_cfg,
+            void *_binder,
+            void *_pattern,
+            bind_next_type *_binder_func,
+            reset_gen_type *_reset_func
+        ) throw()
+            : cfg(_cfg)
+            , binder(_binder)
+            , pattern(_pattern)
+            , binder_func(_binder_func)
+            , reset_func(_reset_func)
+        {
+            memset(&cursor, 0, sizeof cursor);
+        }
 
     public:
 
         Generator(void) throw()
             : cfg(0)
-            , variable(0)
-            , production(0)
-            , terminal_offset(0)
             , binder(0)
+            , pattern(0)
             , binder_func(&detail::default_gen_next)
             , reset_func(&detail::default_gen_reset)
-        { }
+        {
+            memset(&cursor, 0, sizeof cursor);
+        }
 
         /// copy constructor for public use
         Generator(const self_type &that) throw()
             : cfg(that.cfg)
-            , variable(that.variable)
-            , production(that.production)
-            , terminal_offset(that.terminal_offset)
             , binder(that.binder)
+            , pattern(that.pattern)
             , binder_func(that.binder_func)
             , reset_func(that.reset_func)
-        { }
+        {
+            memcpy(&cursor, &(that.cursor), sizeof cursor);
+        }
 
         self_type &operator=(self_type &that) throw() {
             assert(
@@ -251,10 +389,9 @@ namespace fltl { namespace lib { namespace cfg {
             );
 
             cfg = that.cfg;
-            variable = that.variable;
-            production = that.production;
-            terminal_offset = that.terminal_offset;
+            memcpy(&cursor, &(that.cursor), sizeof cursor);
             binder = that.binder;
+            pattern = that.pattern;
             binder_func = that.binder_func;
             reset_func = that.reset_func;
             return *this;
@@ -268,7 +405,7 @@ namespace fltl { namespace lib { namespace cfg {
         /// try to generate the next object(s) according to the binder
         /// conditions and then bind the binder objects. returns true if
         /// we were able to find a successful binding, false otherwise.
-        inline bool bind_next(void) throw() {
+        inline bool match_next(void) throw() {
             return binder_func(this);
         }
     };

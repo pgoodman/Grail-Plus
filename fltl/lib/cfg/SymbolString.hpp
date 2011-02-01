@@ -51,6 +51,7 @@ namespace fltl { namespace lib { namespace cfg {
             Symbol<AlphaT> symbols[NUM_SLOTS];
 
             static Symbol<AlphaT> *allocate(const unsigned) throw() {
+
                 return SymbolStringAllocator<
                     AlphaT,num_symbols
                 >::allocator->allocate()->symbols;
@@ -176,7 +177,7 @@ namespace fltl { namespace lib { namespace cfg {
             ](num_symbols));
 
             // initialize
-            incref(syms);
+            syms[REF_COUNT].value = 1;
             syms[LENGTH].value = static_cast<internal_sym_type>(
                 num_symbols
             );
@@ -323,6 +324,7 @@ namespace fltl { namespace lib { namespace cfg {
         SymbolString(const symbol_type *arr, const unsigned num_syms) throw()
             : symbols(0)
         {
+
             if(0 < num_syms) {
                 symbols = allocate(num_syms);
                 memcpy(

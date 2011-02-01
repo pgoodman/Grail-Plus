@@ -13,6 +13,16 @@
 
 namespace fltl { namespace lib { namespace cfg {
 
+    template <typename AlphaT>
+    class AnySymbol {
+    public:
+        typedef AnySymbol self_type;
+        FLTL_CFG_PRODUCTION_PATTERN
+    };
+
+    template <typename AlphaT>
+    class AnySymbolString { };
+
     /// represents an unbound symbol in a query; the key to how unbound
     /// symbols work is that any symbol producing functions return const
     /// references to their symbols, whereas an unbound symbol, by means
@@ -185,6 +195,9 @@ namespace fltl { namespace lib { namespace cfg {
 
         template <typename, typename, typename, typename>
         friend class detail::DestructuringBind;
+
+        template <typename, typename, typename, const unsigned>
+        friend class detail::ResetPattern;
 
         typedef Unbound<AlphaT, SymbolString<AlphaT> > self_type;
 

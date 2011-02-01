@@ -23,6 +23,9 @@ namespace fltl { namespace lib { namespace cfg {
         friend class Production<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
 
+        template <typename, typename>
+        friend class detail::PatternGenerator;
+
         /// id of this variable
         cfg::internal_sym_type id;
 
