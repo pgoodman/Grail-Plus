@@ -58,6 +58,8 @@ namespace fltl { namespace lib {
         template <typename> class ProductionBuilder;
         template <typename> class Symbol;
         template <typename> class SymbolString;
+        template <typename> class TerminalSymbol;
+        template <typename> class VariableSymbol;
         template <typename, typename> class Unbound;
         template <typename> class Generator;
 
@@ -94,6 +96,8 @@ namespace fltl { namespace lib {
 }}
 
 #include "fltl/lib/cfg/Symbol.hpp"
+#include "fltl/lib/cfg/TerminalSymbol.hpp"
+#include "fltl/lib/cfg/VariableSymbol.hpp"
 #include "fltl/lib/cfg/Production.hpp"
 #include "fltl/lib/cfg/Variable.hpp"
 
@@ -177,54 +181,10 @@ namespace fltl { namespace lib {
         typedef cfg::Generator<AlphaT> generator_type;
 
         /// represents a terminal of a grammar
-        class terminal_type : public cfg::Symbol<AlphaT> {
-        private:
-            friend class CFG<AlphaT>;
-
-            explicit terminal_type(const cfg::internal_sym_type _value) throw()
-                : cfg::Symbol<AlphaT>(_value)
-            { }
-
-        public:
-
-            terminal_type(void) throw()
-                : cfg::Symbol<AlphaT>(-1)
-            { }
-
-            /// return an "unbound" version of this symbol
-            /// note: *not* const!!
-            cfg::Unbound<AlphaT,terminal_type> operator~(void) throw() {
-                return cfg::Unbound<AlphaT,terminal_type>(this);
-            }
-        };
+        typedef cfg::TerminalSymbol<AlphaT> terminal_type;
 
         /// represents a non-terminal of a grammar
-        class variable_type : public cfg::Symbol<AlphaT> {
-        private:
-
-            friend class CFG<AlphaT>;
-            friend class cfg::OpaqueProduction<AlphaT>;
-
-            typedef variable_type self_type;
-
-            explicit variable_type(const cfg::internal_sym_type _value) throw()
-                : cfg::Symbol<AlphaT>(_value)
-            { }
-
-        public:
-
-            variable_type(void) throw()
-                : cfg::Symbol<AlphaT>(1)
-            { }
-
-            /// return an "unbound" version of this symbol
-            /// note: *not* const!!
-            cfg::Unbound<AlphaT,variable_type> operator~(void) throw() {
-                return cfg::Unbound<AlphaT,variable_type>(this);
-            }
-
-            FLTL_CFG_PRODUCTION_PATTERN
-        };
+        typedef cfg::VariableSymbol<AlphaT> variable_type;
 
         /// pattern type, nicely encapsulates a destructuring production
         /// pattern

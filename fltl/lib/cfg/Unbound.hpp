@@ -30,12 +30,12 @@ namespace fltl { namespace lib { namespace cfg {
     /// const symbol.
 
     template <typename AlphaT>
-    class Unbound<AlphaT, typename CFG<AlphaT>::symbol_type> {
+    class Unbound<AlphaT, Symbol<AlphaT> > {
 
         friend class CFG<AlphaT>;
         friend class Symbol<AlphaT>;
-        friend class CFG<AlphaT>::terminal_type;
-        friend class CFG<AlphaT>::variable_type;
+        friend class TerminalSymbol<AlphaT>;
+        friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
 
@@ -49,8 +49,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         Symbol<AlphaT> *symbol;
 
-        typedef Unbound<AlphaT, typename CFG<AlphaT>::symbol_type>
-                self_type;
+        typedef Unbound<AlphaT, Symbol<AlphaT> > self_type;
 
         Unbound(Symbol<AlphaT> *_symbol)
             : symbol(_symbol)
@@ -64,13 +63,13 @@ namespace fltl { namespace lib { namespace cfg {
     };
 
     template <typename AlphaT>
-    class Unbound<AlphaT, typename CFG<AlphaT>::terminal_type> {
+    class Unbound<AlphaT, TerminalSymbol<AlphaT> > {
     private:
 
         friend class CFG<AlphaT>;
         friend class Symbol<AlphaT>;
-        friend class CFG<AlphaT>::terminal_type;
-        friend class CFG<AlphaT>::variable_type;
+        friend class TerminalSymbol<AlphaT>;
+        friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
 
@@ -80,7 +79,7 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename, typename, typename, typename>
         friend class detail::DestructuringBind;
 
-        typedef Unbound<AlphaT, typename CFG<AlphaT>::terminal_type> self_type;
+        typedef Unbound<AlphaT, TerminalSymbol<AlphaT> > self_type;
 
         typename CFG<AlphaT>::terminal_type *symbol;
 
@@ -96,12 +95,12 @@ namespace fltl { namespace lib { namespace cfg {
     };
 
     template <typename AlphaT>
-    class Unbound<AlphaT, typename CFG<AlphaT>::variable_type> {
+    class Unbound<AlphaT, VariableSymbol<AlphaT> > {
 
         friend class CFG<AlphaT>;
         friend class Symbol<AlphaT>;
-        friend class CFG<AlphaT>::terminal_type;
-        friend class CFG<AlphaT>::variable_type;
+        friend class TerminalSymbol<AlphaT>;
+        friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
 
@@ -113,13 +112,9 @@ namespace fltl { namespace lib { namespace cfg {
 
     private:
 
-        typedef Unbound<AlphaT, typename CFG<AlphaT>::variable_type>
-                self_type;
+        typedef Unbound<AlphaT, VariableSymbol<AlphaT> > self_type;
 
         typedef typename CFG<AlphaT>::variable_type variable_type;
-        typedef typename CFG<AlphaT>::terminal_type terminal_type;
-        typedef typename CFG<AlphaT>::symbol_type symbol_type;
-        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
 
         variable_type *symbol;
 
