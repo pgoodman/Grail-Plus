@@ -530,23 +530,25 @@ namespace fltl { namespace lib {
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
 
-                // count the number of productions related to this variable
-                unsigned num_related(0);
+                // go look to see if there are any non-deleted productions
+                // that are still related to this variable
                 for(cfg::Production<AlphaT> *pp(var->first_production);
                     0 != pp;
                     pp = pp->next) {
+
+                    // there is at least one non-deleted production still
+                    // related to this variable; we don't need to add the
+                    // default null production back in
                     if(!pp->is_deleted) {
-                        ++num_related;
+                        goto done;
                     }
                 }
 
                 // put the null production up front
-                if(0 == num_related) {
-                    ++num_productions_;
-                    var->first_production->prev = &(var->null_production);
-                    var->null_production.next = var->first_production;
-                    var->first_production = &(var->null_production);
-                }
+                ++num_productions_;
+                var->first_production->prev = &(var->null_production);
+                var->null_production.next = var->first_production;
+                var->first_production = &(var->null_production);
             }
 
         done:

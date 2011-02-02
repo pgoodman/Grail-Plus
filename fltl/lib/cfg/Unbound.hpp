@@ -128,25 +128,6 @@ namespace fltl { namespace lib { namespace cfg {
         { }
 
     public:
-        /*
-        /// making a query where the variable is (un)bound
-        FLTL_CFG_PRODUCTION_PATTERN(variable_type, 0U)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(variable_type, 0U)
-
-        /// making a query where the terminal is (un)bound
-        FLTL_CFG_PRODUCTION_PATTERN(terminal_type, 0U)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(terminal_type, 0U)
-
-        /// making a query where the symbol is bound
-        FLTL_CFG_PRODUCTION_PATTERN(symbol_type, 0U)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_type, 0U)
-
-        /// making a query where the symbol string is (un)bound
-        FLTL_CFG_PRODUCTION_PATTERN(symbol_string_type, 0U)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN(symbol_string_type, 1U)
-
-        public:
-        */
 
         FLTL_CFG_PRODUCTION_PATTERN
 
@@ -189,6 +170,8 @@ namespace fltl { namespace lib { namespace cfg {
         friend class OpaqueProduction<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         friend class SymbolString<AlphaT>;
+
+        template <typename, typename> friend class Pattern;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;

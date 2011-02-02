@@ -320,5 +320,56 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL(t, b);
         FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~t + cfg._ + cfg._).match(P7));
         FLTL_TEST_EQUAL(t, a);
+
+        // extract suffixes of a production
+        CFG<char>::sym_str_t s;
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s).match(P7));
+        FLTL_TEST_EQUAL(s, a + b + c);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + ~s).match(P7));
+        FLTL_TEST_EQUAL(s, b + c);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + ~s).match(P7));
+        FLTL_TEST_EQUAL(s, c);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + ~s).match(P7));
+        FLTL_TEST_EQUAL(s, cfg.epsilon());
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + ~s).match(P7));
+
+        // extract prefixes of a production
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + cfg._).match(P7));
+        FLTL_TEST_EQUAL(s, a + b);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + cfg._ + cfg._).match(P7));
+        FLTL_TEST_EQUAL(s, a);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + cfg._ + cfg._ + cfg._).match(P7));
+        FLTL_TEST_EQUAL(s, cfg.epsilon());
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* ~s + cfg._ + cfg._ + cfg._ + cfg._).match(P7));
+
+        // extract middles
+        CFG<char>::prod_t P11(cfg.add_production(S, a + b + c + S + c + b + a));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s).match(P11));
+        FLTL_TEST_EQUAL(s, a + b + c + S + c + b + a);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + ~s + cfg._).match(P11));
+        FLTL_TEST_EQUAL(s, b + c + S + c + b);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + ~s + cfg._ + cfg._).match(P11));
+        FLTL_TEST_EQUAL(s, c + S + c);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + ~s + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_EQUAL(s, S);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._).match(P11));
+
+        // test for checking individual symbols
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* a + cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + b + cfg._ + cfg._ + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + c + cfg._ + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + S + cfg._ + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + c + cfg._ + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + b + cfg._).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + cfg._ + a).match(P11));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* a + b + c + S + c + b + a).match(P11));
+
+        CFG<char>::prod_t P12(cfg.add_production(S, a + a + a));
+        CFG<char>::prod_t P13(cfg.add_production(S, a + a + a + a + a + a));
+
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + s + s).match(P12));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + s + s).match(P13));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + s).match(P13));
     }
 }}}

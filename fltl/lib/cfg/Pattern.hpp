@@ -376,8 +376,11 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 const unsigned str_len(slots->as_symbol_string->length());
+                enum {
+                    MIN_REQUIRED_LEN = 1 + GetMinNumSymbolsAfter<AlphaT,StringT,offset>::RESULT
+                };
 
-                if(str_len > len) {
+                if(str_len > len || MIN_REQUIRED_LEN > (1 + (len - str_len))) {
                     return false;
                 }
 
