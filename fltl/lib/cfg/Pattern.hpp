@@ -54,11 +54,9 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
 
             symbol_type *as_symbol;
+            variable_type *as_variable;
+            terminal_type *as_terminal;
             symbol_string_type *as_symbol_string;
-            Unbound<AlphaT, symbol_type> *as_unbound_symbol;
-            Unbound<AlphaT, terminal_type> *as_unbound_terminal;
-            Unbound<AlphaT, variable_type> *as_unbound_variable;
-            Unbound<AlphaT, symbol_string_type> *as_unbound_symbol_string;
         };
 
         ///
@@ -145,6 +143,39 @@ namespace fltl { namespace lib { namespace cfg {
             typedef T type;
         };
 
+        /// extract the minimum number of symbols that the pattern must
+        /// match that come after a specific offset
+        template <typename AlphaT, typename T, const unsigned offset>
+        class GetMinNumSymbolsAfter {
+        public:
+            enum {
+                RESULT = 0
+            };
+        };
+
+        template <typename AlphaT,typename T0, typename T1, const unsigned offset>
+        class GetMinNumSymbolsAfter<AlphaT,Catenation<AlphaT,T0, T1>, offset> {
+        public:
+            enum {
+                RESULT = (
+                    GetMinNumSymbolsAfter<AlphaT,T0,offset>::RESULT +
+                    GetMinNumSymbolsAfter<AlphaT,T1,offset>::RESULT
+                )
+            };
+            typedef typename GetFactor<AlphaT,
+                typename mpl::IfTrue<(offset > T1::OFFSET),T1,T0>::type,
+                offset
+            >::type type;
+        };
+
+        template <typename AlphaT,typename T, const unsigned o, const unsigned offset>
+        class GetMinNumSymbolsAfter<AlphaT,Factor<AlphaT,T,o>, offset> {
+        public:
+            enum {
+                RESULT = o > offset ? Factor<AlphaT,T,o>::MIN_NUM_SYMBOLS : 0
+            };
+        };
+
         /// match symbols from the pattern
 
         template <typename AlphaT, typename StringT, const unsigned offset, typename T0, typename T1>
@@ -226,7 +257,7 @@ namespace fltl { namespace lib { namespace cfg {
                     return false;
                 }
 
-                *(slots->as_unbound_symbol->symbol) = *symbols;
+                *(slots->as_symbol) = *symbols;
 
                 return true;
             }
@@ -241,7 +272,7 @@ namespace fltl { namespace lib { namespace cfg {
                     return false;
                 }
 
-                *(slots->as_unbound_variable->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
+                *(slots->as_variable) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
 
                 return true;
             }
@@ -256,7 +287,7 @@ namespace fltl { namespace lib { namespace cfg {
                     return false;
                 }
 
-                *(slots->as_unbound_terminal->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
+                *(slots->as_terminal) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
 
                 return true;
             }
@@ -268,7 +299,7 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 SymbolString<AlphaT> str(symbols, len);
-                *(slots->as_unbound_symbol_string->string) = str;
+                *(slots->as_symbol_string) = str;
                 return true;
             }
         };
@@ -393,7 +424,7 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 if(len >= 1) {
-                    *(slots->as_unbound_symbol->symbol) = *symbols;
+                    *(slots->as_symbol) = *symbols;
 
                     return Match2<
                         AlphaT,
@@ -413,7 +444,7 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 if(len >= 1 && symbols->is_variable()) {
-                    *(slots->as_unbound_variable->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
+                    *(slots->as_symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
 
                     return Match2<
                         AlphaT,
@@ -433,7 +464,7 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
                 if(len >= 1 && symbols->is_terminal()) {
-                    *(slots->as_unbound_terminal->symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
+                    *(slots->as_terminal) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
 
                     return Match2<
                         AlphaT,
@@ -453,10 +484,11 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
 
-                for(unsigned i(0); i < len; ++i) {
+                const unsigned max(len - GetMinNumSymbolsAfter<AlphaT,StringT,offset>::RESULT);
+                for(unsigned i(0); i <= max; ++i) {
 
                     SymbolString<AlphaT> str(symbols, i);
-                    *(slots->as_unbound_symbol_string->string) = str;
+                    *(slots->as_symbol_string) = str;
 
                     const bool matched_next_at_i(Match2<
                         AlphaT,
@@ -473,7 +505,7 @@ namespace fltl { namespace lib { namespace cfg {
 
                 // unbind it
                 SymbolString<AlphaT> epsilon;
-                *(slots->as_unbound_symbol_string->string) = epsilon;
+                *(slots->as_symbol_string) = epsilon;
 
                 return false;
             }
@@ -485,7 +517,8 @@ namespace fltl { namespace lib { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
 
-                for(unsigned i(0); i < len; ++i) {
+                const unsigned max(len - GetMinNumSymbolsAfter<AlphaT,StringT,offset>::RESULT);
+                for(unsigned i(0); i <= max; ++i) {
                     const bool matched_next_at_i(Match2<
                         AlphaT,
                         StringT,
@@ -530,7 +563,7 @@ namespace fltl { namespace lib { namespace cfg {
 
                 // reset the unbound symbol string
                 SymbolString<AlphaT> epsilon;
-                *(slots[offset].as_unbound_symbol_string->string) = epsilon;
+                *(slots[offset].as_symbol_string) = epsilon;
 
                 ResetPattern<
                     AlphaT,
@@ -573,7 +606,7 @@ namespace fltl { namespace lib { namespace cfg {
                     0
                 >::reset(slots);
 
-                if(pattern.var != prod.variable()) {
+                if(*(pattern.var) != prod.variable()) {
                     return false;
                 }
 
@@ -623,7 +656,7 @@ namespace fltl { namespace lib { namespace cfg {
                     0
                 >::reset(slots);
 
-                *(pattern.var.symbol) = prod.variable();
+                *(pattern.var) = prod.variable();
 
                 const SymbolString<AlphaT> &str(prod.symbols());
                 const unsigned str_len(str.length());
@@ -783,6 +816,9 @@ namespace fltl { namespace lib { namespace cfg {
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_type, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_type, 0)
+
+            FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_string_type, 0)
 
@@ -842,7 +878,7 @@ namespace fltl { namespace lib { namespace cfg {
             IS_BOUND = mpl::IfTypesEqual<V, variable_type>::RESULT
         };
 
-        V var;
+        variable_type *var;
 
         detail::Slot<AlphaT> slots[NUM_SLOTS];
 
@@ -862,22 +898,22 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         void extend(const Unbound<AlphaT, symbol_type> *expr) throw() {
-            next_slot->as_unbound_symbol = const_cast<Unbound<AlphaT, symbol_type> *>(expr);
+            next_slot->as_symbol = const_cast<Unbound<AlphaT, symbol_type> *>(expr)->symbol;
             ++(next_slot);
         }
 
         void extend(const Unbound<AlphaT, terminal_type> *expr) throw() {
-            next_slot->as_unbound_terminal = const_cast<Unbound<AlphaT, terminal_type> *>(expr);
+            next_slot->as_terminal = const_cast<Unbound<AlphaT, terminal_type> *>(expr)->symbol;
             ++(next_slot);
         }
 
         void extend(const Unbound<AlphaT, variable_type> *expr) throw() {
-            next_slot->as_unbound_variable = const_cast<Unbound<AlphaT, variable_type> *>(expr);
+            next_slot->as_variable = const_cast<Unbound<AlphaT, variable_type> *>(expr)->symbol;
             ++(next_slot);
         }
 
         void extend(const Unbound<AlphaT, symbol_string_type> *expr) throw() {
-            next_slot->as_unbound_symbol_string = const_cast<Unbound<AlphaT, symbol_string_type> *>(expr);
+            next_slot->as_symbol_string = const_cast<Unbound<AlphaT, symbol_string_type> *>(expr)->string;
             ++(next_slot);
         }
 
@@ -895,8 +931,24 @@ namespace fltl { namespace lib { namespace cfg {
 
     public:
 
-        Pattern(V &_var) throw()
-            : var(_var)
+        Pattern(variable_type &_var) throw()
+            : var(&_var)
+            , next_slot(&(slots[0]))
+            , pattern(this)
+        {
+            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        }
+
+        Pattern(Unbound<AlphaT, variable_type> &_var) throw()
+            : var(_var.symbol)
+            , next_slot(&(slots[0]))
+            , pattern(this)
+        {
+            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        }
+
+        Pattern(AnySymbol<AlphaT>) throw()
+            : var(0)
             , next_slot(&(slots[0]))
             , pattern(this)
         {

@@ -37,6 +37,9 @@
     printf("    \033[34m" #expr "\033[0m\n"); \
     expr
 
+#define FLTL_TEST_ASSERT_FALSE(cond) \
+    _FLTL_TEST_MAKE_TEST(!(cond), "")
+
 #define FLTL_TEST_ASSERT_TRUE(cond) \
     _FLTL_TEST_MAKE_TEST(cond, "")
 

@@ -124,7 +124,7 @@ namespace fltl { namespace test { namespace cfg {
 
         FLTL_TEST_DOC(CFG<char>::var_t S(cfg.add_variable()));
 
-        FLTL_TEST_EQUAL(cfg.num_productions(), 0);
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
         FLTL_TEST_EQUAL(cfg.num_terminals(), 0);
         FLTL_TEST_EQUAL(cfg.num_variables(), 1);
 
@@ -183,6 +183,36 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL_REL(not_p.symbols(), not_p_str);
     }
 
+    void test_remove_productions(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::prod_t P;
+
+        FLTL_TEST_DOC(CFG<char>::var_t S(cfg.add_variable()));
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+
+        FLTL_TEST_DOC(CFG<char>::generator_t gen(cfg.search(~P)));
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_DOC(cfg.remove_production(P));
+
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+        FLTL_TEST_ASSERT_FALSE(gen.match_next());
+
+        FLTL_TEST_DOC(gen.rewind());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+
+        FLTL_TEST_DOC(CFG<char>::prod_t P1(cfg.add_production(S, S)));
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+
+        FLTL_TEST_DOC(CFG<char>::prod_t P2(cfg.add_production(S, S + S)));
+        FLTL_TEST_EQUAL(cfg.num_productions(), 2);
+
+        FLTL_TEST_DOC(cfg.remove_production(P1));
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+
+        FLTL_TEST_DOC(cfg.remove_production(P2));
+        FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+    }
+
     void test_extract_symbols(void) throw() {
         CFG<char> cfg;
         CFG<char>::var_t S(cfg.add_variable());
@@ -205,6 +235,90 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL(S_aS.symbols(), aS);
         FLTL_TEST_EQUAL(S_aS.symbol_at(0), a);
         FLTL_TEST_EQUAL(S_aS.symbol_at(1), S);
+        FLTL_TEST_EQUAL(S_aS.symbols().at(0), a);
+        FLTL_TEST_EQUAL(S_aS.symbols().at(1), S);
         FLTL_TEST_EQUAL(S_aS.variable(), S);
+    }
+
+    void test_pattern_match(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::var_t S(cfg.add_variable());
+        CFG<char>::term_t a(cfg.get_terminal('a'));
+        CFG<char>::term_t b(cfg.get_terminal('b'));
+        CFG<char>::term_t c(cfg.get_terminal('c'));
+
+        CFG<char>::prod_t P0(cfg.add_production(S, cfg.epsilon()));
+        CFG<char>::prod_t P1(cfg.add_production(S, a));
+        CFG<char>::prod_t P2(cfg.add_production(S, b));
+        CFG<char>::prod_t P3(cfg.add_production(S, c));
+        CFG<char>::prod_t P4(cfg.add_production(S, a + b));
+        CFG<char>::prod_t P5(cfg.add_production(S, a + c));
+        CFG<char>::prod_t P6(cfg.add_production(S, b + c));
+        CFG<char>::prod_t P7(cfg.add_production(S, a + b + c));
+        CFG<char>::prod_t P8(cfg.add_production(S, S));
+        CFG<char>::prod_t P9(cfg.add_production(S, S + S));
+        CFG<char>::prod_t P10(cfg.add_production(S, a + S + b));
+
+        // matching anything
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P0));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P1));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P2));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P3));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P4));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P5));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P6));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P7));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P8));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P9));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__).match(P10));
+
+        // matching variable
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P0));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P1));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P2));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P3));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P4));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P5));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P6));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P7));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P8));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P9));
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.__).match(P10));
+
+        // exact matches
+        FLTL_TEST_ASSERT_TRUE((S --->* cfg.epsilon()).match(P0));
+        FLTL_TEST_ASSERT_TRUE((S --->* a).match(P1));
+        FLTL_TEST_ASSERT_TRUE((S --->* b).match(P2));
+        FLTL_TEST_ASSERT_TRUE((S --->* c).match(P3));
+        FLTL_TEST_ASSERT_TRUE((S --->* a + b).match(P4));
+        FLTL_TEST_ASSERT_TRUE((S --->* a + c).match(P5));
+        FLTL_TEST_ASSERT_TRUE((S --->* b + c).match(P6));
+        FLTL_TEST_ASSERT_TRUE((S --->* a + b + c).match(P7));
+        FLTL_TEST_ASSERT_TRUE((S --->* S).match(P8));
+        FLTL_TEST_ASSERT_TRUE((S --->* S + S).match(P9));
+        FLTL_TEST_ASSERT_TRUE((S --->* a + S + b).match(P10));
+
+        // matching for a
+        CFG<char>::pattern_t has_a(cfg._ --->* cfg.__ + a + cfg.__);
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P0));
+        FLTL_TEST_ASSERT_TRUE(has_a.match(P1));
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P2));
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P3));
+        FLTL_TEST_ASSERT_TRUE(has_a.match(P4));
+        FLTL_TEST_ASSERT_TRUE(has_a.match(P5));
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P6));
+        FLTL_TEST_ASSERT_TRUE(has_a.match(P7));
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P8));
+        FLTL_TEST_ASSERT_FALSE(has_a.match(P9));
+        FLTL_TEST_ASSERT_TRUE(has_a.match(P10));
+
+        // extract one terminal at a time
+        CFG<char>::term_t t;
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + ~t).match(P7));
+        FLTL_TEST_EQUAL(t, c);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + ~t + cfg._).match(P7));
+        FLTL_TEST_EQUAL(t, b);
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~t + cfg._ + cfg._).match(P7));
+        FLTL_TEST_EQUAL(t, a);
     }
 }}}

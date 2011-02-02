@@ -8,13 +8,73 @@
 
 #include <cstdio>
 
+#include "fltl/lib/CFG.hpp"
 #include "fltl/test/Test.hpp"
 #include "fltl/test/cfg/CFG.hpp"
+#if 0
+template <typename A>
+void convert_to_cnf(fltl::lib::CFG<A> &cfg) throw() {
+
+    using fltl::lib::CFG;
+
+    // add a new start variable
+    CFG<A>::variable_type old_start_var(cfg.get_start_variable());
+    CFG<A>::variable_type new_start_var(cfg.add_variable());
+    cfg.set_start_variable(new_start_var);
+    cfg.add_production(new_start_var, old_start_var);
+
+    // go find epsilon rules
+    CFG<A>::variable_type A;
+    CFG<A>::production_type null_prod;
+    CFG<A>::variable_type B;
+    CFG<A>::production_type prod_with_nullable_var;
+
+    // generator that will find all null productions
+    CFG<A>::generator_type epsilon_rules(cfg.search(
+        ~null_prod,
+        ~A --->* cfg.epsilon())
+    );
+
+    // generator that will find all productions with at
+    // least one A on their RHS
+    CFG<A>::generator_type rules_with_A_on_rhs(cfg.search(
+        ~prod_with_nullable_var,
+        ~B --->* cfg.__ + A + cfg.__
+    ));
+
+    // go find each production A -> RHS_A where RHS_A is epsilon
+    for(; epsilon_rules.match_next(); rules_with_A_on_rhs.rewind()) {
+
+        // go find each production B -> RHS_B where A is in the RHS_B
+        for(; rules_with_A_on_rhs.match_next(); ) {
+            cfg.remove_production(prod_with_nullable_var);
+
+            CFG<A>::symbol_string_type str(prod_with_nullable_var.symbols());
+
+            // count the number of A's in RHS_B, this way we can determine
+            // how many different productions we will need to generate
+            const unsigned num_As(0);
+            for(unsigned i(0); i < str.length(); ++i) {
+                if(A == str.at(i)) {
+                    ++num_As;
+                }
+            }
+
+            assert(32 >= num_As);
+        }
+    }
+}
+
+template <typename A>
+void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
+    using fltl::lib::CFG;
+}
+#endif
 
 int main(void) {
 
-    //fltl::test::run_tests();
-
+    fltl::test::run_tests();
+#if 0
     using fltl::lib::CFG;
 
 
@@ -76,6 +136,6 @@ int main(void) {
     }
 
     printf("j = %u\n", j);
-
+#endif
     return 0;
 }

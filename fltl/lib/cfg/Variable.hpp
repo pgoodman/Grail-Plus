@@ -35,6 +35,9 @@ namespace fltl { namespace lib { namespace cfg {
         /// the first production related to this variable
         Production<AlphaT> *first_production;
 
+        /// the default empty production for this variable
+        cfg::Production<AlphaT> null_production;
+
         /// initialize the variable
         void init(
             const cfg::internal_sym_type _id,
@@ -52,14 +55,17 @@ namespace fltl { namespace lib { namespace cfg {
         /// add a production to this variable
         void add_production(cfg::Production<AlphaT> *prod) throw() {
 
-            if(0 != first_production) {
+            if(&null_production != first_production) {
                 prod->prev = first_production->prev;
                 first_production->prev = prod;
+                prod->next = first_production;
             } else {
                 prod->prev = 0;
+                prod->next = 0;
+                null_production.next = 0;
+                null_production.prev = 0;
             }
 
-            prod->next = first_production;
             first_production = prod;
         }
 
@@ -74,6 +80,10 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != prod->next) {
                 prod->next->prev = prod->prev;
             }
+
+            if(0 == first_production) {
+                first_production = &null_production;
+            }
         }
 
     public:
@@ -81,8 +91,12 @@ namespace fltl { namespace lib { namespace cfg {
         Variable(void) throw()
             : id(0)
             , next(0)
-            , first_production(0)
-        { }
+            , first_production(&null_production)
+            , null_production()
+        {
+            cfg::Production<AlphaT>::hold(&null_production);
+            null_production.var = this;
+        }
 
         Variable(const Variable<AlphaT> &) throw()
             : id(0)
@@ -96,7 +110,7 @@ namespace fltl { namespace lib { namespace cfg {
 
             // free each variable's first_production
             for(cfg::Production<AlphaT> *prod(first_production), *next_prod(0);
-                0 != prod;
+                0 != prod && &null_production != first_production;
                 prod = next_prod) {
 
                 next_prod = prod->next;

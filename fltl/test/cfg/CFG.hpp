@@ -29,8 +29,16 @@ namespace fltl { namespace test { namespace cfg {
         "Test that productions are correctly added to the grammar and that duplicates are ignored."
     );
 
+    FLTL_TEST_CATEGORY(test_remove_productions,
+        "Test that productions are correctly removed from the grammar."
+    );
+
     FLTL_TEST_CATEGORY(test_extract_symbols,
         "Test that symbols and symbol strings can be extracted from productions and symbol strings."
+    );
+
+    FLTL_TEST_CATEGORY(test_pattern_match,
+        "Test the pattern-matching feature for productions."
     );
 }}}
 
