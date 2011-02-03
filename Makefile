@@ -9,7 +9,7 @@ CXX = ${DEFAULT_CXX}
 CXX_FEATURES = -fno-rtti -fstrict-aliasing -fno-exceptions
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
 CXX_WARN_FLAGS += -Wcast-qual #-Winline -finline-functions
-CXX_FLAGS = -O2 -g -ansi   -I${ROOT_DIR}
+CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 GNU_COMPATIBLE_FLAGS = -pedantic -pedantic-errors -Wextra -Wcast-align -Wno-long-long 
@@ -28,10 +28,10 @@ ifeq (${CXX}, g++)
 endif
 
 # are we compiling with icc?
-ifeq (${CXX}, icc || ${CXX}, icpc)
+ifeq (${CXX}, icpc)
 	GNU_COMPATIBLE_FLAGS = 
-	CXX_WARN_FLAGS =
-	CXX_FLAGS += -Kc++ -Wall -Werror -wd981
+	CXX_WARN_FLAGS = -diag-disable 279
+	CXX_FLAGS += -Kc++ -Wall -Werror -wd981 -ansi-alias
 	LD_FLAGS += -lstdc++
 endif
 
