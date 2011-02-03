@@ -26,7 +26,7 @@ ifeq (${CXX}, g++)
 endif
 
 # are we compiling with icc?
-ifeq (${CXX}, icc)
+ifeq (${CXX}, icc || ${CXX}, icpc)
 	CXX_WARN_FLAGS =
 	CXX_FLAGS += -Kc++ -Wall -Werror -wd981
 	LD_FLAGS += -lstdc++
