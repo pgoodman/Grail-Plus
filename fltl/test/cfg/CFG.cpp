@@ -312,6 +312,19 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_ASSERT_FALSE(has_a.match(P9));
         FLTL_TEST_ASSERT_TRUE(has_a.match(P10));
 
+        // inline matching for a
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P0));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__ + a + cfg.__).match(P1));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P2));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P3));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__ + a + cfg.__).match(P4));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__ + a + cfg.__).match(P5));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P6));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__ + a + cfg.__).match(P7));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P8));
+        FLTL_TEST_ASSERT_FALSE((cfg._ --->* cfg.__ + a + cfg.__).match(P9));
+        FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg.__ + a + cfg.__).match(P10));
+
         // extract one terminal at a time
         CFG<char>::term_t t;
         FLTL_TEST_ASSERT_TRUE((cfg._ --->* cfg._ + cfg._ + ~t).match(P7));
