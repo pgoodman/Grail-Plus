@@ -4,11 +4,11 @@
 
 ROOT_DIR = ./
 
-DEFAULT_CXX = /Users/petergoodman/Code/llvm/Release-Asserts/bin/clang++
+DEFAULT_CXX = clang++
 CXX = ${DEFAULT_CXX}
 CXX_FEATURES = -fno-rtti -fstrict-aliasing -fno-exceptions
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
-CXX_WARN_FLAGS += -Wcast-qual #-Winline -finline-functions
+CXX_WARN_FLAGS += -Wcast-qual
 CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
@@ -36,8 +36,9 @@ ifeq (${CXX}, icpc)
 endif
 
 # are we compiling with clang++?
-ifeq (${CXX}, ${DEFAULT_CXX})
-	CXX_FLAGS += -fcatch-undefined-behavior
+ifeq (${CXX}, clang++)
+	CXX_FEATURES += -fcatch-undefined-behavior -finline-functions
+	CXX_WARN_FLAGS += -Winline
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}
