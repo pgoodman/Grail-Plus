@@ -17,8 +17,15 @@
 
 #define FLTL_CFG_PRODUCTION_PATTERN_INIT(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state> \
-    operator->*(const type &expr) throw() { \
+    operator->*(type &expr) throw() { \
         pattern->extend(&expr, 0); \
+        return detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state>( \
+            pattern \
+        ); \
+    } \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state> \
+    operator->*(const type &expr) const throw() { \
+        pattern->extend(const_cast<type *>(&expr), 0); \
         return detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state>( \
             pattern \
         ); \
@@ -29,8 +36,15 @@
 
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
-    operator+(const type &expr) throw() { \
+    operator+(type &expr) throw() { \
         pattern->extend(&expr, StringT::NEXT_OFFSET); \
+        return detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
+            pattern \
+        ); \
+    } \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+    operator+(const type &expr) const throw() { \
+        pattern->extend(const_cast<type *>(&expr), StringT::NEXT_OFFSET); \
         return detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
             pattern \
         ); \
@@ -840,7 +854,6 @@ namespace fltl { namespace lib { namespace cfg {
                 void *_pattern,
                 const production_type &prod
             ) throw() {
-
                 return DestructuringBind<
                     AlphaT,
                     typename PatternT::lhs_type,
@@ -891,33 +904,33 @@ namespace fltl { namespace lib { namespace cfg {
         /// reference back to this pattern
         Pattern<AlphaT,V> *pattern;
 
-        void extend(const symbol_type *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol = const_cast<symbol_type *>(expr);
+        inline void extend(symbol_type *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = expr;
         }
 
-        void extend(const symbol_string_type *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol_string = const_cast<symbol_string_type *>(expr);
+        inline void extend(symbol_string_type *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol_string = expr;
         }
 
-        void extend(const Unbound<AlphaT, symbol_type> *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol = const_cast<Unbound<AlphaT, symbol_type> *>(expr)->symbol;
+        inline void extend(Unbound<AlphaT, symbol_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = expr->symbol;
         }
 
-        void extend(const Unbound<AlphaT, terminal_type> *expr, const unsigned slot) throw() {
-            slots[slot].as_terminal = const_cast<Unbound<AlphaT, terminal_type> *>(expr)->symbol;
+        inline void extend(Unbound<AlphaT, terminal_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_terminal = expr->symbol;
         }
 
-        void extend(const Unbound<AlphaT, variable_type> *expr, const unsigned slot) throw() {
-            slots[slot].as_variable = const_cast<Unbound<AlphaT, variable_type> *>(expr)->symbol;
+        inline void extend(Unbound<AlphaT, variable_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_variable = expr->symbol;
         }
 
-        void extend(const Unbound<AlphaT, symbol_string_type> *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol_string = const_cast<Unbound<AlphaT, symbol_string_type> *>(expr)->string;
+        inline void extend(Unbound<AlphaT, symbol_string_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol_string = expr->string;
         }
 
-        void extend(const AnySymbol<AlphaT> *, const unsigned) throw() { }
+        inline void extend(AnySymbol<AlphaT> *, const unsigned) throw() { }
 
-        void extend(const AnySymbolString<AlphaT> *, const unsigned) throw() { }
+        inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
 
         const void *get_var(void) const throw() {
             return reinterpret_cast<const void *>(&var);

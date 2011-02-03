@@ -265,8 +265,8 @@ namespace fltl { namespace lib {
         typedef pattern_type pattern_t;
 
         /// represents any single symbol in a production
-        const cfg::AnySymbol<AlphaT> _;
-        const cfg::AnySymbolString<AlphaT> __;
+        cfg::AnySymbol<AlphaT> _;
+        cfg::AnySymbolString<AlphaT> __;
 
         /// constructor
         CFG(void) throw()
