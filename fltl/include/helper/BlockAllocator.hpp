@@ -108,6 +108,7 @@ namespace fltl { namespace helper {
                 next = curr->next;
                 delete curr;
             }
+
             free_list = 0;
             block_list = 0;
         }

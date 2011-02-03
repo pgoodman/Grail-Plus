@@ -574,7 +574,7 @@ namespace fltl { namespace lib { namespace cfg {
         };
 
         template <typename AlphaT, typename StringT, const unsigned offset>
-        class ResetPattern<AlphaT,StringT,Unbound<AlphaT,SymbolString<AlphaT> >,offset> {
+        class ResetPattern<AlphaT,StringT,unbound_symbol_string_tag,offset> {
         public:
             inline static void reset(Slot<AlphaT> *slots) throw() {
 
@@ -590,6 +590,60 @@ namespace fltl { namespace lib { namespace cfg {
                 >::reset(slots);
             }
         };
+
+        /// decrease reference counters in the pattern
+        /*
+        template <typename AlphaT, typename StringT, typename CurrT,const unsigned offset>
+        class DecRefCounts {
+        public:
+            inline static void decref(Slot<AlphaT> *slots) throw() {
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<StringT,offset + 1>::type,
+                    offset + 1
+                >::reset(slots);
+            }
+        };
+
+        template <typename AlphaT, typename StringT,const unsigned offset>
+        class DecRefCounts<AlphaT,StringT,void,offset> {
+        public:
+            inline static void decref(Slot<AlphaT> *) throw() { }
+        };
+
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class DecRefCounts<AlphaT,StringT,unbound_symbol_string_tag,offset> {
+        public:
+            inline static void decref(Slot<AlphaT> *slots) throw() {
+
+                SymbolString<AlphaT>::decref(slots[offset].as_symbol_string);
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<StringT,offset + 1>::type,
+                    offset + 1
+                >::reset(slots);
+            }
+        };
+
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class DecRefCounts<AlphaT,StringT,symbol_string_tag,offset> {
+        public:
+            inline static void decref(Slot<AlphaT> *slots) throw() {
+
+                SymbolString<AlphaT>::decref(slots[offset].as_symbol_string);
+
+                ResetPattern<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<StringT,offset + 1>::type,
+                    offset + 1
+                >::reset(slots);
+            }
+        };
+        */
 
         template <typename AlphaT, typename VarTagT, typename StringT>
         class DestructuringBind;
@@ -744,6 +798,13 @@ namespace fltl { namespace lib { namespace cfg {
                 : pattern(_pattern)
             {
                 PatternData<AlphaT>::incref(pattern);
+
+                /*pattern->dec_string_ref_counts = &(DecRefCounts<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<StringT,0>::type,
+                    0
+                >::decref);*/
             }
 
             ~PatternBuilder(void) throw() {
@@ -814,6 +875,13 @@ namespace fltl { namespace lib { namespace cfg {
                 : pattern(_pattern)
             {
                 PatternData<AlphaT>::incref(pattern);
+
+                /*pattern->dec_string_ref_counts = &(DecRefCounts<
+                    AlphaT,
+                    StringT,
+                    typename GetFactor<StringT,0>::type,
+                    0
+                >::decref);*/
             }
 
             ~PatternBuilder(void) throw() {
@@ -893,16 +961,29 @@ namespace fltl { namespace lib { namespace cfg {
         /// slots holding pointers back to pattern data
         detail::Slot<AlphaT> slots[NUM_SLOTS];
 
+        /// function to call when pattern is deallocated to properly free
+        /// up reference counts to related symbol strings
+        //void (*dec_string_ref_counts)(detail::Slot<AlphaT> *);
+
         /// allocator for patterns
-        static helper::BlockAllocator<self_type> pattern_allocator;
+        static helper::BlockAllocator<self_type, 8U> pattern_allocator;
+
+        //static void no_string_ref_counts(detail::Slot<AlphaT> *) throw() { }
 
     public:
 
         PatternData(void)
             : ref_count(0)
             , var(0)
+            //, dec_string_ref_counts(&no_string_ref_counts)
         {
             memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        }
+
+        ~PatternData(void) throw() {
+            //dec_string_ref_counts(&(slots[0]));
+            var = 0;
+            //dec_string_ref_counts = &no_string_ref_counts;
         }
 
         inline void extend(symbol_type *expr, const unsigned slot) throw() {
@@ -911,6 +992,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         inline void extend(symbol_string_type *expr, const unsigned slot) throw() {
             slots[slot].as_symbol_string = expr;
+            //SymbolString<AlphaT>::incref(expr);
         }
 
         inline void extend(Unbound<AlphaT, symbol_type> *expr, const unsigned slot) throw() {
@@ -927,6 +1009,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         inline void extend(Unbound<AlphaT, symbol_string_type> *expr, const unsigned slot) throw() {
             slots[slot].as_symbol_string = expr->string;
+            //SymbolString<AlphaT>::incref(expr->string);
         }
 
         inline void extend(AnySymbol<AlphaT> *, const unsigned) throw() { }
@@ -968,7 +1051,8 @@ namespace fltl { namespace lib { namespace cfg {
 
     template <typename AlphaT>
     helper::BlockAllocator<
-        PatternData<AlphaT>
+        PatternData<AlphaT>,
+        8U
     > PatternData<AlphaT>::pattern_allocator;
 
     template <typename AlphaT, typename VarTagT>

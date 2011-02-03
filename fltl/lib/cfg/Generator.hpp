@@ -300,47 +300,6 @@ namespace fltl { namespace lib { namespace cfg {
         /// reset the generator
         reset_gen_type *reset_func;
 
-        /*
-        /// private constructor for use by CFG
-        Generator(
-            CFG<AlphaT> *_cfg,
-            Variable<AlphaT> *_variable,
-            Production<AlphaT> *_production,
-            const unsigned _terminal_offset,
-            void *_binder,
-            bind_next_type *_binder_func,
-            reset_gen_type *_reset_func
-        ) throw()
-            : cfg(_cfg)
-            , variable(_variable)
-            , production(_production)
-            , binder(_binder)
-            , binder_func(_binder_func)
-            , reset_func(_reset_func)
-        {
-            val.terminal_offset = _terminal_offset;
-        }
-
-        Generator(
-            CFG<AlphaT> *_cfg,
-            Variable<AlphaT> *_variable,
-            Production<AlphaT> *_production,
-            pattern_func_type _pattern_func,
-            void *_binder,
-            bind_next_type *_binder_func,
-            reset_gen_type *_reset_func
-        ) throw()
-            : cfg(_cfg)
-            , variable(_variable)
-            , production(_production)
-            , binder(_binder)
-            , binder_func(_binder_func)
-            , reset_func(_reset_func)
-        {
-            val.pattern_func = _pattern_func;
-        }
-    */
-
         Generator(
             CFG<AlphaT> *_cfg,
             void *_binder,

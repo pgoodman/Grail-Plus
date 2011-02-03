@@ -138,6 +138,9 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;
 
+        template <typename, typename, typename,const unsigned>
+        friend class detail::DecRefCounts;
+
         typedef SymbolString<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
 
@@ -187,6 +190,11 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// increase the reference count on a symbol array
+        /*static void incref(self_type *self) throw() {
+            if(0 != self) {
+                incref(self->symbols);
+            }
+        }*/
         static void incref(symbol_type *syms) throw() {
             if(0 != syms) {
                 ++(syms[REF_COUNT].value);
@@ -194,6 +202,11 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// decrease the reference count on a symbol array
+        /*static void decref(self_type *self) throw() {
+            if(0 != self) {
+                decref(self->symbols);
+            }
+        }*/
         static void decref(symbol_type *syms) throw() {
             // referencing into a production
             if(0 == syms) {

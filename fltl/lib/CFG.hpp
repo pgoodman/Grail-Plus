@@ -105,6 +105,9 @@ namespace fltl { namespace lib {
             template <typename, typename, typename, const unsigned>
             class ResetPattern;
 
+            template <typename, typename, typename,const unsigned>
+            class DecRefCounts;
+
             template <typename, typename, typename>
             class DestructuringBind;
         }
@@ -217,6 +220,15 @@ namespace fltl { namespace lib {
 
         public:
 
+            pattern_type(pattern_type &that) throw()
+                : pattern(that.pattern)
+                , match_pattern(that.match_pattern)
+                , gen_next(that.gen_next)
+                , gen_reset(that.gen_reset)
+            {
+                cfg::PatternData<AlphaT>::incref(pattern);
+            }
+
             template <typename PatternT, typename StringT, const unsigned state>
             pattern_type(
                 cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
@@ -244,7 +256,9 @@ namespace fltl { namespace lib {
             pattern_type &operator=(
                 cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
             ) throw() {
-                pattern = reinterpret_cast<void *>(pattern_builder.pattern);
+                cfg::PatternData<AlphaT>::decref(pattern);
+                pattern = pattern_builder.pattern;
+                cfg::PatternData<AlphaT>::incref(pattern);
                 match_pattern = &(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match);
                 gen_next = &(cfg::detail::PatternGenerator<
                     AlphaT,
@@ -254,6 +268,17 @@ namespace fltl { namespace lib {
                     AlphaT,
                     cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
                 >::reset_next_pattern);
+
+                return *this;
+            }
+
+            pattern_type &operator=(pattern_type &that) throw() {
+                cfg::PatternData<AlphaT>::decref(pattern);
+                pattern = that.pattern;
+                match_pattern = that.match_pattern;
+                gen_next = that.gen_next;
+                gen_reset = that.gen_reset;
+                cfg::PatternData<AlphaT>::incref(pattern);
                 return *this;
             }
 
