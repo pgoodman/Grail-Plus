@@ -31,7 +31,7 @@
 #include "fltl/include/trait/Uncopyable.hpp"
 
 /// make a method for pattern builder
-#define _FLTL_CFG_UNBOUND(type) cfg::Unbound<AlphaT,type>
+#define _FLTL_CFG_UNBOUND(tag) cfg::Unbound<AlphaT,tag>
 
 #define FLTL_CFG_PRODUCTION_PATTERN(tag) \
     FLTL_FORCE_INLINE cfg::Pattern<AlphaT,tag> \
@@ -81,6 +81,7 @@ namespace fltl { namespace lib {
         class unbound_symbol_string_tag { };
         class any_symbol_tag { };
         class any_symbol_string_tag { };
+        class production_tag { };
 
         template <typename> class PatternData;
 
@@ -362,6 +363,7 @@ namespace fltl { namespace lib {
             cfg::internal_sym_type var_id(next_variable_id);
 
             ++next_variable_id;
+
             variable_map.back()->next = var;
             variable_map.append(var);
 
@@ -494,7 +496,8 @@ namespace fltl { namespace lib {
             );
 
             // was this the first production?
-            if(first_production == prod) {
+            const bool update_first_production(first_production == prod);
+            /*if(update_first_production) {
                 cfg::Production<AlphaT> *next_prod(prod->next);
                 cfg::Variable<AlphaT> *curr_var(var);
 
@@ -526,7 +529,7 @@ namespace fltl { namespace lib {
             found_next_prod:
 
                 first_production = next_prod;
-            }
+            }*/
 
             // this production is not a default production, mark it as
             // deleted and decrement its reference counter
@@ -545,6 +548,9 @@ namespace fltl { namespace lib {
                     // related to this variable; we don't need to add the
                     // default null production back in
                     if(!pp->is_deleted) {
+                        if(update_first_production) {
+                            first_production = pp;
+                        }
                         goto done;
                     }
                 }
@@ -554,6 +560,10 @@ namespace fltl { namespace lib {
                 var->first_production->prev = &(var->null_production);
                 var->null_production.next = var->first_production;
                 var->first_production = &(var->null_production);
+
+                if(update_first_production) {
+                    first_production = var->first_production;
+                }
             }
 
         done:
@@ -584,7 +594,7 @@ namespace fltl { namespace lib {
 
         /// create a variable generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, variable_type> sym) throw() {
+        search(cfg::Unbound<AlphaT, cfg::variable_tag> sym) throw() {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
@@ -600,7 +610,7 @@ namespace fltl { namespace lib {
 
         /// create a terminal generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, terminal_type> sym) throw() {
+        search(cfg::Unbound<AlphaT, cfg::terminal_tag> sym) throw() {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
@@ -616,12 +626,7 @@ namespace fltl { namespace lib {
 
         /// create a production generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, production_type> uprod) throw() {
-
-            if(0 == first_production) {
-                return cfg::Generator<AlphaT>();
-            }
-
+        search(cfg::Unbound<AlphaT, cfg::production_tag> uprod) throw() {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
@@ -637,7 +642,7 @@ namespace fltl { namespace lib {
 
         /// return an empty generator for symbols
         inline generator_type
-        search(cfg::Unbound<AlphaT, symbol_type>) throw() {
+        search(cfg::Unbound<AlphaT, cfg::symbol_tag>) throw() {
             return cfg::Generator<AlphaT>();
         }
 
@@ -647,7 +652,7 @@ namespace fltl { namespace lib {
         template <typename PatternT, typename StringT, const unsigned state>
         inline generator_type
         search(
-            cfg::Unbound<AlphaT, production_type> uprod,
+            cfg::Unbound<AlphaT, cfg::production_tag> uprod,
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
             generator_type gen(
@@ -715,7 +720,7 @@ namespace fltl { namespace lib {
         /// production to uprod, and also destructure each production
         /// according to the pattern.
         inline generator_type search(
-            cfg::Unbound<AlphaT, production_type> uprod,
+            cfg::Unbound<AlphaT, cfg::production_tag> uprod,
             pattern_type &pattern
         ) throw() {
             generator_type gen(

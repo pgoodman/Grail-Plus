@@ -385,4 +385,159 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + s + s).match(P13));
         FLTL_TEST_ASSERT_TRUE((cfg._ --->* ~s + s).match(P13));
     }
+
+    void test_generate_terminals(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::term_t T;
+        CFG<char>::generator_t term_gen(cfg.search(~T));
+
+        FLTL_TEST_ASSERT_FALSE(term_gen.match_next());
+
+        CFG<char>::term_t a(cfg.get_terminal('a'));
+        CFG<char>::term_t b(cfg.get_terminal('b'));
+        CFG<char>::term_t c(cfg.get_terminal('c'));
+        CFG<char>::term_t d(cfg.get_terminal('d'));
+        CFG<char>::term_t e(cfg.get_terminal('e'));
+
+        FLTL_TEST_DOC(term_gen.rewind());
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, a);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, b);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, c);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, d);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, e);
+
+        FLTL_TEST_ASSERT_FALSE(term_gen.match_next());
+
+        FLTL_TEST_DOC(term_gen.rewind());
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, a);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, b);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, c);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, d);
+
+        FLTL_TEST_ASSERT_TRUE(term_gen.match_next());
+        FLTL_TEST_EQUAL(T, e);
+
+        FLTL_TEST_ASSERT_FALSE(term_gen.match_next());
+
+        CFG<char> cfg2;
+        CFG<char>::generator_t term_gen2(cfg2.search(~T));
+        FLTL_TEST_ASSERT_FALSE(term_gen2.match_next());
+    }
+
+    void test_generate_variables(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::var_t V;
+        CFG<char>::generator_t var_gen(cfg.search(~V));
+
+        FLTL_TEST_ASSERT_FALSE(var_gen.match_next());
+
+        FLTL_TEST_DOC(var_gen.rewind());
+
+        CFG<char>::var_t A(cfg.add_variable());
+        CFG<char>::var_t B(cfg.add_variable());
+        CFG<char>::var_t C(cfg.add_variable());
+        CFG<char>::var_t D(cfg.add_variable());
+        CFG<char>::var_t E(cfg.add_variable());
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, A);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, B);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, C);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, D);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, E);
+
+        FLTL_TEST_ASSERT_FALSE(var_gen.match_next());
+
+        FLTL_TEST_DOC(var_gen.rewind());
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, A);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, B);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, C);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, D);
+
+        FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
+        FLTL_TEST_EQUAL(V, E);
+
+        FLTL_TEST_ASSERT_FALSE(var_gen.match_next());
+
+        CFG<char> cfg2;
+        CFG<char>::generator_t var_gen2(cfg2.search(~V));
+        FLTL_TEST_ASSERT_FALSE(var_gen2.match_next());
+    }
+
+    void test_generate_productions(void) throw() {
+        CFG<char> cfg;
+        CFG<char>::prod_t P;
+        CFG<char>::generator_t gen(cfg.search(~P));
+
+        FLTL_TEST_ASSERT_FALSE(gen.match_next());
+
+        CFG<char>::var_t A(cfg.add_variable());
+        CFG<char>::var_t B(cfg.add_variable());
+        CFG<char>::var_t C(cfg.add_variable());
+        CFG<char>::var_t D(cfg.add_variable());
+        CFG<char>::var_t E(cfg.add_variable());
+
+        // test the default productions
+        FLTL_TEST_DOC(gen.rewind());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next());
+        FLTL_TEST_ASSERT_FALSE(gen.match_next());
+
+        CFG<char>::prod_t p1(cfg.add_production(B, A));
+        CFG<char>::prod_t p2(cfg.add_production(D, A + A));
+        CFG<char>::prod_t p3(cfg.add_production(D, A + A + A));
+
+        FLTL_TEST_DOC(gen.rewind());
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // A
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // B
+        FLTL_TEST_EQUAL(P, p1);
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // C
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // D2
+        FLTL_TEST_EQUAL(P, p3);
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // D1
+        FLTL_TEST_EQUAL(P, p2);
+        FLTL_TEST_ASSERT_TRUE(gen.match_next()); // E
+        FLTL_TEST_ASSERT_FALSE(gen.match_next());
+    }
+
+    void test_generate_search(void) throw() {
+
+    }
 }}}

@@ -139,7 +139,7 @@ namespace fltl { namespace lib { namespace cfg {
 
             /// reset the variable generator
             static void reset_next_variable(Generator<AlphaT> *state) throw() {
-                state->variable = state->cfg->variable_map.get(0);
+                state->cursor.variable = state->cfg->variable_map.get(0);
             }
 
             /// generate variables
@@ -158,7 +158,7 @@ namespace fltl { namespace lib { namespace cfg {
 
                 var = var->next;
 
-                if(0 == state->variable) {
+                if(0 == state->cursor.variable) {
                     binder->value = 0;
                     return false;
                 }

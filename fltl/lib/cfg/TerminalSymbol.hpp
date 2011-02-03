@@ -32,8 +32,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
-        Unbound<AlphaT,TerminalSymbol<AlphaT> > operator~(void) throw() {
-            return Unbound<AlphaT,TerminalSymbol<AlphaT> >(this);
+        Unbound<AlphaT,terminal_tag> operator~(void) throw() {
+            return Unbound<AlphaT,terminal_tag>(this);
         }
     };
 }}}

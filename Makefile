@@ -6,7 +6,7 @@ ROOT_DIR = ./
 
 DEFAULT_CXX = clang++
 CXX = ${DEFAULT_CXX}
-CXX_FEATURES = -fno-rtti -fno-exceptions
+CXX_FEATURES = -fno-rtti -fno-exceptions -fstrict-aliasing
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
 CXX_WARN_FLAGS += -Wcast-qual
 CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
@@ -18,7 +18,7 @@ GNU_COMPATIBLE_FLAGS = -pedantic -pedantic-errors -Wextra -Wcast-align -Wno-long
 ifeq (${CXX}, g++)
 	#CXX_FEATURES += -flto
 	CXX_FLAGS += -std=gnu++98
-	CXX_FEATURES += -fno-stack-protector -fstrict-aliasing
+	CXX_FEATURES += -fno-stack-protector
 	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith \
 				      -Wwrite-strings \
 				      -Wfloat-equal -Wconversion -Wredundant-decls \
@@ -39,8 +39,7 @@ endif
 
 # are we compiling with clang++?
 ifeq (${CXX}, clang++)
-	CXX_FEATURES += -fcatch-undefined-behavior -finline-functions \
-					-fstrict-aliasing
+	CXX_FEATURES += -fcatch-undefined-behavior -finline-functions
 	CXX_WARN_FLAGS += -Winline
 endif
 

@@ -40,6 +40,22 @@ namespace fltl { namespace test { namespace cfg {
     FLTL_TEST_CATEGORY(test_pattern_match,
         "Test the pattern-matching feature for productions."
     );
+
+    FLTL_TEST_CATEGORY(test_generate_terminals,
+        "Test that generators give the right results for terminals."
+    );
+
+    FLTL_TEST_CATEGORY(test_generate_variables,
+        "Test that generators give the right results for variables."
+    );
+
+    FLTL_TEST_CATEGORY(test_generate_productions,
+        "Test that generators give the right results for productions."
+    );
+
+    FLTL_TEST_CATEGORY(test_generate_search,
+        "Test that generators give the right results for searches."
+    );
 }}}
 
 #endif /* FLTL_CFG_HPP_ */

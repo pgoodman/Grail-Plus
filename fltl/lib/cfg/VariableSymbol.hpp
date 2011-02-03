@@ -36,8 +36,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
-        Unbound<AlphaT,VariableSymbol<AlphaT> > operator~(void) throw() {
-            return Unbound<AlphaT,VariableSymbol<AlphaT> >(this);
+        Unbound<AlphaT,variable_tag> operator~(void) throw() {
+            return Unbound<AlphaT,variable_tag>(this);
         }
 
         FLTL_CFG_PRODUCTION_PATTERN(variable_tag)

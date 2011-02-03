@@ -30,7 +30,7 @@ namespace fltl { namespace lib { namespace cfg {
     /// const symbol.
 
     template <typename AlphaT>
-    class Unbound<AlphaT, Symbol<AlphaT> > {
+    class Unbound<AlphaT, symbol_tag> {
 
         friend class CFG<AlphaT>;
         friend class Symbol<AlphaT>;
@@ -50,7 +50,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         Symbol<AlphaT> *symbol;
 
-        typedef Unbound<AlphaT, Symbol<AlphaT> > self_type;
+        typedef Unbound<AlphaT, symbol_tag> self_type;
 
         Unbound(Symbol<AlphaT> *_symbol)
             : symbol(_symbol)
@@ -64,7 +64,7 @@ namespace fltl { namespace lib { namespace cfg {
     };
 
     template <typename AlphaT>
-    class Unbound<AlphaT, TerminalSymbol<AlphaT> > {
+    class Unbound<AlphaT, terminal_tag> {
     private:
 
         friend class CFG<AlphaT>;
@@ -81,7 +81,7 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
 
-        typedef Unbound<AlphaT, TerminalSymbol<AlphaT> > self_type;
+        typedef Unbound<AlphaT, terminal_tag> self_type;
 
         typename CFG<AlphaT>::terminal_type *symbol;
 
@@ -97,7 +97,7 @@ namespace fltl { namespace lib { namespace cfg {
     };
 
     template <typename AlphaT>
-    class Unbound<AlphaT, VariableSymbol<AlphaT> > {
+    class Unbound<AlphaT, variable_tag> {
 
         friend class CFG<AlphaT>;
         friend class Symbol<AlphaT>;
@@ -115,7 +115,7 @@ namespace fltl { namespace lib { namespace cfg {
 
     private:
 
-        typedef Unbound<AlphaT, VariableSymbol<AlphaT> > self_type;
+        typedef Unbound<AlphaT, variable_tag> self_type;
 
         typedef typename CFG<AlphaT>::variable_type variable_type;
 
@@ -136,7 +136,7 @@ namespace fltl { namespace lib { namespace cfg {
 
     /// an unbound production
     template <typename AlphaT>
-    class Unbound<AlphaT, OpaqueProduction<AlphaT> > {
+    class Unbound<AlphaT, production_tag> {
     private:
 
         friend class CFG<AlphaT>;
@@ -151,8 +151,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class PatternData<AlphaT>;
 
-        typedef Unbound<AlphaT, typename CFG<AlphaT>::production_type>
-                self_type;
+        typedef Unbound<AlphaT, production_tag> self_type;
 
         OpaqueProduction<AlphaT> *prod;
 
@@ -163,7 +162,7 @@ namespace fltl { namespace lib { namespace cfg {
 
     /// an unbound symbol string
     template <typename AlphaT>
-    class Unbound<AlphaT, SymbolString<AlphaT> > {
+    class Unbound<AlphaT, symbol_string_tag> {
     private:
 
         friend class CFG<AlphaT>;
@@ -183,7 +182,7 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename, typename, typename, const unsigned>
         friend class detail::ResetPattern;
 
-        typedef Unbound<AlphaT, SymbolString<AlphaT> > self_type;
+        typedef Unbound<AlphaT, symbol_string_tag> self_type;
 
         SymbolString<AlphaT> *string;
 

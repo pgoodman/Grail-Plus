@@ -134,8 +134,8 @@ namespace fltl { namespace lib { namespace cfg {
             return production->symbols;
         }
 
-        Unbound<AlphaT, self_type> operator~(void) throw() {
-            return Unbound<AlphaT, self_type>(this);
+        Unbound<AlphaT, production_tag> operator~(void) throw() {
+            return Unbound<AlphaT, production_tag>(this);
         }
     };
 

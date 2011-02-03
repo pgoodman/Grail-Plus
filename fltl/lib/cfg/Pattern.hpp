@@ -12,7 +12,7 @@
 #define FLTL_PATTERN_HPP_
 
 #ifndef _FLTL_CFG_UNBOUND
-#define _FLTL_CFG_UNBOUND(type) cfg::Unbound<AlphaT,type>
+#define _FLTL_CFG_UNBOUND(tag) cfg::Unbound<AlphaT,tag>
 #endif
 
 #define FLTL_CFG_PRODUCTION_PATTERN_INIT(type, tag, state) \
@@ -32,7 +32,7 @@
     }
 
 #define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(type, tag, state) \
-    FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(type), tag, state)
+    FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(tag), unbound_ ## tag, state)
 
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
@@ -51,7 +51,7 @@
     }
 
 #define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(type,tag,state) \
-    FLTL_CFG_PRODUCTION_PATTERN_EXTEND(_FLTL_CFG_UNBOUND(type),tag,state)
+    FLTL_CFG_PRODUCTION_PATTERN_EXTEND(_FLTL_CFG_UNBOUND(tag),unbound_ ## tag,state)
 
 
 namespace fltl { namespace lib { namespace cfg {
@@ -813,19 +813,19 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, unbound_variable_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, any_symbol_tag, 0)
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolString<AlphaT>, any_symbol_string_tag, 1)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, unbound_terminal_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_type, symbol_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_type, unbound_symbol_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_type, symbol_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_string_type, symbol_string_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_string_type, unbound_symbol_string_tag, 1)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_string_type, symbol_string_tag, 1)
 
             inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
@@ -890,13 +890,13 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, unbound_variable_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, unbound_terminal_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_type, symbol_tag, 0)
-            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_type, unbound_symbol_tag, 0)
+            FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_type, symbol_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, any_symbol_tag, 0)
 
@@ -995,19 +995,19 @@ namespace fltl { namespace lib { namespace cfg {
             //SymbolString<AlphaT>::incref(expr);
         }
 
-        inline void extend(Unbound<AlphaT, symbol_type> *expr, const unsigned slot) throw() {
+        inline void extend(Unbound<AlphaT, symbol_tag> *expr, const unsigned slot) throw() {
             slots[slot].as_symbol = expr->symbol;
         }
 
-        inline void extend(Unbound<AlphaT, terminal_type> *expr, const unsigned slot) throw() {
+        inline void extend(Unbound<AlphaT, terminal_tag> *expr, const unsigned slot) throw() {
             slots[slot].as_terminal = expr->symbol;
         }
 
-        inline void extend(Unbound<AlphaT, variable_type> *expr, const unsigned slot) throw() {
+        inline void extend(Unbound<AlphaT, variable_tag> *expr, const unsigned slot) throw() {
             slots[slot].as_variable = expr->symbol;
         }
 
-        inline void extend(Unbound<AlphaT, symbol_string_type> *expr, const unsigned slot) throw() {
+        inline void extend(Unbound<AlphaT, symbol_string_tag> *expr, const unsigned slot) throw() {
             slots[slot].as_symbol_string = expr->string;
             //SymbolString<AlphaT>::incref(expr->string);
         }
@@ -1085,16 +1085,16 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(variable_type, variable_tag, 0)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(variable_type, unbound_variable_tag, 0)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(variable_type, variable_tag, 0)
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(terminal_type, terminal_tag, 0)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(terminal_type, unbound_terminal_tag, 0)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(terminal_type, terminal_tag, 0)
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(symbol_type, symbol_tag, 0)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(symbol_type, unbound_symbol_tag, 0)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(symbol_type, symbol_tag, 0)
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(symbol_string_type, symbol_string_tag, 0)
-        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(symbol_string_type, unbound_symbol_string_tag, 1)
+        FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(symbol_string_type, symbol_string_tag, 1)
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbol<AlphaT>, any_symbol_tag, 0)
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbolString<AlphaT>, any_symbol_string_tag, 1)
