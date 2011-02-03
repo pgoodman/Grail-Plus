@@ -18,7 +18,7 @@
 #define FLTL_CFG_PRODUCTION_PATTERN_INIT(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state> \
     operator->*(const type &expr) throw() { \
-        pattern->extend(&expr); \
+        pattern->extend(&expr, 0); \
         return detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state>( \
             pattern \
         ); \
@@ -30,7 +30,7 @@
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
     operator+(const type &expr) throw() { \
-        pattern->extend(&expr); \
+        pattern->extend(&expr, StringT::NEXT_OFFSET); \
         return detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
             pattern \
         ); \
@@ -593,14 +593,14 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, typename CFG<AlphaT>::variable_type> &pattern,
+                Pattern<AlphaT, typename CFG<AlphaT>::variable_type> *pattern,
                 const production_type &prod
             ) {
                 if(!prod.is_valid()) {
                     return false;
                 }
 
-                Slot<AlphaT> *slots(&(pattern.slots[0]));
+                Slot<AlphaT> *slots(&(pattern->slots[0]));
 
                 ResetPattern<
                     AlphaT,
@@ -609,7 +609,7 @@ namespace fltl { namespace lib { namespace cfg {
                     0
                 >::reset(slots);
 
-                if(*(pattern.var) != prod.variable()) {
+                if(*(pattern->var) != prod.variable()) {
                     return false;
                 }
 
@@ -643,14 +643,14 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, Unbound<AlphaT, typename CFG<AlphaT>::variable_type> > &pattern,
+                Pattern<AlphaT, Unbound<AlphaT, typename CFG<AlphaT>::variable_type> > *pattern,
                 const production_type &prod
             ) {
                 if(!prod.is_valid()) {
                     return false;
                 }
 
-                Slot<AlphaT> *slots(&(pattern.slots[0]));
+                Slot<AlphaT> *slots(&(pattern->slots[0]));
 
                 ResetPattern<
                     AlphaT,
@@ -659,7 +659,7 @@ namespace fltl { namespace lib { namespace cfg {
                     0
                 >::reset(slots);
 
-                *(pattern.var) = prod.variable();
+                *(pattern->var) = prod.variable();
 
                 const SymbolString<AlphaT> &str(prod.symbols());
                 const unsigned str_len(str.length());
@@ -691,10 +691,10 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, AnySymbol<AlphaT> > &pattern,
+                Pattern<AlphaT, AnySymbol<AlphaT> > *pattern,
                 const production_type &prod
             ) {
-                Slot<AlphaT> *slots(&(pattern.slots[0]));
+                Slot<AlphaT> *slots(&(pattern->slots[0]));
 
                 ResetPattern<
                     AlphaT,
@@ -767,7 +767,7 @@ namespace fltl { namespace lib { namespace cfg {
                     typename PatternT::lhs_type,
                     PatternT,
                     StringT
-                >::bind(*pattern, prod);
+                >::bind(pattern, prod);
             }
 
         private:
@@ -782,7 +782,7 @@ namespace fltl { namespace lib { namespace cfg {
                     typename PatternT::lhs_type,
                     PatternT,
                     StringT
-                >::bind(*helper::unsafe_cast<PatternT *>(_pattern), prod);
+                >::bind(helper::unsafe_cast<PatternT *>(_pattern), prod);
             }
         };
 
@@ -831,7 +831,7 @@ namespace fltl { namespace lib { namespace cfg {
                     typename PatternT::lhs_type,
                     PatternT,
                     StringT
-                >::bind(*pattern, prod);
+                >::bind(pattern, prod);
             }
 
         private:
@@ -846,7 +846,7 @@ namespace fltl { namespace lib { namespace cfg {
                     typename PatternT::lhs_type,
                     PatternT,
                     StringT
-                >::bind(*helper::unsafe_cast<PatternT *>(_pattern), prod);
+                >::bind(helper::unsafe_cast<PatternT *>(_pattern), prod);
             }
         };
     }
@@ -885,48 +885,39 @@ namespace fltl { namespace lib { namespace cfg {
 
         detail::Slot<AlphaT> slots[NUM_SLOTS];
 
+        /// the next slot to be filled
         detail::Slot<AlphaT> *next_slot;
 
         /// reference back to this pattern
         Pattern<AlphaT,V> *pattern;
 
-        void extend(const symbol_type *expr) throw() {
-            next_slot->as_symbol = const_cast<symbol_type *>(expr);
-            ++(next_slot);
+        void extend(const symbol_type *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = const_cast<symbol_type *>(expr);
         }
 
-        void extend(const symbol_string_type *expr) throw() {
-            next_slot->as_symbol_string = const_cast<symbol_string_type *>(expr);
-            ++(next_slot);
+        void extend(const symbol_string_type *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol_string = const_cast<symbol_string_type *>(expr);
         }
 
-        void extend(const Unbound<AlphaT, symbol_type> *expr) throw() {
-            next_slot->as_symbol = const_cast<Unbound<AlphaT, symbol_type> *>(expr)->symbol;
-            ++(next_slot);
+        void extend(const Unbound<AlphaT, symbol_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = const_cast<Unbound<AlphaT, symbol_type> *>(expr)->symbol;
         }
 
-        void extend(const Unbound<AlphaT, terminal_type> *expr) throw() {
-            next_slot->as_terminal = const_cast<Unbound<AlphaT, terminal_type> *>(expr)->symbol;
-            ++(next_slot);
+        void extend(const Unbound<AlphaT, terminal_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_terminal = const_cast<Unbound<AlphaT, terminal_type> *>(expr)->symbol;
         }
 
-        void extend(const Unbound<AlphaT, variable_type> *expr) throw() {
-            next_slot->as_variable = const_cast<Unbound<AlphaT, variable_type> *>(expr)->symbol;
-            ++(next_slot);
+        void extend(const Unbound<AlphaT, variable_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_variable = const_cast<Unbound<AlphaT, variable_type> *>(expr)->symbol;
         }
 
-        void extend(const Unbound<AlphaT, symbol_string_type> *expr) throw() {
-            next_slot->as_symbol_string = const_cast<Unbound<AlphaT, symbol_string_type> *>(expr)->string;
-            ++(next_slot);
+        void extend(const Unbound<AlphaT, symbol_string_type> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol_string = const_cast<Unbound<AlphaT, symbol_string_type> *>(expr)->string;
         }
 
-        void extend(const AnySymbol<AlphaT> *) throw() {
-            ++(next_slot);
-        }
+        void extend(const AnySymbol<AlphaT> *, const unsigned) throw() { }
 
-        void extend(const AnySymbolString<AlphaT> *) throw() {
-            ++(next_slot);
-        }
+        void extend(const AnySymbolString<AlphaT> *, const unsigned) throw() { }
 
         const void *get_var(void) const throw() {
             return reinterpret_cast<const void *>(&var);
@@ -936,7 +927,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         Pattern(variable_type &_var) throw()
             : var(&_var)
-            , next_slot(&(slots[0]))
             , pattern(this)
         {
             memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
@@ -944,7 +934,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         Pattern(Unbound<AlphaT, variable_type> &_var) throw()
             : var(_var.symbol)
-            , next_slot(&(slots[0]))
             , pattern(this)
         {
             memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
@@ -952,7 +941,6 @@ namespace fltl { namespace lib { namespace cfg {
 
         Pattern(AnySymbol<AlphaT>) throw()
             : var(0)
-            , next_slot(&(slots[0]))
             , pattern(this)
         {
             memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
