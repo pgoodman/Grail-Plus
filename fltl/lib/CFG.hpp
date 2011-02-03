@@ -67,6 +67,17 @@ namespace fltl { namespace lib {
         template <typename> class AnySymbol;
         template <typename> class AnySymbolString;
 
+        class symbol_tag { };
+        class terminal_tag { };
+        class variable_tag { };
+        class symbol_string_tag { };
+        class unbound_symbol_tag { };
+        class unbound_variable_tag { };
+        class unbound_terminal_tag { };
+        class unbound_symbol_string_tag { };
+        class any_symbol_tag { };
+        class any_symbol_string_tag { };
+
         namespace detail {
 
             // forward declarations
