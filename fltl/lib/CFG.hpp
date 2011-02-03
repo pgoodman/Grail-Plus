@@ -33,10 +33,14 @@
 /// make a method for pattern builder
 #define _FLTL_CFG_UNBOUND(type) cfg::Unbound<AlphaT,type>
 
-#define FLTL_CFG_PRODUCTION_PATTERN \
-    FLTL_FORCE_INLINE cfg::Pattern<AlphaT,self_type> \
+#define FLTL_CFG_PRODUCTION_PATTERN(tag) \
+    FLTL_FORCE_INLINE cfg::Pattern<AlphaT,tag> \
     operator--(int) const throw() { \
-        return cfg::Pattern<AlphaT,self_type>(*const_cast<self_type *>(this)); \
+        return cfg::Pattern<AlphaT,tag>( \
+            cfg::PatternData<AlphaT>::allocate( \
+                const_cast<self_type *>(this)\
+            ) \
+        ); \
     }
 
 namespace fltl { namespace lib {
@@ -78,6 +82,8 @@ namespace fltl { namespace lib {
         class any_symbol_tag { };
         class any_symbol_string_tag { };
 
+        template <typename> class PatternData;
+
         namespace detail {
 
             // forward declarations
@@ -99,7 +105,7 @@ namespace fltl { namespace lib {
             template <typename, typename, typename, const unsigned>
             class ResetPattern;
 
-            template <typename, typename, typename, typename>
+            template <typename, typename, typename>
             class DestructuringBind;
         }
     }
@@ -204,8 +210,8 @@ namespace fltl { namespace lib {
 
             friend class CFG<AlphaT>;
 
-            void *pattern;
-            bool (*match_pattern)(void *, const production_type &);
+            cfg::PatternData<AlphaT> *pattern;
+            bool (*match_pattern)(cfg::PatternData<AlphaT> *, const production_type &);
             bool (*gen_next)(generator_type *);
             void (*gen_reset)(generator_type *);
 
@@ -215,7 +221,7 @@ namespace fltl { namespace lib {
             pattern_type(
                 cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
             ) throw()
-                : pattern(reinterpret_cast<void *>(pattern_builder.pattern))
+                : pattern(pattern_builder.pattern)
                 , match_pattern(&(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match))
                 , gen_next(&(cfg::detail::PatternGenerator<
                     AlphaT,
@@ -225,9 +231,12 @@ namespace fltl { namespace lib {
                     AlphaT,
                     cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
                 >::reset_next_pattern))
-            { }
+            {
+                cfg::PatternData<AlphaT>::incref(pattern);
+            }
 
             ~pattern_type(void) throw() {
+                cfg::PatternData<AlphaT>::decref(pattern);
                 pattern = 0;
             }
 
@@ -554,7 +563,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
-                reinterpret_cast<void *>(0), // pattern
+                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
             );
@@ -570,7 +579,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
-                reinterpret_cast<void *>(0), // pattern
+                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal)
             );
@@ -591,7 +600,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
-                reinterpret_cast<void *>(0), // pattern
+                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
             );
@@ -619,7 +628,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
-                reinterpret_cast<void *>(pattern_builder.pattern), // pattern
+                pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
                     cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
@@ -645,7 +654,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(0), // binder
-                reinterpret_cast<void *>(pattern_builder.pattern), // pattern
+                pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
                     cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
@@ -667,7 +676,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(0), // binder
-                reinterpret_cast<void *>(pattern.pattern), // pattern
+                pattern.pattern, // pattern
                 pattern.gen_next,
                 pattern.gen_reset
             );
@@ -687,7 +696,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
-                reinterpret_cast<void *>(pattern.pattern), // pattern
+                pattern.pattern, // pattern
                 pattern.gen_next,
                 pattern.gen_reset
             );

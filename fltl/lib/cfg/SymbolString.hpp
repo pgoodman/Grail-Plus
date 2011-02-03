@@ -129,6 +129,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class Production<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
+        friend class PatternData<AlphaT>;
 
         template <typename, typename> friend class Unbound;
 

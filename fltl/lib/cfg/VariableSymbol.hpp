@@ -20,6 +20,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
+        friend class PatternData<AlphaT>;
 
         typedef VariableSymbol<AlphaT> self_type;
 
@@ -39,7 +40,7 @@ namespace fltl { namespace lib { namespace cfg {
             return Unbound<AlphaT,VariableSymbol<AlphaT> >(this);
         }
 
-        FLTL_CFG_PRODUCTION_PATTERN
+        FLTL_CFG_PRODUCTION_PATTERN(variable_tag)
     };
 
 }}}

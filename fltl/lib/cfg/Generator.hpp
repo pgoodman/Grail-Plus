@@ -244,10 +244,8 @@ namespace fltl { namespace lib { namespace cfg {
                 if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
                     state->cursor.production = state->cfg->variable_map.get(
                         static_cast<unsigned>(
-                            helper::unsafe_cast<const typename CFG<AlphaT>::variable_type *>(
-                                helper::unsafe_cast<typename PatternBuilderT::pattern_type *>(
-                                    state->pattern
-                                )->get_var()
+                            helper::unsafe_cast<const VariableSymbol<AlphaT> *>(
+                                state->pattern->get_var()
                             )->value
                         )
                     )->first_production;
@@ -293,7 +291,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// pointer to some sort of type to which we are binding results
         void *binder;
-        void *pattern;
+        PatternData<AlphaT> *pattern;
 
         /// the binder function, does the variable binding and tells us if
         /// we can keep going
@@ -346,7 +344,7 @@ namespace fltl { namespace lib { namespace cfg {
         Generator(
             CFG<AlphaT> *_cfg,
             void *_binder,
-            void *_pattern,
+            PatternData<AlphaT> *_pattern,
             bind_next_type *_binder_func,
             reset_gen_type *_reset_func
         ) throw()
@@ -357,6 +355,10 @@ namespace fltl { namespace lib { namespace cfg {
             , reset_func(_reset_func)
         {
             memset(&cursor, 0, sizeof cursor);
+
+            if(0 != pattern) {
+                PatternData<AlphaT>::incref(pattern);
+            }
         }
 
     public:
@@ -380,6 +382,16 @@ namespace fltl { namespace lib { namespace cfg {
             , reset_func(that.reset_func)
         {
             memcpy(&cursor, &(that.cursor), sizeof cursor);
+
+            if(0 != pattern) {
+                PatternData<AlphaT>::incref(pattern);
+            }
+        }
+
+        ~Generator(void) throw() {
+            if(0 != pattern) {
+                PatternData<AlphaT>::decref(pattern);
+            }
         }
 
         self_type &operator=(self_type &that) throw() {
@@ -388,12 +400,21 @@ namespace fltl { namespace lib { namespace cfg {
                 "Illegal assignment to an initialized generator."
             );
 
+            if(0 != pattern) {
+                PatternData<AlphaT>::decref(pattern);
+            }
+
             cfg = that.cfg;
             memcpy(&cursor, &(that.cursor), sizeof cursor);
             binder = that.binder;
             pattern = that.pattern;
             binder_func = that.binder_func;
             reset_func = that.reset_func;
+
+            if(0 != pattern) {
+                PatternData<AlphaT>::incref(pattern);
+            }
+
             return *this;
         }
 

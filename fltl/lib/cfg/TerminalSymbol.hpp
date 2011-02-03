@@ -18,6 +18,7 @@ namespace fltl { namespace lib { namespace cfg {
     private:
 
         friend class CFG<AlphaT>;
+        friend class PatternData<AlphaT>;
 
         explicit TerminalSymbol(const internal_sym_type _value) throw()
             : cfg::Symbol<AlphaT>(_value)

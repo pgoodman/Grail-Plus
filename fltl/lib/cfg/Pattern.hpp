@@ -16,17 +16,17 @@
 #endif
 
 #define FLTL_CFG_PRODUCTION_PATTERN_INIT(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state> \
     operator->*(type &expr) throw() { \
         pattern->extend(&expr, 0); \
-        return detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state>( \
             pattern \
         ); \
     } \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state> \
     operator->*(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), 0); \
-        return detail::PatternBuilder<AlphaT, self_type, detail::Factor<tag,0>, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state>( \
             pattern \
         ); \
     }
@@ -35,17 +35,17 @@
     FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(type), tag, state)
 
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
     operator+(type &expr) throw() { \
         pattern->extend(&expr, StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
             pattern \
         ); \
     } \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
     operator+(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, PatternT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
             pattern \
         ); \
     }
@@ -591,23 +591,18 @@ namespace fltl { namespace lib { namespace cfg {
             }
         };
 
-        template <typename AlphaT, typename VarT, typename PatternT, typename StringT>
+        template <typename AlphaT, typename VarTagT, typename StringT>
         class DestructuringBind;
 
         /// check the variable of the pattern
         template <typename AlphaT, typename StringT>
-        class DestructuringBind<
-            AlphaT,
-            typename CFG<AlphaT>::variable_type,
-            Pattern<AlphaT, typename CFG<AlphaT>::variable_type>,
-            StringT
-        > {
+        class DestructuringBind<AlphaT, variable_tag, StringT> {
         public:
 
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, typename CFG<AlphaT>::variable_type> *pattern,
+                PatternData<AlphaT> *pattern,
                 const production_type &prod
             ) {
                 if(!prod.is_valid()) {
@@ -646,18 +641,13 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// bind the variable
         template <typename AlphaT, typename StringT>
-        class DestructuringBind<
-            AlphaT,
-            Unbound<AlphaT, typename CFG<AlphaT>::variable_type>,
-            Pattern<AlphaT, Unbound<AlphaT, typename CFG<AlphaT>::variable_type> >,
-            StringT
-        > {
+        class DestructuringBind<AlphaT, unbound_variable_tag, StringT> {
         public:
 
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, Unbound<AlphaT, typename CFG<AlphaT>::variable_type> > *pattern,
+                PatternData<AlphaT> *pattern,
                 const production_type &prod
             ) {
                 if(!prod.is_valid()) {
@@ -694,18 +684,13 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// ignore the variable
         template <typename AlphaT, typename StringT>
-        class DestructuringBind<
-            AlphaT,
-            AnySymbol<AlphaT>,
-            Pattern<AlphaT, AnySymbol<AlphaT> >,
-            StringT
-        > {
+        class DestructuringBind<AlphaT, any_symbol_tag, StringT> {
         public:
 
             typedef typename CFG<AlphaT>::production_type production_type;
 
             inline static bool bind(
-                Pattern<AlphaT, AnySymbol<AlphaT> > *pattern,
+                PatternData<AlphaT> *pattern,
                 const production_type &prod
             ) {
                 Slot<AlphaT> *slots(&(pattern->slots[0]));
@@ -734,12 +719,12 @@ namespace fltl { namespace lib { namespace cfg {
             }
         };
 
-        template <typename AlphaT, typename PatternT, typename StringT>
-        class PatternBuilder<AlphaT,PatternT,StringT,0U> {
+        template <typename AlphaT, typename VarTagT, typename StringT>
+        class PatternBuilder<AlphaT,VarTagT,StringT,0U> {
         public:
 
             enum {
-                IS_BOUND_TO_VAR = PatternT::IS_BOUND
+                IS_BOUND_TO_VAR = mpl::IfTypesEqual<VarTagT,variable_tag>::RESULT
             };
 
             friend class CFG<AlphaT>;
@@ -752,13 +737,19 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
-            typedef PatternT pattern_type;
 
-            PatternT *pattern;
+            PatternData<AlphaT> *pattern;
 
-            FLTL_FORCE_INLINE PatternBuilder(PatternT *_pattern)
+            FLTL_FORCE_INLINE PatternBuilder(PatternData<AlphaT> *_pattern)
                 : pattern(_pattern)
-            { }
+            {
+                PatternData<AlphaT>::incref(pattern);
+            }
+
+            ~PatternBuilder(void) throw() {
+                PatternData<AlphaT>::decref(pattern);
+                pattern = 0;
+            }
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, unbound_variable_tag, 0)
@@ -778,8 +769,7 @@ namespace fltl { namespace lib { namespace cfg {
             inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
                     AlphaT,
-                    typename PatternT::lhs_type,
-                    PatternT,
+                    VarTagT,
                     StringT
                 >::bind(pattern, prod);
             }
@@ -787,25 +777,24 @@ namespace fltl { namespace lib { namespace cfg {
         private:
 
             inline static bool static_match(
-                void *_pattern,
+                cfg::PatternData<AlphaT> *_pattern,
                 const production_type &prod
             ) throw() {
 
                 return DestructuringBind<
                     AlphaT,
-                    typename PatternT::lhs_type,
-                    PatternT,
+                    VarTagT,
                     StringT
-                >::bind(helper::unsafe_cast<PatternT *>(_pattern), prod);
+                >::bind(_pattern, prod);
             }
         };
 
-        template <typename AlphaT, typename PatternT, typename StringT>
-        class PatternBuilder<AlphaT,PatternT,StringT,1U> {
+        template <typename AlphaT, typename VarTagT, typename StringT>
+        class PatternBuilder<AlphaT,VarTagT,StringT,1U> {
         public:
 
             enum {
-                IS_BOUND_TO_VAR = PatternT::IS_BOUND
+                IS_BOUND_TO_VAR = mpl::IfTypesEqual<VarTagT,variable_tag>::RESULT
             };
 
             friend class CFG<AlphaT>;
@@ -818,13 +807,19 @@ namespace fltl { namespace lib { namespace cfg {
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
-            typedef PatternT pattern_type;
 
-            PatternT *pattern;
+            PatternData<AlphaT> *pattern;
 
-            FLTL_FORCE_INLINE PatternBuilder(PatternT *_pattern) throw()
+            FLTL_FORCE_INLINE PatternBuilder(PatternData<AlphaT> *_pattern) throw()
                 : pattern(_pattern)
-            { }
+            {
+                PatternData<AlphaT>::incref(pattern);
+            }
+
+            ~PatternBuilder(void) throw() {
+                PatternData<AlphaT>::decref(pattern);
+                pattern = 0;
+            }
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(variable_type, variable_tag, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(variable_type, unbound_variable_tag, 0)
@@ -842,8 +837,7 @@ namespace fltl { namespace lib { namespace cfg {
             inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
                     AlphaT,
-                    typename PatternT::lhs_type,
-                    PatternT,
+                    VarTagT,
                     StringT
                 >::bind(pattern, prod);
             }
@@ -851,25 +845,29 @@ namespace fltl { namespace lib { namespace cfg {
         private:
 
             inline static bool static_match(
-                void *_pattern,
+                cfg::PatternData<AlphaT> *_pattern,
                 const production_type &prod
             ) throw() {
                 return DestructuringBind<
                     AlphaT,
-                    typename PatternT::lhs_type,
-                    PatternT,
+                    VarTagT,
                     StringT
-                >::bind(helper::unsafe_cast<PatternT *>(_pattern), prod);
+                >::bind(_pattern, prod);
             }
         };
     }
 
-    template <typename AlphaT, typename V>
-    class Pattern {
+    template <typename AlphaT>
+    class PatternData {
     private:
 
-        friend class CFG<AlphaT>;
+        typedef typename CFG<AlphaT>::variable_type variable_type;
+        typedef typename CFG<AlphaT>::terminal_type terminal_type;
+        typedef typename CFG<AlphaT>::symbol_type symbol_type;
+        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
+        typedef PatternData<AlphaT> self_type;
 
+        friend class helper::BlockAllocator<self_type>;
         friend class detail::SimpleGenerator<AlphaT>;
 
         template <typename, typename>
@@ -878,31 +876,34 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename,typename,typename,const unsigned>
         friend class detail::PatternBuilder;
 
-        template <typename, typename, typename, typename>
+        template <typename, typename, typename>
         friend class detail::DestructuringBind;
 
-        typedef typename CFG<AlphaT>::variable_type variable_type;
-        typedef typename CFG<AlphaT>::terminal_type terminal_type;
-        typedef typename CFG<AlphaT>::symbol_type symbol_type;
-        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
-
-        typedef Pattern<AlphaT,V> self_type;
-        typedef V lhs_type;
-
         enum {
-            NUM_SLOTS = 8U,
-            IS_BOUND = mpl::IfTypesEqual<V, variable_type>::RESULT
+            NUM_SLOTS = 8U
         };
 
+        /// reference counter so we can pass the pattern around
+        unsigned ref_count;
+
+        /// variable pointed to by this data; if we don't care about the
+        /// variable then it's left as zero
         variable_type *var;
 
+        /// slots holding pointers back to pattern data
         detail::Slot<AlphaT> slots[NUM_SLOTS];
 
-        /// the next slot to be filled
-        detail::Slot<AlphaT> *next_slot;
+        /// allocator for patterns
+        static helper::BlockAllocator<self_type> pattern_allocator;
 
-        /// reference back to this pattern
-        Pattern<AlphaT,V> *pattern;
+    public:
+
+        PatternData(void)
+            : ref_count(0)
+            , var(0)
+        {
+            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        }
 
         inline void extend(symbol_type *expr, const unsigned slot) throw() {
             slots[slot].as_symbol = expr;
@@ -938,25 +939,65 @@ namespace fltl { namespace lib { namespace cfg {
 
     public:
 
-        Pattern(variable_type &_var) throw()
-            : var(&_var)
-            , pattern(this)
-        {
-            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        static self_type *allocate(variable_type *_var) throw() {
+            self_type *self(pattern_allocator.allocate());
+            self->var = _var;
+            return self;
         }
 
-        Pattern(Unbound<AlphaT, variable_type> &_var) throw()
-            : var(_var.symbol)
-            , pattern(this)
-        {
-            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+        static self_type *allocate(Unbound<AlphaT, variable_type> *_var) throw() {
+            self_type *self(pattern_allocator.allocate());
+            self->var = _var->symbol;
+            return self;
         }
 
-        Pattern(AnySymbol<AlphaT>) throw()
-            : var(0)
-            , pattern(this)
+        static self_type *allocate(AnySymbol<AlphaT> *) throw() {
+            return pattern_allocator.allocate();
+        }
+
+        static void incref(self_type *self) throw() {
+            ++(self->ref_count);
+        }
+
+        static void decref(PatternData<AlphaT> *self) throw() {
+            if(0 == --(self->ref_count)) {
+                pattern_allocator.deallocate(self);
+            }
+        }
+    };
+
+    template <typename AlphaT>
+    helper::BlockAllocator<
+        PatternData<AlphaT>
+    > PatternData<AlphaT>::pattern_allocator;
+
+    template <typename AlphaT, typename VarTagT>
+    class Pattern {
+    private:
+
+        friend class CFG<AlphaT>;
+
+        typedef typename CFG<AlphaT>::variable_type variable_type;
+        typedef typename CFG<AlphaT>::terminal_type terminal_type;
+        typedef typename CFG<AlphaT>::symbol_type symbol_type;
+        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
+
+        typedef Pattern<AlphaT,VarTagT> self_type;
+
+        /// the actual data of the pattern
+        PatternData<AlphaT> *pattern;
+
+    public:
+
+        Pattern(PatternData<AlphaT> *_pattern) throw()
+            : pattern(_pattern)
         {
-            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+            PatternData<AlphaT>::incref(pattern);
+        }
+
+        ~Pattern(void) throw() {
+            PatternData<AlphaT>::decref(pattern);
+            pattern = 0;
         }
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(variable_type, variable_tag, 0)
