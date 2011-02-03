@@ -11,7 +11,9 @@
 #ifndef FLTL_NO_INLINE_HPP_
 #define FLTL_NO_INLINE_HPP_
 
-#if defined(_WIN32)
+#if defined(__INTEL_COMPILER)
+#define FLTL_NO_INLINE
+#elif defined(_WIN32)
 #define FLTL_NO_INLINE __declspec(noinline)
 #elif defined(__GNUC__) || defined(__GNUG__)
 #define FLTL_NO_INLINE __attribute__((noinline))

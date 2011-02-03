@@ -11,7 +11,9 @@
 #ifndef FLTL_FORCE_INLINE_HPP_
 #define FLTL_FORCE_INLINE_HPP_
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#if defined(__INTEL_COMPILER)
+#define FLTL_FORCE_INLINE __inline
+#elif defined(_MSC_VER) && (_MSC_VER >= 1200)
 #define FLTL_FORCE_INLINE __forceinline
 #elif defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
 #define FLTL_FORCE_INLINE __attribute__((always_inline))
