@@ -128,7 +128,7 @@ namespace fltl { namespace test {
 
             /// constructor that gets called before any tests are called
             TestCase(void) throw()
-                : TestBase(this)
+                : TestBase(get_this())
             { }
 
             /// destructor
