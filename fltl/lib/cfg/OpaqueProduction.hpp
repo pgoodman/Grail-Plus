@@ -41,6 +41,21 @@ namespace fltl { namespace lib { namespace cfg {
             }
         }
 
+        void assign(Production<AlphaT> *prod) throw() {
+            if(production != prod) {
+
+                if(0 != production) {
+                    Production<AlphaT>::release(production);
+                }
+
+                production = prod;
+
+                if(0 != production) {
+                    Production<AlphaT>::hold(production);
+                }
+            }
+        }
+
     public:
 
         OpaqueProduction(void) throw()
@@ -58,22 +73,12 @@ namespace fltl { namespace lib { namespace cfg {
         ~OpaqueProduction(void) throw() {
             if(0 != production) {
                 Production<AlphaT>::release(production);
+                production = 0;
             }
         }
 
-        self_type &operator=(const self_type &that) throw() {
-            if(production != that.production) {
-
-                if(0 != production) {
-                    Production<AlphaT>::release(production);
-                }
-
-                production = that.production;
-
-                if(0 != production) {
-                    Production<AlphaT>::hold(production);
-                }
-            }
+        inline self_type &operator=(const self_type &that) throw() {
+            assign(that.production);
             return *this;
         }
 

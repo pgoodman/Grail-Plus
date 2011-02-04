@@ -7,6 +7,7 @@
  */
 
 #include <cstdio>
+#include <map>
 
 #include "fltl/lib/CFG.hpp"
 #include "fltl/test/Test.hpp"
@@ -37,6 +38,8 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
     // buffer for builder productions
     production_builder_type buffer;
 
+    symbol_string_type str;
+
     // go find epsilon rules
     variable_type A;
     variable_type B;
@@ -56,27 +59,26 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
         (~B) --->* cfg.__ + A + cfg.__
     ));
 
-    // generator that will find check if a given production is related
-    // to any non-empty strings
-    generator_type rules_with_nonempty_rhs(cfg.search(
-        A --->* cfg._ + cfg.__
-    ));
-
-    // go find each production A -> RHS_A where RHS_A is epsilon
-
+    // while there are still epsilon rules
     for(bool added_epsilon_rule(true); added_epsilon_rule; ) {
 
         added_epsilon_rule = false;
         epsilon_rules.rewind();
 
+        // go find each production A -> RHS_A where RHS_A is epsilon
         for(; epsilon_rules.match_next(); rules_with_A_on_rhs.rewind()) {
+
+            // ignore epsilon productions on the new start variable
+            if(A == new_start_var) {
+                continue;
+            }
 
             cfg.remove_production(null_prod);
 
             // go find each production B -> RHS_B where A is in the RHS_B
             for(; rules_with_A_on_rhs.match_next(); ) {
 
-                symbol_string_type str(prod_with_nullable_var.symbols());
+                str = prod_with_nullable_var.symbols();
 
                 // count the number of A's in RHS_B, this way we can determine
                 // how many different productions we will need to generate
@@ -135,51 +137,84 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
             }
         }
     }
-    /*
-    for(bool made_progress(true); made_progress; ) {
 
-        made_progress = false;
-        epsilon_rules.rewind();
+    production_type unit_production;
+    production_type prod_related_to_B;
 
-        // go find any productions of the form A -> epsilon
-        for(; epsilon_rules.match_next(); ) {
+    // generator that will find all unit productions
+    generator_type unit_rules(cfg.search(
+        ~unit_production,
+        (~A) --->* ~B
+    ));
 
-            cfg.remove_production(null_prod);
-            rules_with_nonempty_rhs.rewind();
+    // generator that will find all productions related to B
+    generator_type rules_with_nonempty_rhs(cfg.search(B --->* ~str));
 
-            // this variable is related to a production that generates something
-            // that's not the epsilon string
-            if(rules_with_nonempty_rhs.match_next()) {
+    /// go look for all unit productions of the form A --> B, remove the
+    /// production, and for every RHS such that B --> str, add A --> str
+    for(bool added_unit_rhs(true); added_unit_rhs; ) {
+
+        added_unit_rhs = false;
+
+        //printf("\n");
+
+        for(; unit_rules.match_next(); ) {
+
+            cfg.remove_production(unit_production);
+            //printf("removed production: "); cfg.debug(unit_production);
+
+            // don't follow into self-loops!
+            if(A == B) {
                 continue;
             }
 
-            // go find each production B -> RHS_B where A is in the RHS_B and
-            // remove the A's from those productions
-            rules_with_A_on_rhs.rewind();
-            for(; rules_with_A_on_rhs.match_next(); ) {
-                made_progress = true;
+            rules_with_nonempty_rhs.rewind();
+            for(; rules_with_nonempty_rhs.match_next(); ) {
 
-                cfg.remove_production(prod_with_nullable_var);
+                production_type pp(cfg.add_production(A, str));
+                //printf("added production: "); cfg.debug(pp);
 
-                symbol_string_type str(prod_with_nullable_var.symbols());
-
-                buffer.clear();
-
-                const unsigned num_symbols(str.length());
-                for(unsigned i(0); i < num_symbols; ++i) {
-                    if(A != str.at(i)) {
-                        buffer << str.at(i);
-                    }
-                }
-
-                if(0 < buffer.size()) {
-                    cfg.add_production(B, buffer);
+                if(1 == str.length() && str.at(0).is_variable()) {
+                    added_unit_rhs = true;
                 }
             }
-
-            cfg.remove_variable(A);
         }
-    }*/
+    }
+
+    printf("num productions: %u\n", cfg.num_productions());
+    /*
+    // go look for all productions with three or more symbols on their RHS
+    // and break them into pairs of productions
+    production_type P;
+    generator_type non_unit_rules(cfg.search(
+        ~P,
+        (~A) --->* cfg._ + cfg._ + cfg._ + cfg.__
+    ));
+    for(; non_unit_rules.match_next(); ) {
+
+        cfg.remove_production(P);
+
+        str = P.symbols();
+
+        unsigned i(str.length() - 2);
+        variable_type prev_new_var(cfg.add_variable());
+        cfg.add_production(prev_new_var, str.substring(i, 2));
+
+        for(--i; i > 0; --i) {
+            variable_type new_var(cfg.add_variable());
+            cfg.add_production(new_var, str.at(i) + prev_new_var);
+            prev_new_var = new_var;
+        }
+
+        cfg.add_production(A, str.at(0) + prev_new_var);
+    }
+    */
+
+    // go look for productions with two symbols and a terminal as the first
+    // symbol
+
+    // go look for productions with two symbols and a terminal as the second
+    // symbol
 }
 
 /// print a context-free grammar

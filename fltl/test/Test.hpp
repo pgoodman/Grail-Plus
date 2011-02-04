@@ -98,10 +98,14 @@ namespace fltl { namespace test {
             static const char *message;
             static bool added_already;
 
+            TestCase<TEST_FUNC> *get_this(void) throw() {
+                return this;
+            }
+
             /// constructor that gets called at runtime when the tests are
             /// run
             TestCase(const char *_func_name, const char *_message) throw()
-                : TestBase(this)
+                : TestBase(get_this())
             {
                 if(!added_already) {
 

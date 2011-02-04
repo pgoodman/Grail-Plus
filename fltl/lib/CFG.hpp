@@ -89,7 +89,7 @@ namespace fltl { namespace lib {
 
             // forward declarations
             template <typename, const unsigned>
-            struct SymbolStringAllocator;
+            class SymbolStringAllocator;
 
             template <typename>
             class SimpleGenerator;
@@ -325,23 +325,21 @@ namespace fltl { namespace lib {
             variable_map.reserve(256U);
 
             terminal_map.append(mpl::Static<AlphaT>::VALUE);
-            variable_map.append(variable_allocator->allocate());
+            variable_map.append(0);
         }
 
         /// destructor
         ~CFG(void) throw() {
 
             // free the variables
-            for(cfg::Variable<AlphaT> *var(variable_map.get(0)), *next_var(0);
-                0 != var;
-                var = next_var) {
-
-                next_var = var->next;
-                variable_map.set(var->id, 0);
-                variable_allocator->deallocate(var);
+            const unsigned max(static_cast<unsigned>(next_variable_id));
+            for(unsigned i(1U); i < max; ++i) {
+                variable_allocator->deallocate(variable_map.get(i));
+                variable_map.set(i, 0);
             }
 
             first_production = 0;
+            unused_variables = 0;
             num_productions_ = 0;
         }
 
@@ -364,22 +362,25 @@ namespace fltl { namespace lib {
 
             // get an allocated variable
             cfg::Variable<AlphaT> *var(unused_variables);
+            cfg::Variable<AlphaT> *prev(0);
             cfg::internal_sym_type var_id;
 
             if(0 == var) {
                 var = variable_allocator->allocate();
-                var->init(next_variable_id, variable_map.back());
+                prev = variable_map.back();
+                var->init(next_variable_id, prev);
                 var_id = next_variable_id;
                 ++next_variable_id;
+                variable_map.append(var);
             } else {
                 unused_variables = helper::unsafe_cast<
                     cfg::Variable<AlphaT> *
                 >(var->null_production);
 
-                var->make_null_production();
+                //var->make_null_production();
 
                 cfg::Variable<AlphaT> *curr(0);
-                cfg::Variable<AlphaT> *prev(0);
+
 
                 // go link in the previous variable
                 for(unsigned i(static_cast<unsigned>(var->id) - 1);
@@ -398,8 +399,9 @@ namespace fltl { namespace lib {
                 var->next = curr;
             }
 
-            variable_map.back()->next = var;
-            variable_map.append(var);
+            if(0 != prev) {
+                prev->next = var;
+            }
 
             if(0 == start_variable) {
                 start_variable = var;
@@ -427,6 +429,7 @@ namespace fltl { namespace lib {
                 next_prod = prod->next;
                 prod->next = 0;
                 prod->prev = 0;
+                
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
             }
@@ -487,43 +490,120 @@ namespace fltl { namespace lib {
             prod->var = var;
             prod->symbols.assign(str);
 
-            // this variable has productions already
-            if(var->null_production != var->first_production) {
+            const bool update_first_production(
+                var->first_production == first_production
+            );
+
+            // if we have a null production then replace it; we don't
+            // increment the number of productions as we're effectively
+            // removing one and adding another
+            if(var->first_production == var->null_production) {
+
+                //printf("adding first production\n");
+
+                // the null production is equivalent to the production we're
+                // trying to add
+                if(var->first_production->is_equivalent_to(*prod)) {
+                    var->null_production = 0;
+                    production_allocator->deallocate(prod);
+                    prod = var->first_production;
+
+                    //printf("... prod is equivalent to default\n");
+
+                // null production is different, remove null production and
+                // add this production in
+                } else {
+
+                    var->first_production = var->first_production->next;
+                    prod->next = var->first_production;
+
+                    cfg::Production<AlphaT>::release(var->null_production);
+
+                    var->null_production = 0;
+
+                    if(0 != var->first_production) {
+                        var->first_production->prev = prod;
+                    }
+
+                    var->first_production = prod;
+
+                    //printf("... removed default and added prod\n");
+                    cfg::Production<AlphaT>::hold(prod);
+                }
+
+            // no null production; go look for equivalent productions to
+            // make sure we don't add a duplicate
+            } else {
+
+                //printf("adding non-first production\n");
 
                 // make sure the production is unique
                 for(cfg::Production<AlphaT> *related_prod(var->first_production);
                     0 != related_prod;
                     related_prod = related_prod->next) {
+
                     if(related_prod->is_equivalent_to(*prod)) {
 
-                        // was the related production deleted?
-                        if(related_prod->is_deleted) {
-                            related_prod->is_deleted = false;
-                            cfg::Production<AlphaT>::hold(prod);
+                        //printf("... found equivalent prod\n");
+
+                        // not deleted, return the existing one
+                        if(!related_prod->is_deleted) {
+                            //printf("...... equiv was was not deleted.\n");
+
+                            production_allocator->deallocate(prod);
+                            prod = related_prod;
+                            goto done;
                         }
 
-                        production_allocator->deallocate(prod);
-                        return production_type(related_prod);
+                        //printf("...... equiv was deleted.\n");
+
+                        // is deleted, undelete it, increase its ref count,
+                        // and move it to the front
+                        prod = related_prod;
+                        ++num_productions_;
+
+                        cfg::Production<AlphaT>::hold(prod);
+
+                        // we can be sure this isn't the first production as
+                        // if the first production is a deleted production
+                        // then something is wrong: if all productions are
+                        // deleted then the first should be the non-deleted
+                        // null production
+
+                        if(0 != prod->prev) {
+                            prod->prev = prod->next;
+                        }
+
+                        if(0 != prod->next) {
+                            prod->next->prev = prod->prev;
+                        }
+
+                        prod->is_deleted = false;
+                        prod->prev = 0;
+                        prod->next = var->first_production;
+                        var->first_production = prod;
+
+                        goto done;
                     }
                 }
 
-                // only increment the number of productions if the variable
-                // has non-default productions
+                //printf("... no equivalent prods, adding to front\n");
+
+                // we didn't find a copy of the production; add the new one
+                // in.
                 ++num_productions_;
+                var->first_production->prev = prod;
+                prod->next = var->first_production;
+                var->first_production = prod;
+                cfg::Production<AlphaT>::hold(prod);
             }
 
-            // keep track of the first production
-            if(0 != first_production) {
-                if(var->id <= first_production->var->id) {
-                    first_production = prod;
-                }
-            } else {
-                first_production = prod;
+        done:
+
+            if(update_first_production) {
+                first_production = var->first_production;
             }
 
-            // inductive step: add the production to the current variable
-            cfg::Production<AlphaT>::hold(prod);
-            var->add_production(prod);
             return production_type(prod);
         }
 
@@ -574,84 +654,126 @@ namespace fltl { namespace lib {
                 "The variable is in an invalid state."
             );
 
-            // was this the first production?
-            const bool update_first_production(first_production == prod);
-            /*if(update_first_production) {
-                cfg::Production<AlphaT> *next_prod(prod->next);
-                cfg::Variable<AlphaT> *curr_var(var);
+            const bool update_first_production(
+                first_production == var->first_production
+            );
 
-                // we are removing a default production, which actually
-                // doesn't remove it. if this production is a default and
-                // the first production, then keep it as the first
-                // production
-                if(&(var->null_production) == prod) {
+            prod->is_deleted = true;
+            //printf("deleting production\n");
+
+            // this is the first production
+            if(0 == prod->prev) {
+
+                //printf("... is the first\n");
+
+                // this is the null production; do nothing
+                if(prod == var->null_production) {
+                    //printf("... trying to delete default production\n");
+                    prod->is_deleted = false;
                     goto done;
                 }
 
-                // go look for the next production
-                while(true) {
-                    for(; 0 != next_prod; next_prod = next_prod->next) {
-                        if(!next_prod->is_deleted) {
-                            goto found_next_prod;
-                        }
-                    }
+                // this is only production; OR: all other productions are
+                // deleted
+                //
+                // add in a null production and release this production
+                if(0 == prod->next || prod->next->is_deleted) {
 
-                    curr_var = curr_var->next;
+                    //printf("... no next OR next is deleted\n");
 
-                    if(0 == curr_var) {
-                        goto found_next_prod;
-                    }
+                    var->make_null_production();
+                    var->first_production->next = prod;
+                    prod->prev = var->first_production;
+                    
+                    cfg::Production<AlphaT>::release(prod);
 
-                    next_prod = curr_var->first_production;
+                // there is a non-deleted production after this one
+                } else {
+
+                    //printf("... there is a next\n");
+
+                    --num_productions_;
+
+                    // change the first production of this variable
+                    var->first_production = prod->next;
+                    prod->next->prev = 0;
+
+                    move_production_to_end(prod, var->first_production);
                 }
 
-            found_next_prod:
+            // this is not the first production, i.e. there is no null
+            // production. further, there is at least one other production
+            // related to this variable
+            } else {
 
-                first_production = next_prod;
-            }*/
+                //printf("... not the first\n");
 
-            // this production is not a default production, mark it as
-            // deleted and decrement its reference counter
-            if(var->null_production != prod) {
-
-                prod->is_deleted = true;
-                cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
 
-                // go look to see if there are any non-deleted productions
-                // that are still related to this variable
-                for(cfg::Production<AlphaT> *pp(var->first_production);
-                    0 != pp;
-                    pp = pp->next) {
+                // this is the last non-deleted production, yay!
+                if(0 == prod->next || prod->next->is_deleted) {
 
-                    // there is at least one non-deleted production still
-                    // related to this variable; we don't need to add the
-                    // default null production back in
-                    if(!pp->is_deleted) {
-                        if(update_first_production) {
-                            first_production = pp;
-                        }
-                        goto done;
-                    }
-                }
+                    //printf("... no next OR next is deleted\n");
+                    
+                    cfg::Production<AlphaT>::release(prod);
 
-                // put the null production up front
-                ++num_productions_;
-                cfg::Production<AlphaT> *pp(var->first_production);
+                // not the last production, and there is a non-deleted
+                // production after this one
+                } else {
 
-                var->make_null_production();
-                pp->prev = var->first_production;
-                var->first_production->next = pp;
+                    //printf("... there is a next\n");
 
-                if(update_first_production) {
-                    first_production = var->first_production;
+                    prod->prev->next = prod->next;
+                    prod->next->prev = prod->prev;
+
+                    move_production_to_end(prod, prod->next);
                 }
             }
 
         done:
-
-            prod = 0;
+            if(update_first_production) {
+                first_production = var->first_production;
+            }
         }
+
+    private:
+
+        /// go look for the first deleted production related to
+        /// this variable
+        void move_production_to_end(
+            cfg::Production<AlphaT> *prod,
+            cfg::Production<AlphaT> *last
+        ) throw() {
+
+            for(cfg::Production<AlphaT> *pp(last->next);
+                0 != pp; pp = pp->next) {
+
+                last = pp;
+
+                // there is at least one already deleted production
+                if(pp->is_deleted) {
+
+                    prod->next = pp;
+                    prod->prev = pp->prev;
+                    pp->prev->next = prod;
+                    pp->prev = prod;
+                    
+                    cfg::Production<AlphaT>::release(prod);
+
+                    return;
+                }
+            }
+
+            // there are no deleted productions, add this production
+            // to the end
+            last->next = prod;
+            prod->prev = last;
+            prod->next = 0;
+            
+            cfg::Production<AlphaT>::release(prod);
+        }
+
+    public:
 
         /// get the variable representing the empty string, epsilon
         inline const symbol_string_type &epsilon(void) const throw() {
@@ -737,21 +859,33 @@ namespace fltl { namespace lib {
             cfg::Unbound<AlphaT, cfg::production_tag> uprod,
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
+
+            typedef cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type;
+
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
                 pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type
                 >::bind_next_pattern),
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type
                 >::reset_next_pattern)
             );
 
-            gen.cursor.production = first_production;
+            if(builder_type::IS_BOUND_TO_VAR) {
+                gen.cursor.production = variable_map.get(
+                    static_cast<unsigned>(
+                        pattern_builder.pattern->var->value
+                    )
+                )->first_production;
+            } else {
+                gen.cursor.production = first_production;
+            }
 
             return gen;
         }
@@ -763,21 +897,33 @@ namespace fltl { namespace lib {
         search(
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
+
+            typedef cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type;
+
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(0), // binder
                 pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type
                 >::bind_next_pattern),
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type
                 >::reset_next_pattern)
             );
 
-            gen.cursor.production = first_production;
+            if(builder_type::IS_BOUND_TO_VAR) {
+                gen.cursor.production = variable_map.get(
+                    static_cast<unsigned>(
+                        pattern_builder.pattern->var->value
+                    )
+                )->first_production;
+            } else {
+                gen.cursor.production = first_production;
+            }
 
             return gen;
         }

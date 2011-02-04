@@ -34,20 +34,27 @@ namespace fltl { namespace lib { namespace cfg {
 
             static Production<AlphaT> *
             find_next_production(Production<AlphaT> *prod) throw() {
+
+                //printf("FIND_NEXT_PRODUCTION(%p)\n", reinterpret_cast<void *>(prod));
+
+                if(0 == prod) {
+                    return 0;
+                }
+
                 // go look for the next production
                 cfg::Production<AlphaT> *next_prod(prod->next);
                 cfg::Variable<AlphaT> *curr_var(prod->var);
 
-                while(true) {
-                    for(; 0 != next_prod; next_prod = next_prod->next) {
-                        if(!next_prod->is_deleted) {
-                            goto found_next_prod;
-                        }
-                    }
+                //printf("... NEXT(%p)\n", reinterpret_cast<void *>(next_prod));
 
+                while(true) {
+                    if(0 != next_prod && !next_prod->is_deleted) {
+                        goto found_next_prod;
+                    }
                     curr_var = curr_var->next;
 
                     if(0 == curr_var) {
+                        next_prod = 0;
                         goto found_next_prod;
                     }
 
@@ -150,31 +157,81 @@ namespace fltl { namespace lib { namespace cfg {
         public:
 
             static bool bind_next_pattern(Generator<AlphaT> *state) throw() {
-                Production<AlphaT> *&prod(state->cursor.production);
-                Production<AlphaT> *bound_prod(0);
 
-                if(0 == prod) {
+                Production<AlphaT> *curr_prod(state->cursor.production);
+                Production<AlphaT> *next_prod(0);
+
+                if(0 == curr_prod) {
                     return false;
                 }
 
+                OpaqueProduction<AlphaT> opaque_prod;
+
                 do {
-                    OpaqueProduction<AlphaT> opaque_prod(prod);
 
-                    bound_prod = prod;
-                    prod = SimpleGenerator<AlphaT>::find_next_production(prod);
+                    opaque_prod.assign(curr_prod);
 
-                    // bind the pattern
+                    /*
+                    // we don't need to keep looking anymore, we've gone past
+                    // the last production related to this variable
+                    if(1 == PatternBuilderT::IS_BOUND_TO_VAR
+                    && *(state->pattern->var) != opaque_prod.variable()) {
+
+                        printf("done bound generator\n");
+                        printf("... "); state->cfg->debug(*(state->pattern->var));
+                        printf("... "); state->cfg->debug(opaque_prod);
+
+                        opaque_prod.assign(0);
+                        curr_prod = 0;
+                        next_prod = 0;
+                        break;
+                    }*/
+
+                    // go find the next production to bind
+                    //state->cfg->debug(opaque_prod.symbols());
+                    next_prod = SimpleGenerator<AlphaT>::find_next_production(
+                        curr_prod
+                    );
+
+                    // match and bind the pattern
                     if(PatternBuilderT::static_match(state->pattern, opaque_prod)) {
+
+                        // we can't go futher than here
+                        if(1 == PatternBuilderT::IS_BOUND_TO_VAR
+                        && (0 == curr_prod->next || curr_prod->next->is_deleted)) {
+                            next_prod = 0;
+                        }
+
                         break;
                     } else {
-                        bound_prod = 0;
+
+                        opaque_prod.assign(0);
+
+                        // we're at the end of some variable's list of
+                        // productions
+                        if(1 == PatternBuilderT::IS_BOUND_TO_VAR
+                        && (0 == curr_prod->next || curr_prod->next->is_deleted)) {
+                            curr_prod = 0;
+                            next_prod = 0;
+                            break;
+
+                        // go try the next one
+                        } else {
+                            curr_prod = next_prod;
+                            next_prod = 0;
+                        }
                     }
 
-                } while(0 != prod);
+                } while(0 != curr_prod);
+
+                state->cursor.production = next_prod;
+
+                if(0 == curr_prod) {
+                    return false;
+                }
 
                 // bind the production
                 if(0 != state->binder) {
-                    OpaqueProduction<AlphaT> opaque_prod(bound_prod);
                     OpaqueProduction<AlphaT> *binder(
                         helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
                             state->binder
@@ -184,14 +241,14 @@ namespace fltl { namespace lib { namespace cfg {
                     *binder = opaque_prod;
                 }
 
-                return 0 != bound_prod;
+                return true;
             }
 
             static void reset_next_pattern(Generator<AlphaT> *state) throw() {
                 if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
                     state->cursor.production = state->cfg->variable_map.get(
                         static_cast<unsigned>(
-                            state->pattern->get_var()->value
+                            state->pattern->var->value
                         )
                     )->first_production;
                 } else {

@@ -33,6 +33,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class Variable<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
+        template <typename, typename> friend class detail::PatternGenerator;
 
         typedef Production<AlphaT> self_type;
 
@@ -72,6 +73,8 @@ namespace fltl { namespace lib { namespace cfg {
                 "Cannot hold non-existant production."
             );
 
+            //printf("HOLD(%p)\n", reinterpret_cast<void *>(prod));
+
             ++(prod->ref_count);
         }
 
@@ -86,12 +89,33 @@ namespace fltl { namespace lib { namespace cfg {
                 "Cannot release invalid production."
             );
 
+            // time to clean up; unchain them
             if(0 == --(prod->ref_count)) {
-                prod->var->remove_production(prod);
+
+                //printf("RELEASE!(%p)\n", reinterpret_cast<void *>(prod));
+
+                if(0 != prod->prev) {
+                    //printf("... SET-NEXT(%p,%p)\n", reinterpret_cast<void *>(prod->prev), reinterpret_cast<void *>(prod->next));
+                    prod->prev->next = prod->next;
+                }
+
+                if(0 != prod->next) {
+                    //printf("... SET-PREV(%p,%p)\n", reinterpret_cast<void *>(prod->next), reinterpret_cast<void *>(prod->prev));
+                    prod->next->prev = prod->prev;
+                }
+
+                prod->next = 0;
+                prod->prev = 0;
                 prod->symbols.clear();
                 CFG<AlphaT>::production_allocator->deallocate(prod);
                 prod = 0;
+
+
+
             }
+            //else {
+            //    printf("RELEASE(%p)\n", reinterpret_cast<void *>(prod));
+            //}
         }
 
     public:

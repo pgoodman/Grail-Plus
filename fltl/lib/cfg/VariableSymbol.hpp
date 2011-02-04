@@ -11,6 +11,8 @@
 #ifndef FLTL_VARIABLESYMBOL_HPP_
 #define FLTL_VARIABLESYMBOL_HPP_
 
+#include <functional>
+
 namespace fltl { namespace lib { namespace cfg {
 
     /// represents a non-terminal of a grammar
@@ -21,6 +23,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class CFG<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
         friend class PatternData<AlphaT>;
+        friend struct std::less<fltl::lib::cfg::VariableSymbol<AlphaT> >;
 
         typedef VariableSymbol<AlphaT> self_type;
 
@@ -44,5 +47,16 @@ namespace fltl { namespace lib { namespace cfg {
     };
 
 }}}
+
+namespace std {
+
+    template <typename AlphaT>
+    struct less<fltl::lib::cfg::VariableSymbol<AlphaT> > : binary_function <fltl::lib::cfg::VariableSymbol<AlphaT>,fltl::lib::cfg::VariableSymbol<AlphaT>,bool> {
+    public:
+        bool operator() (const fltl::lib::cfg::VariableSymbol<AlphaT> &x, const fltl::lib::cfg::VariableSymbol<AlphaT> &y) const {
+            return x.value < y.value;
+        }
+    };
+}
 
 #endif /* FLTL_VARIABLESYMBOL_HPP_ */

@@ -211,6 +211,7 @@ namespace fltl { namespace test { namespace cfg {
 
         FLTL_TEST_DOC(cfg.remove_production(P2));
         FLTL_TEST_EQUAL(cfg.num_productions(), 1);
+        printf("done test\n");
     }
 
     void test_extract_symbols(void) throw() {

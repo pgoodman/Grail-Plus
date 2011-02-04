@@ -31,7 +31,7 @@ namespace fltl { namespace lib { namespace cfg {
     namespace detail {
 
         template <typename AlphaT, const unsigned num_symbols>
-        struct SymbolArray {
+        class SymbolArray {
         public:
 
             typedef SymbolArray<AlphaT, num_symbols> self_type;
@@ -74,7 +74,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// static allocator for symbol arrays
         template <typename AlphaT, const unsigned num_symbols>
-        struct SymbolStringAllocator {
+        class SymbolStringAllocator {
         public:
             static helper::StorageChain<helper::BlockAllocator<
                 SymbolArray<AlphaT, num_symbols>,
@@ -93,7 +93,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// symbol array of size zero, i.e. flexible symbol array
         template <typename AlphaT>
-        struct SymbolArray<AlphaT, 0U> {
+        class SymbolArray<AlphaT, 0U> {
         public:
 
             static Symbol<AlphaT> *
@@ -396,13 +396,13 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         /// assign by reference
-        self_type &operator=(self_type &that) throw() {
+        self_type &operator=(const self_type &that) throw() {
             if(symbols == that.symbols) {
                 return *this;
             }
 
             decref(symbols);
-            symbols = that.symbols;
+            symbols = const_cast<symbol_type *>(that.symbols);
             incref(symbols);
 
             return *this;

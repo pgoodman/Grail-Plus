@@ -11,6 +11,8 @@
 #ifndef FLTL_TERMINAL_HPP_
 #define FLTL_TERMINAL_HPP_
 
+#include <functional>
+
 namespace fltl { namespace lib { namespace cfg {
 
     template <typename AlphaT>
@@ -19,6 +21,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
         friend class PatternData<AlphaT>;
+        friend struct std::less<fltl::lib::cfg::TerminalSymbol<AlphaT> >;
 
         explicit TerminalSymbol(const internal_sym_type _value) throw()
             : cfg::Symbol<AlphaT>(_value)
@@ -37,5 +40,16 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 }}}
+
+namespace std {
+
+    template <typename AlphaT>
+    struct less<fltl::lib::cfg::TerminalSymbol<AlphaT> > : binary_function <fltl::lib::cfg::TerminalSymbol<AlphaT>,fltl::lib::cfg::TerminalSymbol<AlphaT>,bool> {
+    public:
+        bool operator() (const fltl::lib::cfg::TerminalSymbol<AlphaT> &x, const fltl::lib::cfg::TerminalSymbol<AlphaT> &y) const {
+            return x.value < y.value;
+        }
+    };
+}
 
 #endif /* FLTL_TERMINAL_HPP_ */

@@ -935,6 +935,7 @@ namespace fltl { namespace lib { namespace cfg {
         typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
         typedef PatternData<AlphaT> self_type;
 
+        friend class CFG<AlphaT>;
         friend class helper::BlockAllocator<self_type>;
         friend class detail::SimpleGenerator<AlphaT>;
 
@@ -1015,10 +1016,6 @@ namespace fltl { namespace lib { namespace cfg {
         inline void extend(AnySymbol<AlphaT> *, const unsigned) throw() { }
 
         inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
-
-        const variable_type *get_var(void) const throw() {
-            return var;
-        }
 
     public:
 

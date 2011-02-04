@@ -129,6 +129,7 @@ namespace fltl { namespace helper {
             free_list = obj->next;
 
             return &(obj->obj);
+            //return new T;
         }
 
         inline void deallocate(T *ptr) throw() {
@@ -154,6 +155,7 @@ namespace fltl { namespace helper {
 
             new_head->next = free_list;
             free_list = new_head;
+            //delete ptr;
         }
     };
 
