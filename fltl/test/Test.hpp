@@ -13,6 +13,8 @@
 
 #include <cstdio>
 
+#include "fltl/include/preprocessor/COLOR.hpp"
+
 #define _FLTL_QUOTE(x) #x
 
 #define FLTL_TEST_CATEGORY(func,message) \
@@ -24,17 +26,17 @@
 #define _FLTL_TEST_MAKE_TEST(cond, message) \
     if(cond) { \
         ++(fltl::test::detail::TestBase::num_passed); \
-        printf("    \033[32m" #cond " " message "\033[0m\n"); \
+        printf("    " FLTL_F_GREEN #cond " " message FLTL_F_DEF "\n"); \
     } else { \
         ++(fltl::test::detail::TestBase::num_failed); \
-        printf("    \033[31m\033[1m" #cond " " message "\033[0m\n"); \
+        printf("    " FLTL_F_RED FLTL_F_BOLD #cond " " message FLTL_F_DEF "\n"); \
     } \
     ++(fltl::test::detail::TestBase::num_tests)
 
 /// document a change in state to give context to some tests that depend on
 /// the state change
 #define FLTL_TEST_DOC(expr) \
-    printf("    \033[34m" #expr "\033[0m\n"); \
+    printf("    " FLTL_F_BLUE #expr FLTL_F_DEF "\n"); \
     expr
 
 #define FLTL_TEST_ASSERT_FALSE(cond) \
@@ -136,7 +138,11 @@ namespace fltl { namespace test {
 
             /// run this category of tests
             virtual void run_test(void) const throw() {
-                printf("\n\033[4m%s\033[0m: %s\n", func_name, message);
+                printf(
+                    "\n" FLTL_F_UNDER "%s" FLTL_F_DEF ": %s\n",
+                    func_name,
+                    message
+                );
                 TEST_FUNC();
             }
         };

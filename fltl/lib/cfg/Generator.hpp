@@ -47,7 +47,7 @@ namespace fltl { namespace lib { namespace cfg {
 
                 //printf("... NEXT(%p)\n", reinterpret_cast<void *>(next_prod));
 
-                while(true) {
+                for(;;) {
                     if(0 != next_prod && !next_prod->is_deleted) {
                         goto found_next_prod;
                     }

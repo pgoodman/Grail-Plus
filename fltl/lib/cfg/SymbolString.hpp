@@ -534,8 +534,8 @@ namespace fltl { namespace lib { namespace cfg {
                 return true;
             }
 
-            const internal_sym_type this_len(length());
-            const internal_sym_type that_len(that.length());
+            const unsigned this_len(length());
+            const unsigned that_len(that.length());
 
             if(this_len != that_len) {
                 return false;

@@ -25,6 +25,7 @@
 #include "fltl/include/mpl/Static.hpp"
 
 #include "fltl/include/preprocessor/CATENATE.hpp"
+#include "fltl/include/preprocessor/COLOR.hpp"
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 
@@ -186,6 +187,13 @@ namespace fltl { namespace lib {
         static helper::StorageChain<helper::BlockAllocator<
             cfg::Production<AlphaT>
         > > production_allocator;
+
+        // copy constructor
+        CFG(const CFG<AlphaT> &) throw() { assert(false); }
+        CFG<AlphaT> &operator=(const CFG<AlphaT> &) throw() {
+            assert(false);
+            return *this;
+        }
 
     public:
 
@@ -978,7 +986,9 @@ namespace fltl { namespace lib {
                 "Invalid variable passed to add_production()."
             );
 
-            cfg::Variable<AlphaT> *var(variable_map.get(_var.value));
+            cfg::Variable<AlphaT> *var(variable_map.get(
+                static_cast<unsigned>(_var.value)
+            ));
 
             assert(
                 0 != var &&
@@ -994,7 +1004,7 @@ namespace fltl { namespace lib {
             if(!prod.is_valid()) {
                 printf("<empty production>\n");
             } else {
-                printf("\033[33m%d\033[0m -> ", prod.variable().value);
+                printf(FLTL_F_YELLOW "%d" FLTL_F_DEF " -> ", prod.variable().value);
                 debug(prod.symbols());
             }
         }
@@ -1002,21 +1012,24 @@ namespace fltl { namespace lib {
         void debug(const symbol_string_type &syms) throw() {
             for(unsigned i(0); i < syms.length(); ++i) {
                 if(0 < syms[i].value) {
-                    printf("\033[33m%d ", syms[i].value);
+                    printf(FLTL_F_YELLOW "%d ", syms[i].value);
                 } else {
-                    printf("\033[35m%c ", terminal_map.get(-1 * syms[i].value));
+                    printf(FLTL_F_PINK "%c ", terminal_map.get(-1 * syms[i].value));
                 }
             }
-            printf("\033[0m\n");
+            printf(FLTL_F_DEF "\n");
         }
 
         void debug(const symbol_type &sym) throw() {
             if(0 == sym.value) {
                 printf("\x27\n");
             } else if(0 < sym.value) {
-                printf("\033[33m%d\033[0m\n", sym.value);
+                printf(FLTL_F_YELLOW "%d" FLTL_F_DEF "\n", sym.value);
             } else {
-                printf("\033[35m%c\033[0m\n", terminal_map.get(-1 * sym.value));
+                printf(
+                    FLTL_F_PINK "%c" FLTL_F_DEF "\n",
+                    terminal_map.get(-1 * sym.value)
+                );
             }
         }
     };

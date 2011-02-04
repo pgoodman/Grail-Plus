@@ -34,14 +34,17 @@
 #define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(type, tag, state) \
     FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(tag), unbound_ ## tag, state)
 
-#define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+/*
+ *     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
     operator+(type &expr) throw() { \
         pattern->extend(&expr, StringT::NEXT_OFFSET); \
         return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
             pattern \
         ); \
     } \
+ */
+
+#define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
     operator+(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), StringT::NEXT_OFFSET); \

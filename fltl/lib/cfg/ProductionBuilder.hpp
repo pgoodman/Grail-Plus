@@ -25,6 +25,13 @@ namespace fltl { namespace lib { namespace cfg {
 
         helper::Array<symbol_type> buffer;
 
+        // copy constructor and assignment op
+        ProductionBuilder(const self_type &) throw() { assert(false); }
+        self_type &operator=(const self_type &) throw() {
+            assert(false);
+            return *this;
+        }
+
     public:
 
         ProductionBuilder(void) throw()
