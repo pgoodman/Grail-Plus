@@ -363,7 +363,7 @@ namespace fltl { namespace lib {
             // get an allocated variable
             cfg::Variable<AlphaT> *var(unused_variables);
             cfg::Variable<AlphaT> *prev(0);
-            cfg::internal_sym_type var_id;
+            cfg::internal_sym_type var_id(1);
 
             if(0 == var) {
                 var = variable_allocator->allocate();
