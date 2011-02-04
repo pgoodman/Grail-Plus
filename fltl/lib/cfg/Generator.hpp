@@ -93,7 +93,12 @@ namespace fltl { namespace lib { namespace cfg {
 
             /// reset the variable generator
             static void reset_next_variable(Generator<AlphaT> *state) throw() {
-                state->cursor.variable = state->cfg->variable_map.get(0);
+                Production<AlphaT> *first_prod(state->cfg->first_production);
+                if(0 == first_prod) {
+                    state->cursor.variable = 0;
+                } else {
+                    state->cursor.variable = first_prod->var;
+                }
             }
 
             /// generate variables
@@ -103,23 +108,21 @@ namespace fltl { namespace lib { namespace cfg {
                     helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
                 );
 
-                Variable<AlphaT> *&var(state->cursor.variable);
+                Variable<AlphaT> *var(state->cursor.variable);
 
+                // bad variable
                 if(0 == var) {
+
                     binder->value = 0;
                     return false;
+
+                // bind the variable and point the cursor at the next
+                // variable
+                } else {
+                    binder->value = var->id;
+                    state->cursor.variable = var->next;
+                    return true;
                 }
-
-                var = var->next;
-
-                if(0 == state->cursor.variable) {
-                    binder->value = 0;
-                    return false;
-                }
-
-                // bind the variable
-                binder->value = var->id;
-                return true;
             }
 
             /// reset the terminal generator
@@ -170,22 +173,6 @@ namespace fltl { namespace lib { namespace cfg {
                 do {
 
                     opaque_prod.assign(curr_prod);
-
-                    /*
-                    // we don't need to keep looking anymore, we've gone past
-                    // the last production related to this variable
-                    if(1 == PatternBuilderT::IS_BOUND_TO_VAR
-                    && *(state->pattern->var) != opaque_prod.variable()) {
-
-                        printf("done bound generator\n");
-                        printf("... "); state->cfg->debug(*(state->pattern->var));
-                        printf("... "); state->cfg->debug(opaque_prod);
-
-                        opaque_prod.assign(0);
-                        curr_prod = 0;
-                        next_prod = 0;
-                        break;
-                    }*/
 
                     // go find the next production to bind
                     //state->cfg->debug(opaque_prod.symbols());

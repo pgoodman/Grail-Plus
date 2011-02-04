@@ -450,14 +450,13 @@ namespace fltl { namespace test { namespace cfg {
 
         FLTL_TEST_ASSERT_FALSE(var_gen.match_next());
 
-        FLTL_TEST_DOC(var_gen.rewind());
-
         CFG<char>::var_t A(cfg.add_variable());
         CFG<char>::var_t B(cfg.add_variable());
         CFG<char>::var_t C(cfg.add_variable());
         CFG<char>::var_t D(cfg.add_variable());
         CFG<char>::var_t E(cfg.add_variable());
 
+        FLTL_TEST_DOC(var_gen.rewind());
         FLTL_TEST_ASSERT_TRUE(var_gen.match_next());
         FLTL_TEST_EQUAL(V, A);
 

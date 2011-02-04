@@ -807,7 +807,11 @@ namespace fltl { namespace lib {
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
             );
 
-            gen.cursor.variable = variable_map.get(0);
+            if(0 == first_production) {
+                gen.cursor.variable = 0;
+            } else {
+                gen.cursor.variable = first_production->var;
+            }
 
             return gen;
         }
