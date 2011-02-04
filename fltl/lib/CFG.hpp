@@ -164,6 +164,9 @@ namespace fltl { namespace lib {
         /// variable.
         helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
+        /// unused variables
+        cfg::Variable<AlphaT> *unused_variables;
+
         /// number of productions
         unsigned num_productions_;
 
@@ -311,6 +314,7 @@ namespace fltl { namespace lib {
             , terminal_map()
             , terminal_map_inv()
             , variable_map()
+            , unused_variables(0)
             , num_productions_(0)
             , first_production(0)
             , start_variable(0)
@@ -355,14 +359,44 @@ namespace fltl { namespace lib {
             start_variable = get_variable(var);
         }
 
-        /// add a new variable to the
+        /// add a new variable to the grammar
         const variable_type add_variable(void) throw() {
-            cfg::Variable<AlphaT> *var(variable_allocator->allocate());
-            var->init(next_variable_id, variable_map.back());
 
-            cfg::internal_sym_type var_id(next_variable_id);
+            // get an allocated variable
+            cfg::Variable<AlphaT> *var(unused_variables);
+            cfg::internal_sym_type var_id;
 
-            ++next_variable_id;
+            if(0 == var) {
+                var = variable_allocator->allocate();
+                var->init(next_variable_id, variable_map.back());
+                var_id = next_variable_id;
+                ++next_variable_id;
+            } else {
+                unused_variables = helper::unsafe_cast<
+                    cfg::Variable<AlphaT> *
+                >(var->null_production);
+
+                var->make_null_production();
+
+                cfg::Variable<AlphaT> *curr(0);
+                cfg::Variable<AlphaT> *prev(0);
+
+                // go link in the previous variable
+                for(unsigned i(static_cast<unsigned>(var->id) - 1);
+                    i > 0;
+                    --i) {
+                    curr = variable_map.get(i);
+                    if(0 != curr->first_production) {
+                        prev = curr;
+                        break;
+                    }
+                }
+
+                // link in the previous an next variables
+                curr = 0 == prev ? 0 : prev->next;
+                var->init(var->id, prev);
+                var->next = curr;
+            }
 
             variable_map.back()->next = var;
             variable_map.append(var);
@@ -380,6 +414,51 @@ namespace fltl { namespace lib {
 
             variable_type ret(var_id);
             return ret;
+        }
+
+        void remove_variable(const variable_type _var) throw() {
+            cfg::Variable<AlphaT> *var(get_variable(_var));
+
+            // release the productions
+            cfg::Production<AlphaT> *prod(var->first_production);
+            cfg::Production<AlphaT> *next_prod(0);
+
+            for(; 0 != prod; prod = next_prod) {
+                next_prod = prod->next;
+                prod->next = 0;
+                prod->prev = 0;
+                cfg::Production<AlphaT>::release(prod);
+                --num_productions_;
+            }
+
+            // highlights that this variable is deleted
+            var->first_production = 0;
+
+            cfg::Variable<AlphaT> *curr(0);
+            cfg::Variable<AlphaT> *prev(0);
+
+            // go link in the previous variable
+            for(unsigned i(static_cast<unsigned>(var->id) - 1);
+                i > 0;
+                --i) {
+
+                curr = variable_map.get(i);
+                if(0 != curr->first_production) {
+                    prev = curr;
+                    break;
+                }
+            }
+
+            if(0 != prev) {
+                prev->next = var->next;
+            }
+
+            // link it in to the unused variables
+            *helper::unsafe_cast<cfg::Variable<AlphaT> **>(
+                &(var->null_production)
+            ) = unused_variables;
+            unused_variables = var;
+            var = 0;
         }
 
         /// get the terminal reference for a particular terminal.
@@ -409,7 +488,7 @@ namespace fltl { namespace lib {
             prod->symbols.assign(str);
 
             // this variable has productions already
-            if(&(var->null_production) != var->first_production) {
+            if(var->null_production != var->first_production) {
 
                 // make sure the production is unique
                 for(cfg::Production<AlphaT> *related_prod(var->first_production);
@@ -490,8 +569,8 @@ namespace fltl { namespace lib {
             cfg::Variable<AlphaT> *var(prod->var);
 
             assert(
-                (prod == &(var->null_production) ||
-                 &(var->null_production) != var->first_production) &&
+                (prod == var->null_production ||
+                 var->null_production != var->first_production) &&
                 "The variable is in an invalid state."
             );
 
@@ -533,7 +612,8 @@ namespace fltl { namespace lib {
 
             // this production is not a default production, mark it as
             // deleted and decrement its reference counter
-            if(&(var->null_production) != prod) {
+            if(var->null_production != prod) {
+
                 prod->is_deleted = true;
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
@@ -557,9 +637,11 @@ namespace fltl { namespace lib {
 
                 // put the null production up front
                 ++num_productions_;
-                var->first_production->prev = &(var->null_production);
-                var->null_production.next = var->first_production;
-                var->first_production = &(var->null_production);
+                cfg::Production<AlphaT> *pp(var->first_production);
+
+                var->make_null_production();
+                pp->prev = var->first_production;
+                var->first_production->next = pp;
 
                 if(update_first_production) {
                     first_production = var->first_production;

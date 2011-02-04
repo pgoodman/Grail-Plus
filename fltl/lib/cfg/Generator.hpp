@@ -32,59 +32,6 @@ namespace fltl { namespace lib { namespace cfg {
                 state->cursor.production = state->cfg->first_production;
             }
 
-
-#if 0
-            static bool
-            find_next_production(Generator<AlphaT> *state) throw() {
-
-                if(0 == state->variable) {
-                    return false;
-                }
-
-                Variable<AlphaT> *var(state->variable);
-                Production<AlphaT> *prod(state->production);
-
-            get_next_production:
-
-                // move to the next production if we can
-                if(0 != prod) {
-                    prod = prod->next;
-                }
-
-                // find the production to bind
-                if(0 != var) {
-                    for(; 0 == prod; ) {
-
-                        var = var->next;
-                        if(0 != var) {
-                            prod = var->first_production;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                // update the state
-                if(0 == var || 0 == prod) {
-                    state->variable = 0;
-                    state->production = 0;
-                    return false;
-                } else {
-
-                    // make sure to skip over deleted productions that are
-                    // still hanging around
-                    if(prod->is_deleted) {
-                        goto get_next_production;
-                    }
-
-                    state->variable = var;
-                    state->production = prod;
-                }
-
-                return true;
-            }
-#endif
-
             static Production<AlphaT> *
             find_next_production(Production<AlphaT> *prod) throw() {
                 // go look for the next production
@@ -244,9 +191,7 @@ namespace fltl { namespace lib { namespace cfg {
                 if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
                     state->cursor.production = state->cfg->variable_map.get(
                         static_cast<unsigned>(
-                            helper::unsafe_cast<const VariableSymbol<AlphaT> *>(
-                                state->pattern->get_var()
-                            )->value
+                            state->pattern->get_var()->value
                         )
                     )->first_production;
                 } else {

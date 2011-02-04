@@ -36,7 +36,7 @@ namespace fltl { namespace lib { namespace cfg {
         Production<AlphaT> *first_production;
 
         /// the default empty production for this variable
-        cfg::Production<AlphaT> null_production;
+        Production<AlphaT> *null_production;
 
         /// initialize the variable
         void init(
@@ -55,18 +55,26 @@ namespace fltl { namespace lib { namespace cfg {
         /// add a production to this variable
         void add_production(cfg::Production<AlphaT> *prod) throw() {
 
-            if(&null_production != first_production) {
-                prod->prev = first_production->prev;
+            if(null_production != first_production) {
+                prod->prev = 0; //first_production->prev;
                 first_production->prev = prod;
                 prod->next = first_production;
             } else {
                 prod->prev = 0;
                 prod->next = 0;
-                null_production.next = 0;
-                null_production.prev = 0;
+
+                Production<AlphaT>::release(null_production);
+                null_production = 0;
             }
 
             first_production = prod;
+        }
+
+        void make_null_production(void) {
+            null_production = CFG<AlphaT>::production_allocator->allocate();
+            null_production->var = this;
+            Production<AlphaT>::hold(null_production);
+            first_production = null_production;
         }
 
         inline void remove_production(cfg::Production<AlphaT> *prod) throw() {
@@ -82,7 +90,7 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             if(0 == first_production) {
-                first_production = &null_production;
+                make_null_production();
             }
         }
 
@@ -91,11 +99,10 @@ namespace fltl { namespace lib { namespace cfg {
         Variable(void) throw()
             : id(0)
             , next(0)
-            , first_production(&null_production)
-            , null_production()
+            , first_production(0)
+            , null_production(0)
         {
-            cfg::Production<AlphaT>::hold(&null_production);
-            null_production.var = this;
+            make_null_production();
         }
 
         Variable(const Variable<AlphaT> &) throw()
@@ -110,12 +117,13 @@ namespace fltl { namespace lib { namespace cfg {
 
             // free each variable's first_production
             for(cfg::Production<AlphaT> *prod(first_production), *next_prod(0);
-                0 != prod && &null_production != first_production;
+                0 != prod;
                 prod = next_prod) {
-
                 next_prod = prod->next;
                 cfg::Production<AlphaT>::release(prod);
             }
+
+            null_production = 0;
         }
 
         Variable<AlphaT> &operator=(const Variable<AlphaT> &) throw() {

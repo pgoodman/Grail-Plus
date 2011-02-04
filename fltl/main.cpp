@@ -11,69 +11,230 @@
 #include "fltl/lib/CFG.hpp"
 #include "fltl/test/Test.hpp"
 #include "fltl/test/cfg/CFG.hpp"
-#if 0
-template <typename A>
-void convert_to_cnf(fltl::lib::CFG<A> &cfg) throw() {
 
-    using fltl::lib::CFG;
+/// convert a context-free grammar to chomsky normal form.
+template <typename AlphaT>
+static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
+
+    if(0 == cfg.num_productions()) {
+        return;
+    }
+
+    // take off the templates!
+    typedef fltl::lib::CFG<AlphaT> CFG;
+    typedef typename CFG::variable_type variable_type;
+    typedef typename CFG::production_type production_type;
+    typedef typename CFG::generator_type generator_type;
+    typedef typename CFG::symbol_string_type symbol_string_type;
+    typedef typename CFG::production_builder_type production_builder_type;
 
     // add a new start variable
-    CFG<A>::variable_type old_start_var(cfg.get_start_variable());
-    CFG<A>::variable_type new_start_var(cfg.add_variable());
+    variable_type old_start_var(cfg.get_start_variable());
+    variable_type new_start_var(cfg.add_variable());
     cfg.set_start_variable(new_start_var);
     cfg.add_production(new_start_var, old_start_var);
 
+    // buffer for builder productions
+    production_builder_type buffer;
+
     // go find epsilon rules
-    CFG<A>::variable_type A;
-    CFG<A>::production_type null_prod;
-    CFG<A>::variable_type B;
-    CFG<A>::production_type prod_with_nullable_var;
+    variable_type A;
+    variable_type B;
+    production_type null_prod;
+    production_type prod_with_nullable_var;
 
     // generator that will find all null productions
-    CFG<A>::generator_type epsilon_rules(cfg.search(
+    generator_type epsilon_rules(cfg.search(
         ~null_prod,
-        ~A --->* cfg.epsilon())
+        (~A) --->* cfg.epsilon())
     );
 
     // generator that will find all productions with at
     // least one A on their RHS
-    CFG<A>::generator_type rules_with_A_on_rhs(cfg.search(
+    generator_type rules_with_A_on_rhs(cfg.search(
         ~prod_with_nullable_var,
-        ~B --->* cfg.__ + A + cfg.__
+        (~B) --->* cfg.__ + A + cfg.__
+    ));
+
+    // generator that will find check if a given production is related
+    // to any non-empty strings
+    generator_type rules_with_nonempty_rhs(cfg.search(
+        A --->* cfg._ + cfg.__
     ));
 
     // go find each production A -> RHS_A where RHS_A is epsilon
-    for(; epsilon_rules.match_next(); rules_with_A_on_rhs.rewind()) {
 
-        // go find each production B -> RHS_B where A is in the RHS_B
-        for(; rules_with_A_on_rhs.match_next(); ) {
-            cfg.remove_production(prod_with_nullable_var);
+    for(bool added_epsilon_rule(true); added_epsilon_rule; ) {
 
-            CFG<A>::symbol_string_type str(prod_with_nullable_var.symbols());
+        added_epsilon_rule = false;
+        epsilon_rules.rewind();
 
-            // count the number of A's in RHS_B, this way we can determine
-            // how many different productions we will need to generate
-            const unsigned num_As(0);
-            for(unsigned i(0); i < str.length(); ++i) {
-                if(A == str.at(i)) {
-                    ++num_As;
+        for(; epsilon_rules.match_next(); rules_with_A_on_rhs.rewind()) {
+
+            cfg.remove_production(null_prod);
+
+            // go find each production B -> RHS_B where A is in the RHS_B
+            for(; rules_with_A_on_rhs.match_next(); ) {
+
+                symbol_string_type str(prod_with_nullable_var.symbols());
+
+                // count the number of A's in RHS_B, this way we can determine
+                // how many different productions we will need to generate
+                unsigned uses_of_A_mask(~0U);
+                const unsigned num_symbols(str.length());
+                for(unsigned i(0); i < num_symbols; ++i) {
+                    if(A == str.at(i)) {
+                        uses_of_A_mask <<= 1U;
+                    }
+                }
+
+                assert(0 != uses_of_A_mask);
+
+                // uses_of_A_mask now represents a bitmask where each 1
+                // represents a use of A in RHS_B. We can decrement uses_of_A_mask
+                // and inspect its bits to figure out if we should put an
+                // instance of A into a production; - 1 because we will leave
+                // prod_with_nullable_var, which represents the mask with all 1's,
+                // alone.
+                uses_of_A_mask = (~uses_of_A_mask) - 1;
+
+                for(; ; --uses_of_A_mask) {
+
+                    buffer.clear();
+
+                    unsigned offset_of_A(0);
+
+                    // for each symbol in this production, either add the symbol
+                    // to the buffer if the symbol is not A, or add A to the
+                    // buffer if the offset_of_A'th bit of uses_of_A_mask is 1.
+                    for(unsigned i(0); i < num_symbols; ++i) {
+                        if(A == str.at(i)) {
+                            if(1 == (1 & (uses_of_A_mask >> offset_of_A))) {
+                                buffer << A;
+                            }
+
+                            ++offset_of_A;
+                        } else {
+                            buffer << str.at(i);
+                        }
+                    }
+
+                    cfg.add_production(B, buffer);
+
+                    // done adding in all combinations
+                    if(0 == uses_of_A_mask) {
+
+                        // just added in a new epsilon production
+                        if(0 == buffer.size()) {
+                            added_epsilon_rule = true;
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    /*
+    for(bool made_progress(true); made_progress; ) {
+
+        made_progress = false;
+        epsilon_rules.rewind();
+
+        // go find any productions of the form A -> epsilon
+        for(; epsilon_rules.match_next(); ) {
+
+            cfg.remove_production(null_prod);
+            rules_with_nonempty_rhs.rewind();
+
+            // this variable is related to a production that generates something
+            // that's not the epsilon string
+            if(rules_with_nonempty_rhs.match_next()) {
+                continue;
+            }
+
+            // go find each production B -> RHS_B where A is in the RHS_B and
+            // remove the A's from those productions
+            rules_with_A_on_rhs.rewind();
+            for(; rules_with_A_on_rhs.match_next(); ) {
+                made_progress = true;
+
+                cfg.remove_production(prod_with_nullable_var);
+
+                symbol_string_type str(prod_with_nullable_var.symbols());
+
+                buffer.clear();
+
+                const unsigned num_symbols(str.length());
+                for(unsigned i(0); i < num_symbols; ++i) {
+                    if(A != str.at(i)) {
+                        buffer << str.at(i);
+                    }
+                }
+
+                if(0 < buffer.size()) {
+                    cfg.add_production(B, buffer);
                 }
             }
 
-            assert(32 >= num_As);
+            cfg.remove_variable(A);
+        }
+    }*/
+}
+
+/// print a context-free grammar
+template <typename A>
+void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
+    using fltl::lib::CFG;
+    typename fltl::lib::CFG<A>::production_type P;
+    typename fltl::lib::CFG<A>::variable_type S(cfg.get_start_variable());
+
+    typename fltl::lib::CFG<A>::generator_type prods(cfg.search(~P));
+    typename fltl::lib::CFG<A>::generator_type start_prods(cfg.search(
+        ~P,
+        S --->* cfg.__
+    ));
+
+    while(start_prods.match_next()) {
+        cfg.debug(P);
+    }
+
+    while(prods.match_next()) {
+        if(S != P.variable()) {
+            cfg.debug(P);
         }
     }
 }
 
-template <typename A>
-void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
-    using fltl::lib::CFG;
-}
-#endif
 
 int main(void) {
 
     fltl::test::run_tests();
+
+    using fltl::lib::CFG;
+    CFG<char> cfg;
+
+    CFG<char>::term_t a(cfg.get_terminal('a'));
+    CFG<char>::term_t b(cfg.get_terminal('b'));
+
+    CFG<char>::var_t S(cfg.add_variable());
+    CFG<char>::var_t A(cfg.add_variable());
+    CFG<char>::var_t B(cfg.add_variable());
+
+    cfg.add_production(S, A + S + A);
+    cfg.add_production(S, a + B);
+
+    cfg.add_production(A, B);
+    cfg.add_production(A, S);
+
+    cfg.add_production(B, b);
+    cfg.add_production(B, cfg.epsilon());
+
+    print_grammar(cfg);
+    printf("\n");
+    convert_to_cnf(cfg);
+    print_grammar(cfg);
+
 #if 0
     using fltl::lib::CFG;
 

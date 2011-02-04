@@ -1016,8 +1016,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
 
-        const void *get_var(void) const throw() {
-            return reinterpret_cast<const void *>(&var);
+        const variable_type *get_var(void) const throw() {
+            return var;
         }
 
     public:
@@ -1028,7 +1028,7 @@ namespace fltl { namespace lib { namespace cfg {
             return self;
         }
 
-        static self_type *allocate(Unbound<AlphaT, variable_type> *_var) throw() {
+        static self_type *allocate(Unbound<AlphaT, variable_tag> *_var) throw() {
             self_type *self(pattern_allocator.allocate());
             self->var = _var->symbol;
             return self;

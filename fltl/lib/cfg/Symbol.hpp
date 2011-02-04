@@ -157,8 +157,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
-        cfg::Unbound<AlphaT,symbol_tag> operator~(void) throw() {
-            return cfg::Unbound<AlphaT,symbol_tag>(this);
+        Unbound<AlphaT,symbol_tag> operator~(void) throw() {
+            return Unbound<AlphaT,symbol_tag>(this);
         }
     };
 
