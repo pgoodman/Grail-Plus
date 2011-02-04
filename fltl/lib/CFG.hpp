@@ -1014,7 +1014,9 @@ namespace fltl { namespace lib {
                 if(0 < syms[i].value) {
                     printf(FLTL_F_YELLOW "%d ", syms[i].value);
                 } else {
-                    printf(FLTL_F_PINK "%c ", terminal_map.get(-1 * syms[i].value));
+                    printf(FLTL_F_PINK "%c ", terminal_map.get(
+                        static_cast<unsigned>(-1 * syms[i].value)
+                    ));
                 }
             }
             printf(FLTL_F_DEF "\n");
