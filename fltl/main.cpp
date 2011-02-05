@@ -186,8 +186,6 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
         }
     }
 
-    printf("num productions: %u\n", cfg.num_productions());
-    /*
     // go look for all productions with three or more symbols on their RHS
     // and break them into pairs of productions
     production_type P;
@@ -213,13 +211,43 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
 
         cfg.add_production(A, str.at(0) + prev_new_var);
     }
-    */
 
-    // go look for productions with two symbols and a terminal as the first
-    // symbol
+    // go look for productions with two symbols, if either of the symbols
+    // are terminals, then replace them with variables
+    generator_type pairs(cfg.search(~P, (~A) --->* cfg._ + cfg._));
+    for(; pairs.match_next(); ) {
+        str = P.symbols();
 
-    // go look for productions with two symbols and a terminal as the second
-    // symbol
+        const bool first_is_term(str.at(0).is_terminal());
+        const bool second_is_term(str.at(0).is_terminal());
+
+        // two terminals
+        if(first_is_term && second_is_term) {
+            cfg.remove_production(P);
+            buffer.clear();
+            B = cfg.add_variable();
+            cfg.add_production(B, str.at(0));
+            buffer << B;
+            B = cfg.add_variable();
+            cfg.add_production(B, str.at(1));
+            buffer << B;
+            cfg.add_production(A, buffer);
+
+        // first symbol is a terminal
+        } else if(first_is_term) {
+            cfg.remove_production(P);
+            B = cfg.add_variable();
+            cfg.add_production(B, str.at(0));
+            cfg.add_production(A, B + str.at(0));
+
+        // second symbol is a terminal
+        } else if(second_is_term) {
+            cfg.remove_production(P);
+            B = cfg.add_variable();
+            cfg.add_production(B, str.at(1));
+            cfg.add_production(A, str.at(0) + B);
+        }
+    }
 }
 
 /// print a context-free grammar
