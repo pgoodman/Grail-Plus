@@ -119,7 +119,7 @@ namespace fltl { namespace helper {
         }
 
         inline T *allocate(void) throw() {
-            /*
+
             if(0 == free_list) {
                 block_list = new block_type(block_list);
                 free_list = &(block_list->slots[0]);
@@ -129,12 +129,12 @@ namespace fltl { namespace helper {
             free_list = obj->next;
 
             return &(obj->obj);
-            */
-            return new T;
+
+            //return new T;
         }
 
         inline void deallocate(T *ptr) throw() {
-            /*
+
             // destroy and re-instantiate
             ptr->~T();
             new (ptr) T;
@@ -156,8 +156,8 @@ namespace fltl { namespace helper {
 
             new_head->next = free_list;
             free_list = new_head;
-            */
-            delete ptr;
+
+            //delete ptr;
         }
     };
 

@@ -7,7 +7,7 @@
  */
 
 #include <cstdio>
-#include <map>
+#include <set>
 
 #include "fltl/lib/CFG.hpp"
 
@@ -45,9 +45,35 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
 
     symbol_string_type str;
 
-    // go find epsilon rules
     variable_type A;
     variable_type B;
+
+    // go look for all productions with three or more symbols on their RHS
+    // and break them into pairs of productions
+    production_type P;
+    generator_type long_rules(cfg.search(
+        ~P,
+        (~A) --->* cfg._ + cfg._ + cfg._ + cfg.__
+    ));
+    for(; long_rules.match_next(); ) {
+
+        cfg.remove_production(P);
+
+        str = P.symbols();
+
+        unsigned i(str.length() - 2);
+        variable_type prev_new_var(cfg.add_variable());
+        cfg.add_production(prev_new_var, str.substring(i, 2));
+
+        for(--i; i > 0; --i) {
+            variable_type new_var(cfg.add_variable());
+            cfg.add_production(new_var, str.at(i) + prev_new_var);
+            prev_new_var = new_var;
+        }
+
+        cfg.add_production(A, str.at(0) + prev_new_var);
+    }
+
     production_type null_prod;
     production_type prod_with_nullable_var;
 
@@ -64,6 +90,8 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
         (~B) --->* cfg.__ + A + cfg.__
     ));
 
+    std::set<variable_type> removed_epsilon;
+
     // while there are still epsilon rules
     for(bool added_epsilon_rule(true); added_epsilon_rule; ) {
 
@@ -71,7 +99,7 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
         epsilon_rules.rewind();
 
         // go find each production A -> RHS_A where RHS_A is epsilon
-        for(; epsilon_rules.match_next(); rules_with_A_on_rhs.rewind()) {
+        for(; epsilon_rules.match_next(); ) {
 
             // ignore epsilon productions on the new start variable
             if(A == new_start_var) {
@@ -79,11 +107,19 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
             }
 
             cfg.remove_production(null_prod);
+            removed_epsilon.insert(A);
 
             // go find each production B -> RHS_B where A is in the RHS_B
-            for(; rules_with_A_on_rhs.match_next(); ) {
+            for(rules_with_A_on_rhs.rewind();
+                rules_with_A_on_rhs.match_next(); ) {
 
                 str = prod_with_nullable_var.symbols();
+
+                // remove an illegal production
+                if(1 == str.length() && A == B) {
+                    cfg.remove_production(prod_with_nullable_var);
+                    continue;
+                }
 
                 // count the number of A's in RHS_B, this way we can determine
                 // how many different productions we will need to generate
@@ -103,9 +139,11 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
                 // instance of A into a production; - 1 because we will leave
                 // prod_with_nullable_var, which represents the mask with all 1's,
                 // alone.
-                uses_of_A_mask = (~uses_of_A_mask) - 1;
+                uses_of_A_mask = (~uses_of_A_mask);
 
-                for(; ; --uses_of_A_mask) {
+                do {
+
+                    --uses_of_A_mask;
 
                     buffer.clear();
 
@@ -126,19 +164,22 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
                         }
                     }
 
-                    cfg.add_production(B, buffer);
+                    if(0 == buffer.size()) {
 
-                    // done adding in all combinations
-                    if(0 == uses_of_A_mask) {
-
-                        // just added in a new epsilon production
-                        if(0 == buffer.size()) {
+                        if(0 == removed_epsilon.count(B)) {
+                            cfg.add_production(B, cfg.epsilon());
                             added_epsilon_rule = true;
                         }
 
-                        break;
+                    } else if(1 == buffer.size()) {
+                        if(B != buffer.symbol_at(0)) {
+                            cfg.add_production(B, buffer);
+                        }
+                    } else {
+                        cfg.add_production(B, buffer);
                     }
-                }
+
+                } while(0 != uses_of_A_mask);
             }
         }
     }
@@ -170,46 +211,26 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
 
             // don't follow into self-loops!
             if(A == B) {
+                cfg.remove_production(unit_production);
                 continue;
             }
 
-            rules_with_nonempty_rhs.rewind();
-            for(; rules_with_nonempty_rhs.match_next(); ) {
+            for(rules_with_nonempty_rhs.rewind();
+                rules_with_nonempty_rhs.match_next(); ) {
 
-                production_type pp(cfg.add_production(A, str));
-                //printf("added production: "); cfg.debug(pp);
-
-                if(1 == str.length() && str.at(0).is_variable()) {
-                    added_unit_rhs = true;
+                // make sure not to add in any self loops
+                if(1 == str.length()) {
+                    if(str.at(0).is_variable()) {
+                        if(A != str.at(0)) {
+                            cfg.add_production(A, str);
+                            added_unit_rhs = true;
+                        }
+                    }
+                } else {
+                    cfg.add_production(A, str);
                 }
             }
         }
-    }
-
-    // go look for all productions with three or more symbols on their RHS
-    // and break them into pairs of productions
-    production_type P;
-    generator_type non_unit_rules(cfg.search(
-        ~P,
-        (~A) --->* cfg._ + cfg._ + cfg._ + cfg.__
-    ));
-    for(; non_unit_rules.match_next(); ) {
-
-        cfg.remove_production(P);
-
-        str = P.symbols();
-
-        unsigned i(str.length() - 2);
-        variable_type prev_new_var(cfg.add_variable());
-        cfg.add_production(prev_new_var, str.substring(i, 2));
-
-        for(--i; i > 0; --i) {
-            variable_type new_var(cfg.add_variable());
-            cfg.add_production(new_var, str.at(i) + prev_new_var);
-            prev_new_var = new_var;
-        }
-
-        cfg.add_production(A, str.at(0) + prev_new_var);
     }
 
     // go look for productions with two symbols, if either of the symbols
@@ -250,6 +271,16 @@ static void convert_to_cnf(fltl::lib::CFG<AlphaT> &cfg) throw() {
     }
 }
 
+/// print a variable
+template <typename A>
+void print_variable(
+    fltl::lib::CFG<A> &cfg,
+    typename fltl::lib::CFG<A>::variable_type &var
+) throw() {
+    (void) cfg;
+    (void) var;
+}
+
 /// print a context-free grammar
 template <typename A>
 void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
@@ -282,32 +313,58 @@ int main(void) {
 #endif
 
     using fltl::lib::CFG;
-    CFG<char> cfg;
 
-    cfg.search(cfg._ --->* cfg.__);
+    unsigned j(0);
 
-#if ON
-    CFG<char>::term_t a(cfg.get_terminal('a'));
-    CFG<char>::term_t b(cfg.get_terminal('b'));
+    for(unsigned i(0); i < 500000; ++i) {
+        CFG<char> cfg;
 
-    CFG<char>::var_t S(cfg.add_variable());
-    CFG<char>::var_t A(cfg.add_variable());
-    CFG<char>::var_t B(cfg.add_variable());
+        CFG<char>::term_t a(cfg.get_terminal('a'));
+        CFG<char>::term_t b(cfg.get_terminal('b'));
 
-    cfg.add_production(S, A + S + A);
-    cfg.add_production(S, a + B);
+        CFG<char>::var_t S(cfg.add_variable());
+        CFG<char>::var_t A(cfg.add_variable());
+        CFG<char>::var_t B(cfg.add_variable());
 
-    cfg.add_production(A, B);
-    cfg.add_production(A, S);
+        /*
+        cfg.add_production(S, A + S + A);
+        cfg.add_production(S, a + B);
 
-    cfg.add_production(B, b);
-    cfg.add_production(B, cfg.epsilon());
+        cfg.add_production(A, B);
+        cfg.add_production(A, S);
 
-    print_grammar(cfg);
-    printf("\n");
-    convert_to_cnf(cfg);
-    print_grammar(cfg);
-#endif
+        cfg.add_production(B, b);
+        cfg.add_production(B, cfg.epsilon());
+        */
+
+        cfg.add_production(S, A + S + A);
+        cfg.add_production(S, a + B);
+        cfg.add_production(S, A + S + S + A);
+        cfg.add_production(S, A + B + a + S + A + S + A + B);
+
+        cfg.add_production(A, B);
+        cfg.add_production(A, S);
+        cfg.add_production(A, S + S);
+        cfg.add_production(A, S + a);
+        cfg.add_production(A, B + B);
+
+        cfg.add_production(B, b);
+        cfg.add_production(B, a);
+        cfg.add_production(B, A + A);
+        cfg.add_production(B, B + A + B + A + B);
+        cfg.add_production(B, cfg.epsilon());
+
+        //print_grammar(cfg);
+        //printf("\n");
+
+        convert_to_cnf(cfg);
+
+        j += cfg.num_productions();
+        //print_grammar(cfg);
+    }
+
+    printf("j = %u\n", j);
+
 #if 0
     using fltl::lib::CFG;
 

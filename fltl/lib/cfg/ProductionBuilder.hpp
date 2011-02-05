@@ -63,6 +63,10 @@ namespace fltl { namespace lib { namespace cfg {
         inline unsigned size(void) const throw() {
             return buffer.size();
         }
+
+        inline const symbol_type &symbol_at(const unsigned i) throw() {
+            return buffer.get(i);
+        }
     };
 }}}
 
