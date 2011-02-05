@@ -60,7 +60,7 @@ namespace fltl { namespace lib { namespace cfg {
             );
         }
 
-        inline const unsigned size(void) const throw() {
+        inline unsigned size(void) const throw() {
             return buffer.size();
         }
     };
