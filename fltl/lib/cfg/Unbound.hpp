@@ -38,7 +38,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;
@@ -73,7 +73,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;
@@ -105,7 +105,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class VariableSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         template <typename, typename> friend class Pattern;
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;
@@ -149,7 +149,7 @@ namespace fltl { namespace lib { namespace cfg {
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
 
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         typedef Unbound<AlphaT, production_tag> self_type;
 
@@ -171,7 +171,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class SymbolString<AlphaT>;
 
         template <typename, typename> friend class Pattern;
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class detail::Match2;

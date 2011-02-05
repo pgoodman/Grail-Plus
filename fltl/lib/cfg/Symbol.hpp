@@ -27,7 +27,7 @@ namespace fltl { namespace lib { namespace cfg {
         friend class ProductionBuilder<AlphaT>;
         friend class SymbolString<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
-        friend class PatternData<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         template <typename, typename>
         friend class detail::PatternGenerator;

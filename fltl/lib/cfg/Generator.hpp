@@ -280,7 +280,7 @@ namespace fltl { namespace lib { namespace cfg {
 
         /// pointer to some sort of type to which we are binding results
         void *binder;
-        PatternData<AlphaT> *pattern;
+        detail::PatternData<AlphaT> *pattern;
 
         /// the binder function, does the variable binding and tells us if
         /// we can keep going
@@ -292,7 +292,7 @@ namespace fltl { namespace lib { namespace cfg {
         Generator(
             CFG<AlphaT> *_cfg,
             void *_binder,
-            PatternData<AlphaT> *_pattern,
+            detail::PatternData<AlphaT> *_pattern,
             bind_next_type *_binder_func,
             reset_gen_type *_reset_func
         ) throw()
@@ -305,7 +305,7 @@ namespace fltl { namespace lib { namespace cfg {
             memset(&cursor, 0, sizeof cursor);
 
             if(0 != pattern) {
-                PatternData<AlphaT>::incref(pattern);
+                detail::PatternData<AlphaT>::incref(pattern);
             }
         }
 
@@ -332,13 +332,13 @@ namespace fltl { namespace lib { namespace cfg {
             memcpy(&cursor, &(that.cursor), sizeof cursor);
 
             if(0 != pattern) {
-                PatternData<AlphaT>::incref(pattern);
+                detail::PatternData<AlphaT>::incref(pattern);
             }
         }
 
         ~Generator(void) throw() {
             if(0 != pattern) {
-                PatternData<AlphaT>::decref(pattern);
+                detail::PatternData<AlphaT>::decref(pattern);
             }
         }
 
@@ -349,7 +349,7 @@ namespace fltl { namespace lib { namespace cfg {
             );
 
             if(0 != pattern) {
-                PatternData<AlphaT>::decref(pattern);
+                detail::PatternData<AlphaT>::decref(pattern);
             }
 
             cfg = that.cfg;
@@ -360,7 +360,7 @@ namespace fltl { namespace lib { namespace cfg {
             reset_func = that.reset_func;
 
             if(0 != pattern) {
-                PatternData<AlphaT>::incref(pattern);
+                detail::PatternData<AlphaT>::incref(pattern);
             }
 
             return *this;

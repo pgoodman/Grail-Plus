@@ -25,12 +25,39 @@ namespace fltl { namespace lib { namespace cfg {
         typedef OpaqueProduction<AlphaT> production_type;
         typedef OpaquePattern<AlphaT> self_type;
 
-        cfg::PatternData<AlphaT> *pattern;
-        bool (*match_pattern)(cfg::PatternData<AlphaT> *, const production_type &);
+        cfg::detail::PatternData<AlphaT> *pattern;
+
+        /// match a pattern; used by match()
+        bool (*match_pattern)(cfg::detail::PatternData<AlphaT> *, const production_type &);
+
+        /// generator functions so that patterns can be used in generators
         bool (*gen_next)(generator_type *);
         void (*gen_reset)(generator_type *);
 
+        /// fail to match a null pattern
+        static bool default_match_pattern(
+            cfg::detail::PatternData<AlphaT> *,
+            const production_type &
+        ) throw() {
+            return false;
+        }
+
+        /// fail to generate anything on a null pattern
+        static bool default_gen_next(generator_type *) throw() {
+            return false;
+        }
+
+        /// do nothing to reset a null generator
+        static void default_gen_reset(generator_type *) throw() { }
+
     public:
+
+        OpaquePattern(void) throw()
+            : pattern(0)
+            , match_pattern(&default_match_pattern)
+            , gen_next(&default_gen_next)
+            , gen_reset(&default_gen_reset)
+        { }
 
         OpaquePattern(self_type &that) throw()
             : pattern(that.pattern)
@@ -38,53 +65,63 @@ namespace fltl { namespace lib { namespace cfg {
             , gen_next(that.gen_next)
             , gen_reset(that.gen_reset)
         {
-            cfg::PatternData<AlphaT>::incref(pattern);
+            cfg::detail::PatternData<AlphaT>::incref(pattern);
         }
+
 
         template <typename PatternT, typename StringT, const unsigned state>
         OpaquePattern(
-            cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
+            detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw()
             : pattern(pattern_builder.pattern)
-            , match_pattern(&(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match))
+            , match_pattern(&(detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match))
             , gen_next(&(cfg::detail::PatternGenerator<
                 AlphaT,
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                detail::PatternBuilder<AlphaT,PatternT,StringT,state>
             >::bind_next_pattern))
             , gen_reset(&(cfg::detail::PatternGenerator<
                 AlphaT,
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                detail::PatternBuilder<AlphaT,PatternT,StringT,state>
             >::reset_next_pattern))
         {
-            cfg::PatternData<AlphaT>::incref(pattern);
+            cfg::detail::PatternData<AlphaT>::incref(pattern);
         }
 
         ~OpaquePattern(void) throw() {
-            cfg::PatternData<AlphaT>::decref(pattern);
-            pattern = 0;
+            if(0 != pattern) {
+                cfg::detail::PatternData<AlphaT>::decref(pattern);
+                pattern = 0;
+            }
         }
 
+        // make a pattern from a builder
         template <typename PatternT, typename StringT, const unsigned state>
         self_type &operator=(
-            cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
+            detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
         ) throw() {
 
+            typedef detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                    builder_type;
+
             // manage refcounts
-            cfg::PatternData<AlphaT>::decref(pattern);
+            if(0 != pattern) {
+                cfg::detail::PatternData<AlphaT>::decref(pattern);
+            }
+
             pattern = pattern_builder.pattern;
-            cfg::PatternData<AlphaT>::incref(pattern);
+            cfg::detail::PatternData<AlphaT>::incref(pattern);
 
             // add in the pattern
-            match_pattern = &(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match);
+            match_pattern = &(builder_type::static_match);
 
             gen_next = &(cfg::detail::PatternGenerator<
                 AlphaT,
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                builder_type
             >::bind_next_pattern);
 
             gen_reset = &(cfg::detail::PatternGenerator<
                 AlphaT,
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
+                builder_type
             >::reset_next_pattern);
 
             return *this;
@@ -93,9 +130,12 @@ namespace fltl { namespace lib { namespace cfg {
         self_type &operator=(self_type &that) throw() {
 
             // manage refcounts
-            cfg::PatternData<AlphaT>::decref(pattern);
+            if(0 != pattern) {
+                cfg::detail::PatternData<AlphaT>::decref(pattern);
+            }
+
             pattern = that.pattern;
-            cfg::PatternData<AlphaT>::incref(pattern);
+            cfg::detail::PatternData<AlphaT>::incref(pattern);
 
             match_pattern = that.match_pattern;
             gen_next = that.gen_next;

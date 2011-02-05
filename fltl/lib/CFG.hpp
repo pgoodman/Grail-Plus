@@ -38,7 +38,7 @@
     FLTL_FORCE_INLINE cfg::Pattern<AlphaT,tag> \
     operator--(int) const throw() { \
         return cfg::Pattern<AlphaT,tag>( \
-            cfg::PatternData<AlphaT>::allocate( \
+            cfg::detail::PatternData<AlphaT>::allocate( \
                 const_cast<self_type *>(this)\
             ) \
         ); \
@@ -85,8 +85,6 @@ namespace fltl { namespace lib {
         class any_symbol_string_tag { };
         class production_tag { };
 
-        template <typename> class PatternData;
-
         namespace detail {
 
             // forward declarations
@@ -96,11 +94,17 @@ namespace fltl { namespace lib {
             template <typename>
             class SimpleGenerator;
 
+            template <typename>
+            class PatternData;
+
             template <typename, typename>
             class PatternGenerator;
 
             template <typename, typename, typename, const unsigned>
             class PatternBuilder;
+
+            template <typename, typename>
+            class PatternLiteral;
 
             template <typename, typename, const unsigned, typename, typename>
             class Match2;
@@ -731,7 +735,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
-                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
+                reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
             );
@@ -751,7 +755,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(sym.symbol), // binder
-                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
+                reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal)
             );
@@ -767,7 +771,7 @@ namespace fltl { namespace lib {
             generator_type gen(
                 this,
                 reinterpret_cast<void *>(uprod.prod), // binder
-                reinterpret_cast<cfg::PatternData<AlphaT> *>(0), // pattern
+                reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
                 &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
             );

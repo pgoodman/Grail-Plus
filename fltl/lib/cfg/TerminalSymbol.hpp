@@ -20,8 +20,8 @@ namespace fltl { namespace lib { namespace cfg {
     private:
 
         friend class CFG<AlphaT>;
-        friend class PatternData<AlphaT>;
-        friend struct std::less<fltl::lib::cfg::TerminalSymbol<AlphaT> >;
+        friend class detail::PatternData<AlphaT>;
+        friend struct std::less<TerminalSymbol<AlphaT> >;
 
         explicit TerminalSymbol(const internal_sym_type _value) throw()
             : cfg::Symbol<AlphaT>(_value)

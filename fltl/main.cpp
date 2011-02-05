@@ -10,6 +10,11 @@
 #include <map>
 
 #include "fltl/lib/CFG.hpp"
+
+#define ON 1
+
+#if ON
+
 #include "fltl/test/Test.hpp"
 #include "fltl/test/cfg/CFG.hpp"
 
@@ -241,14 +246,19 @@ void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
     }
 }
 
-
+#endif
 int main(void) {
 
+#if ON
     fltl::test::run_tests();
+#endif
 
     using fltl::lib::CFG;
     CFG<char> cfg;
 
+    cfg.search(cfg._ --->* cfg.__);
+
+#if ON
     CFG<char>::term_t a(cfg.get_terminal('a'));
     CFG<char>::term_t b(cfg.get_terminal('b'));
 
@@ -269,7 +279,7 @@ int main(void) {
     printf("\n");
     convert_to_cnf(cfg);
     print_grammar(cfg);
-
+#endif
 #if 0
     using fltl::lib::CFG;
 

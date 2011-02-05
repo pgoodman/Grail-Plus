@@ -22,8 +22,8 @@ namespace fltl { namespace lib { namespace cfg {
 
         friend class CFG<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
-        friend class PatternData<AlphaT>;
-        friend struct std::less<fltl::lib::cfg::VariableSymbol<AlphaT> >;
+        friend class detail::PatternData<AlphaT>;
+        friend struct std::less<VariableSymbol<AlphaT> >;
 
         typedef VariableSymbol<AlphaT> self_type;
 

@@ -35,20 +35,20 @@
     FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(tag), unbound_ ## tag, state)
 
 /*
- *     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+ *     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
     operator+(type &expr) throw() { \
         pattern->extend(&expr, StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U>( \
             pattern \
         ); \
     } \
  */
 
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
     operator+(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U >( \
             pattern \
         ); \
     }
@@ -790,25 +790,28 @@ namespace fltl { namespace lib { namespace cfg {
             template <typename, typename>
             friend class PatternGenerator;
 
+            template <typename, typename>
+            friend class PatternLiteral;
+
             typedef typename CFG<AlphaT>::variable_type variable_type;
             typedef typename CFG<AlphaT>::terminal_type terminal_type;
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
+            typedef PatternBuilder<AlphaT,VarTagT,StringT,0U> self_type;
 
             PatternData<AlphaT> *pattern;
 
-            FLTL_FORCE_INLINE PatternBuilder(PatternData<AlphaT> *_pattern)
+            PatternBuilder(PatternData<AlphaT> *_pattern)
                 : pattern(_pattern)
             {
                 PatternData<AlphaT>::incref(pattern);
+            }
 
-                /*pattern->dec_string_ref_counts = &(DecRefCounts<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,0>::type,
-                    0
-                >::decref);*/
+            PatternBuilder(const self_type &that)
+                : pattern(that.pattern)
+            {
+                PatternData<AlphaT>::incref(pattern);
             }
 
             ~PatternBuilder(void) throw() {
@@ -842,7 +845,7 @@ namespace fltl { namespace lib { namespace cfg {
         private:
 
             inline static bool static_match(
-                cfg::PatternData<AlphaT> *_pattern,
+                PatternData<AlphaT> *_pattern,
                 const production_type &prod
             ) throw() {
 
@@ -868,25 +871,28 @@ namespace fltl { namespace lib { namespace cfg {
             template <typename, typename>
             friend class PatternGenerator;
 
+            template <typename, typename>
+            friend class PatternLiteral;
+
             typedef typename CFG<AlphaT>::variable_type variable_type;
             typedef typename CFG<AlphaT>::terminal_type terminal_type;
             typedef typename CFG<AlphaT>::symbol_type symbol_type;
             typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
             typedef typename CFG<AlphaT>::production_type production_type;
+            typedef PatternBuilder<AlphaT,VarTagT,StringT,1U> self_type;
 
             PatternData<AlphaT> *pattern;
 
-            FLTL_FORCE_INLINE PatternBuilder(PatternData<AlphaT> *_pattern) throw()
+            PatternBuilder(PatternData<AlphaT> *_pattern) throw()
                 : pattern(_pattern)
             {
                 PatternData<AlphaT>::incref(pattern);
+            }
 
-                /*pattern->dec_string_ref_counts = &(DecRefCounts<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,0>::type,
-                    0
-                >::decref);*/
+            PatternBuilder(const self_type &that)
+                : pattern(that.pattern)
+            {
+                PatternData<AlphaT>::incref(pattern);
             }
 
             ~PatternBuilder(void) throw() {
@@ -918,7 +924,7 @@ namespace fltl { namespace lib { namespace cfg {
         private:
 
             inline static bool static_match(
-                cfg::PatternData<AlphaT> *_pattern,
+                PatternData<AlphaT> *_pattern,
                 const production_type &prod
             ) throw() {
                 return DestructuringBind<
@@ -928,135 +934,128 @@ namespace fltl { namespace lib { namespace cfg {
                 >::bind(_pattern, prod);
             }
         };
-    }
 
-    template <typename AlphaT>
-    class PatternData {
-    private:
+        /// data of a pattern; contains all of the pointers back to memory
+        /// of things to check against / bind to
+        template <typename AlphaT>
+        class PatternData {
+        private:
 
-        typedef typename CFG<AlphaT>::variable_type variable_type;
-        typedef typename CFG<AlphaT>::terminal_type terminal_type;
-        typedef typename CFG<AlphaT>::symbol_type symbol_type;
-        typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
-        typedef PatternData<AlphaT> self_type;
+            typedef typename CFG<AlphaT>::variable_type variable_type;
+            typedef typename CFG<AlphaT>::terminal_type terminal_type;
+            typedef typename CFG<AlphaT>::symbol_type symbol_type;
+            typedef typename CFG<AlphaT>::symbol_string_type symbol_string_type;
+            typedef PatternData<AlphaT> self_type;
 
-        friend class CFG<AlphaT>;
-        friend class OpaquePattern<AlphaT>;
-        friend class helper::BlockAllocator<self_type>;
-        friend class detail::SimpleGenerator<AlphaT>;
+            friend class CFG<AlphaT>;
+            friend class OpaquePattern<AlphaT>;
+            friend class helper::BlockAllocator<self_type>;
+            friend class detail::SimpleGenerator<AlphaT>;
 
-        template <typename, typename>
-        friend class detail::PatternGenerator;
+            template <typename, typename>
+            friend class detail::PatternGenerator;
 
-        template <typename,typename,typename,const unsigned>
-        friend class detail::PatternBuilder;
+            template <typename,typename,typename,const unsigned>
+            friend class detail::PatternBuilder;
 
-        template <typename, typename, typename>
-        friend class detail::DestructuringBind;
+            template <typename, typename, typename>
+            friend class detail::DestructuringBind;
 
-        enum {
-            NUM_SLOTS = 8U
+            enum {
+                NUM_SLOTS = 8U
+            };
+
+            /// reference counter so we can pass the pattern around
+            unsigned ref_count;
+
+            /// variable pointed to by this data; if we don't care about the
+            /// variable then it's left as zero
+            variable_type *var;
+
+            /// slots holding pointers back to pattern data
+            detail::Slot<AlphaT> slots[NUM_SLOTS];
+
+            /// allocator for patterns
+            static helper::BlockAllocator<self_type, 8U> pattern_allocator;
+
+        public:
+
+            PatternData(void)
+                : ref_count(0)
+                , var(0)
+                //, dec_string_ref_counts(&no_string_ref_counts)
+            {
+                memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
+            }
+
+            ~PatternData(void) throw() {
+                var = 0;
+            }
+
+            inline void extend(symbol_type *expr, const unsigned slot) throw() {
+                slots[slot].as_symbol = expr;
+            }
+
+            inline void extend(symbol_string_type *expr, const unsigned slot) throw() {
+                slots[slot].as_symbol_string = expr;
+            }
+
+            inline void extend(Unbound<AlphaT, symbol_tag> *expr, const unsigned slot) throw() {
+                slots[slot].as_symbol = expr->symbol;
+            }
+
+            inline void extend(Unbound<AlphaT, terminal_tag> *expr, const unsigned slot) throw() {
+                slots[slot].as_terminal = expr->symbol;
+            }
+
+            inline void extend(Unbound<AlphaT, variable_tag> *expr, const unsigned slot) throw() {
+                slots[slot].as_variable = expr->symbol;
+            }
+
+            inline void extend(Unbound<AlphaT, symbol_string_tag> *expr, const unsigned slot) throw() {
+                slots[slot].as_symbol_string = expr->string;
+            }
+
+            inline void extend(AnySymbol<AlphaT> *, const unsigned) throw() { }
+
+            inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
+
+        public:
+
+            static self_type *allocate(variable_type *_var) throw() {
+                self_type *self(pattern_allocator.allocate());
+                self->var = _var;
+                return self;
+            }
+
+            static self_type *allocate(Unbound<AlphaT, variable_tag> *_var) throw() {
+                self_type *self(pattern_allocator.allocate());
+                self->var = _var->symbol;
+                return self;
+            }
+
+            static self_type *allocate(AnySymbol<AlphaT> *) throw() {
+                return pattern_allocator.allocate();
+            }
+
+            static void incref(self_type *self) throw() {
+                ++(self->ref_count);
+            }
+
+            static void decref(PatternData<AlphaT> *self) throw() {
+                if(0 == --(self->ref_count)) {
+                    pattern_allocator.deallocate(self);
+                }
+            }
         };
 
-        /// reference counter so we can pass the pattern around
-        unsigned ref_count;
-
-        /// variable pointed to by this data; if we don't care about the
-        /// variable then it's left as zero
-        variable_type *var;
-
-        /// slots holding pointers back to pattern data
-        detail::Slot<AlphaT> slots[NUM_SLOTS];
-
-        /// function to call when pattern is deallocated to properly free
-        /// up reference counts to related symbol strings
-        //void (*dec_string_ref_counts)(detail::Slot<AlphaT> *);
-
-        /// allocator for patterns
-        static helper::BlockAllocator<self_type, 8U> pattern_allocator;
-
-        //static void no_string_ref_counts(detail::Slot<AlphaT> *) throw() { }
-
-    public:
-
-        PatternData(void)
-            : ref_count(0)
-            , var(0)
-            //, dec_string_ref_counts(&no_string_ref_counts)
-        {
-            memset(slots, 0, sizeof(detail::Slot<AlphaT>) * NUM_SLOTS);
-        }
-
-        ~PatternData(void) throw() {
-            //dec_string_ref_counts(&(slots[0]));
-            var = 0;
-            //dec_string_ref_counts = &no_string_ref_counts;
-        }
-
-        inline void extend(symbol_type *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol = expr;
-        }
-
-        inline void extend(symbol_string_type *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol_string = expr;
-            //SymbolString<AlphaT>::incref(expr);
-        }
-
-        inline void extend(Unbound<AlphaT, symbol_tag> *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol = expr->symbol;
-        }
-
-        inline void extend(Unbound<AlphaT, terminal_tag> *expr, const unsigned slot) throw() {
-            slots[slot].as_terminal = expr->symbol;
-        }
-
-        inline void extend(Unbound<AlphaT, variable_tag> *expr, const unsigned slot) throw() {
-            slots[slot].as_variable = expr->symbol;
-        }
-
-        inline void extend(Unbound<AlphaT, symbol_string_tag> *expr, const unsigned slot) throw() {
-            slots[slot].as_symbol_string = expr->string;
-            //SymbolString<AlphaT>::incref(expr->string);
-        }
-
-        inline void extend(AnySymbol<AlphaT> *, const unsigned) throw() { }
-
-        inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
-
-    public:
-
-        static self_type *allocate(variable_type *_var) throw() {
-            self_type *self(pattern_allocator.allocate());
-            self->var = _var;
-            return self;
-        }
-
-        static self_type *allocate(Unbound<AlphaT, variable_tag> *_var) throw() {
-            self_type *self(pattern_allocator.allocate());
-            self->var = _var->symbol;
-            return self;
-        }
-
-        static self_type *allocate(AnySymbol<AlphaT> *) throw() {
-            return pattern_allocator.allocate();
-        }
-
-        static void incref(self_type *self) throw() {
-            ++(self->ref_count);
-        }
-
-        static void decref(PatternData<AlphaT> *self) throw() {
-            if(0 == --(self->ref_count)) {
-                pattern_allocator.deallocate(self);
-            }
-        }
-    };
-
-    template <typename AlphaT>
-    helper::BlockAllocator<
-        PatternData<AlphaT>,
-        8U
-    > PatternData<AlphaT>::pattern_allocator;
+        /// static allocator for patterns
+        template <typename AlphaT>
+        helper::BlockAllocator<
+            PatternData<AlphaT>,
+            8U
+        > PatternData<AlphaT>::pattern_allocator;
+    }
 
     template <typename AlphaT, typename VarTagT>
     class Pattern {
@@ -1072,18 +1071,18 @@ namespace fltl { namespace lib { namespace cfg {
         typedef Pattern<AlphaT,VarTagT> self_type;
 
         /// the actual data of the pattern
-        PatternData<AlphaT> *pattern;
+        detail::PatternData<AlphaT> *pattern;
 
     public:
 
-        Pattern(PatternData<AlphaT> *_pattern) throw()
+        Pattern(detail::PatternData<AlphaT> *_pattern) throw()
             : pattern(_pattern)
         {
-            PatternData<AlphaT>::incref(pattern);
+            detail::PatternData<AlphaT>::incref(pattern);
         }
 
         ~Pattern(void) throw() {
-            PatternData<AlphaT>::decref(pattern);
+            detail::PatternData<AlphaT>::decref(pattern);
             pattern = 0;
         }
 
