@@ -785,6 +785,7 @@ namespace fltl { namespace lib { namespace cfg {
             };
 
             friend class CFG<AlphaT>;
+            friend class OpaquePattern<AlphaT>;
 
             template <typename, typename>
             friend class PatternGenerator;
@@ -862,6 +863,7 @@ namespace fltl { namespace lib { namespace cfg {
             };
 
             friend class CFG<AlphaT>;
+            friend class OpaquePattern<AlphaT>;
 
             template <typename, typename>
             friend class PatternGenerator;
@@ -939,6 +941,7 @@ namespace fltl { namespace lib { namespace cfg {
         typedef PatternData<AlphaT> self_type;
 
         friend class CFG<AlphaT>;
+        friend class OpaquePattern<AlphaT>;
         friend class helper::BlockAllocator<self_type>;
         friend class detail::SimpleGenerator<AlphaT>;
 

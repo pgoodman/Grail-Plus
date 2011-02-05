@@ -67,6 +67,7 @@ namespace fltl { namespace lib {
         template <typename> class VariableSymbol;
         template <typename, typename> class Unbound;
         template <typename> class Generator;
+        template <typename> class OpaquePattern;
 
         template <typename, typename> class Pattern;
         template <typename> class AnySymbol;
@@ -218,87 +219,7 @@ namespace fltl { namespace lib {
         /// represents a non-terminal of a grammar
         typedef cfg::VariableSymbol<AlphaT> variable_type;
 
-        /// pattern type, nicely encapsulates a destructuring production
-        /// pattern
-        class pattern_type {
-        private:
-
-            friend class CFG<AlphaT>;
-
-            cfg::PatternData<AlphaT> *pattern;
-            bool (*match_pattern)(cfg::PatternData<AlphaT> *, const production_type &);
-            bool (*gen_next)(generator_type *);
-            void (*gen_reset)(generator_type *);
-
-        public:
-
-            pattern_type(pattern_type &that) throw()
-                : pattern(that.pattern)
-                , match_pattern(that.match_pattern)
-                , gen_next(that.gen_next)
-                , gen_reset(that.gen_reset)
-            {
-                cfg::PatternData<AlphaT>::incref(pattern);
-            }
-
-            template <typename PatternT, typename StringT, const unsigned state>
-            pattern_type(
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
-            ) throw()
-                : pattern(pattern_builder.pattern)
-                , match_pattern(&(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match))
-                , gen_next(&(cfg::detail::PatternGenerator<
-                    AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
-                >::bind_next_pattern))
-                , gen_reset(&(cfg::detail::PatternGenerator<
-                    AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
-                >::reset_next_pattern))
-            {
-                cfg::PatternData<AlphaT>::incref(pattern);
-            }
-
-            ~pattern_type(void) throw() {
-                cfg::PatternData<AlphaT>::decref(pattern);
-                pattern = 0;
-            }
-
-            template <typename PatternT, typename StringT, const unsigned state>
-            pattern_type &operator=(
-                cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
-            ) throw() {
-                cfg::PatternData<AlphaT>::decref(pattern);
-                pattern = pattern_builder.pattern;
-                cfg::PatternData<AlphaT>::incref(pattern);
-                match_pattern = &(cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>::static_match);
-                gen_next = &(cfg::detail::PatternGenerator<
-                    AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
-                >::bind_next_pattern);
-                gen_reset = &(cfg::detail::PatternGenerator<
-                    AlphaT,
-                    cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
-                >::reset_next_pattern);
-
-                return *this;
-            }
-
-            pattern_type &operator=(pattern_type &that) throw() {
-                cfg::PatternData<AlphaT>::decref(pattern);
-                pattern = that.pattern;
-                match_pattern = that.match_pattern;
-                gen_next = that.gen_next;
-                gen_reset = that.gen_reset;
-                cfg::PatternData<AlphaT>::incref(pattern);
-                return *this;
-            }
-
-            /// try to match against the pattern
-            inline bool match(const production_type &prod) const throw() {
-                return match_pattern(pattern, prod);
-            }
-        };
+        typedef cfg::OpaquePattern<AlphaT> pattern_type;
 
         /// short forms
         typedef symbol_type sym_t;
@@ -1054,5 +975,6 @@ namespace fltl { namespace lib {
 #include "fltl/lib/cfg/Unbound.hpp"
 #include "fltl/lib/cfg/Generator.hpp"
 #include "fltl/lib/cfg/Pattern.hpp"
+#include "fltl/lib/cfg/OpaquePattern.hpp"
 
 #endif /* FLTL_LIB_CONTEXTFREEGRAMMAR_HPP_ */
