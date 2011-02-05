@@ -173,8 +173,9 @@ namespace fltl { namespace lib {
         /// unused variables
         cfg::Variable<AlphaT> *unused_variables;
 
-        /// number of productions
+        /// number of productions and variables
         unsigned num_productions_;
+        unsigned num_variables_;
 
         /// the first production in the variable, i.e. the first production
         /// of the smallest variable.
@@ -249,6 +250,7 @@ namespace fltl { namespace lib {
             , variable_map()
             , unused_variables(0)
             , num_productions_(0)
+            , num_variables_(0)
             , first_production(0)
             , start_variable(0)
             , _()
@@ -346,22 +348,35 @@ namespace fltl { namespace lib {
 
             // because each variable starts with an epsilon production
             ++num_productions_;
+            ++num_variables_;
 
             variable_type ret(var_id);
             return ret;
         }
 
-        void remove_variable(const variable_type _var) throw() {
+        /// remove a variable from a grammar. this marks all of the variables
+        /// productions as deleted. this, however, does NOT ensure that the
+        /// variable is used anywhere else in the grammar.
+        void remove_relation(const variable_type _var) throw() {
             cfg::Variable<AlphaT> *var(get_variable(_var));
 
             // release the productions
             cfg::Production<AlphaT> *prod(var->first_production);
             cfg::Production<AlphaT> *next_prod(0);
 
-            for(; 0 != prod; prod = next_prod) {
+            // update the first production
+            if(first_production == prod) {
+                if(0 != var->next) {
+                    first_production = var->next->first_production;
+                } else {
+                    first_production = 0;
+                }
+            }
+
+            // mark the related productions as deleted
+            for(; 0 != prod && !prod->is_deleted; prod = next_prod) {
                 next_prod = prod->next;
-                prod->next = 0;
-                prod->prev = 0;
+                prod->is_deleted = true;
                 
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
@@ -370,7 +385,6 @@ namespace fltl { namespace lib {
             // highlights that this variable is deleted
             var->first_production = 0;
 
-            cfg::Variable<AlphaT> *curr(0);
             cfg::Variable<AlphaT> *prev(0);
 
             // go link in the previous variable
@@ -378,16 +392,14 @@ namespace fltl { namespace lib {
                 i > 0;
                 --i) {
 
-                curr = variable_map.get(i);
-                if(0 != curr->first_production) {
-                    prev = curr;
+                prev = variable_map.get(i);
+                if(0 != prev->first_production) {
+                    prev->next = var->next;
                     break;
                 }
             }
 
-            if(0 != prev) {
-                prev->next = var->next;
-            }
+            --num_variables_;
 
             // link it in to the unused variables
             *helper::unsafe_cast<cfg::Variable<AlphaT> **>(
@@ -395,6 +407,48 @@ namespace fltl { namespace lib {
             ) = unused_variables;
             unused_variables = var;
             var = 0;
+        }
+
+        /// remove a variable and all productions in the grammar that
+        /// relate to this variable. this can have the effect of removing
+        /// many variables
+        void remove_variable(variable_type _var) throw() {
+            remove_relation(_var);
+
+            production_type P;
+            variable_type V;
+            symbol_string_type str;
+            production_builder_type buffer;
+            unsigned str_len;
+
+            generator_type prods_using_var(
+                search(~P, (~V) --->* __ + _var + __)
+            );
+
+            for(; prods_using_var.match_next(); ) {
+
+                const unsigned num_prods(num_productions_);
+                remove_production(P);
+
+                // this variable only generates the variable we are deleting;
+                // remove the variable
+                if(num_prods == num_productions_) {
+                    remove_variable(V);
+                    continue;
+                }
+
+                str = P.symbols();
+                str_len = str.length();
+
+                buffer.clear();
+                for(unsigned i(0); i < str_len; ++i) {
+                    if(str.at(i) != _var) {
+                        buffer << str.at(i);
+                    }
+                }
+
+                add_production(V, buffer);
+            }
         }
 
         /// get the terminal reference for a particular terminal.
@@ -432,16 +486,12 @@ namespace fltl { namespace lib {
             // removing one and adding another
             if(var->first_production == var->null_production) {
 
-                //printf("adding first production\n");
-
                 // the null production is equivalent to the production we're
                 // trying to add
                 if(var->first_production->is_equivalent_to(*prod)) {
                     var->null_production = 0;
                     production_allocator->deallocate(prod);
                     prod = var->first_production;
-
-                    //printf("... prod is equivalent to default\n");
 
                 // null production is different, remove null production and
                 // add this production in
@@ -460,15 +510,12 @@ namespace fltl { namespace lib {
 
                     var->first_production = prod;
 
-                    //printf("... removed default and added prod\n");
                     cfg::Production<AlphaT>::hold(prod);
                 }
 
             // no null production; go look for equivalent productions to
             // make sure we don't add a duplicate
             } else {
-
-                //printf("adding non-first production\n");
 
                 // make sure the production is unique
                 for(cfg::Production<AlphaT> *related_prod(var->first_production);
@@ -477,18 +524,12 @@ namespace fltl { namespace lib {
 
                     if(related_prod->is_equivalent_to(*prod)) {
 
-                        //printf("... found equivalent prod\n");
-
                         // not deleted, return the existing one
                         if(!related_prod->is_deleted) {
-                            //printf("...... equiv was was not deleted.\n");
-
                             production_allocator->deallocate(prod);
                             prod = related_prod;
                             goto done;
                         }
-
-                        //printf("...... equiv was deleted.\n");
 
                         // is deleted, undelete it, increase its ref count,
                         // and move it to the front
@@ -519,8 +560,6 @@ namespace fltl { namespace lib {
                         goto done;
                     }
                 }
-
-                //printf("... no equivalent prods, adding to front\n");
 
                 // we didn't find a copy of the production; add the new one
                 // in.
@@ -592,16 +631,12 @@ namespace fltl { namespace lib {
             );
 
             prod->is_deleted = true;
-            //printf("deleting production\n");
 
             // this is the first production
             if(0 == prod->prev) {
 
-                //printf("... is the first\n");
-
                 // this is the null production; do nothing
                 if(prod == var->null_production) {
-                    //printf("... trying to delete default production\n");
                     prod->is_deleted = false;
                     goto done;
                 }
@@ -612,8 +647,6 @@ namespace fltl { namespace lib {
                 // add in a null production and release this production
                 if(0 == prod->next || prod->next->is_deleted) {
 
-                    //printf("... no next OR next is deleted\n");
-
                     var->make_null_production();
                     var->first_production->next = prod;
                     prod->prev = var->first_production;
@@ -622,8 +655,6 @@ namespace fltl { namespace lib {
 
                 // there is a non-deleted production after this one
                 } else {
-
-                    //printf("... there is a next\n");
 
                     --num_productions_;
 
@@ -639,22 +670,16 @@ namespace fltl { namespace lib {
             // related to this variable
             } else {
 
-                //printf("... not the first\n");
-
                 --num_productions_;
 
                 // this is the last non-deleted production, yay!
                 if(0 == prod->next || prod->next->is_deleted) {
-
-                    //printf("... no next OR next is deleted\n");
                     
                     cfg::Production<AlphaT>::release(prod);
 
                 // not the last production, and there is a non-deleted
                 // production after this one
                 } else {
-
-                    //printf("... there is a next\n");
 
                     prod->prev->next = prod->next;
                     prod->next->prev = prod->prev;
@@ -715,12 +740,23 @@ namespace fltl { namespace lib {
 
         /// get the number of variables in this CFG
         inline unsigned num_variables(void) const throw() {
-            return variable_map.size() - 1U;
+            return num_variables_;
         }
 
         /// get the number of productions in the CFG
         inline unsigned num_productions(void) const throw() {
             return num_productions_;
+        }
+
+        /// get the number of productions related to a variable
+        unsigned num_productions(variable_type _var) throw() {
+            cfg::Variable<AlphaT> *var(get_variable(_var));
+            unsigned count(0);
+            for(cfg::Production<AlphaT> *pp(var->first_production);
+                0 != pp && !pp->is_deleted; pp = pp->next, ++count) {
+                // lalala
+            }
+            return count;
         }
 
         /// get the number of terminals in the CFG; note: not all terminals
@@ -737,15 +773,9 @@ namespace fltl { namespace lib {
                 reinterpret_cast<void *>(sym.symbol), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
-                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable)
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_variable),
+                &(cfg::OpaquePattern<AlphaT>::default_gen_reset)
             );
-
-            if(0 == first_production) {
-                gen.cursor.variable = 0;
-            } else {
-                gen.cursor.variable = first_production->var;
-            }
-
             return gen;
         }
 
@@ -757,11 +787,9 @@ namespace fltl { namespace lib {
                 reinterpret_cast<void *>(sym.symbol), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
-                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal)
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_terminal),
+                &(cfg::OpaquePattern<AlphaT>::default_gen_reset)
             );
-
-            gen.cursor.terminal_offset = 1U;
-
             return gen;
         }
 
@@ -773,11 +801,9 @@ namespace fltl { namespace lib {
                 reinterpret_cast<void *>(uprod.prod), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
-                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production)
+                &(cfg::detail::SimpleGenerator<AlphaT>::reset_next_production),
+                &(cfg::detail::SimpleGenerator<AlphaT>::free_next_production)
             );
-
-            gen.cursor.production = first_production;
-
             return gen;
         }
 
@@ -811,18 +837,9 @@ namespace fltl { namespace lib {
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
                     builder_type
-                >::reset_next_pattern)
+                >::reset_next_pattern),
+                &(cfg::detail::SimpleGenerator<AlphaT>::free_next_production)
             );
-
-            if(builder_type::IS_BOUND_TO_VAR) {
-                gen.cursor.production = variable_map.get(
-                    static_cast<unsigned>(
-                        pattern_builder.pattern->var->value
-                    )
-                )->first_production;
-            } else {
-                gen.cursor.production = first_production;
-            }
 
             return gen;
         }
@@ -849,18 +866,9 @@ namespace fltl { namespace lib {
                 &(cfg::detail::PatternGenerator<
                     AlphaT,
                     builder_type
-                >::reset_next_pattern)
+                >::reset_next_pattern),
+                &(cfg::detail::SimpleGenerator<AlphaT>::free_next_production)
             );
-
-            if(builder_type::IS_BOUND_TO_VAR) {
-                gen.cursor.production = variable_map.get(
-                    static_cast<unsigned>(
-                        pattern_builder.pattern->var->value
-                    )
-                )->first_production;
-            } else {
-                gen.cursor.production = first_production;
-            }
 
             return gen;
         }
@@ -873,11 +881,9 @@ namespace fltl { namespace lib {
                 reinterpret_cast<void *>(0), // binder
                 pattern.pattern, // pattern
                 pattern.gen_next,
-                pattern.gen_reset
+                pattern.gen_reset,
+                pattern.gen_free
             );
-
-            gen.cursor.production = first_production;
-
             return gen;
         }
 
@@ -893,11 +899,9 @@ namespace fltl { namespace lib {
                 reinterpret_cast<void *>(uprod.prod), // binder
                 pattern.pattern, // pattern
                 pattern.gen_next,
-                pattern.gen_reset
+                pattern.gen_reset,
+                pattern.gen_free
             );
-
-            gen.cursor.production = first_production;
-
             return gen;
         }
 

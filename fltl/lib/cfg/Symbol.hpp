@@ -26,6 +26,8 @@ namespace fltl { namespace lib { namespace cfg {
         friend class OpaqueProduction<AlphaT>;
         friend class ProductionBuilder<AlphaT>;
         friend class SymbolString<AlphaT>;
+        friend class VariableSymbol<AlphaT>;
+        friend class TerminalSymbol<AlphaT>;
         friend class detail::SimpleGenerator<AlphaT>;
         friend class detail::PatternData<AlphaT>;
 

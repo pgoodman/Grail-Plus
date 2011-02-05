@@ -43,6 +43,12 @@ namespace fltl { namespace lib { namespace cfg {
             return Unbound<AlphaT,variable_tag>(this);
         }
 
+        self_type &operator=(const Symbol<AlphaT> &that) throw() {
+            assert(that.is_variable());
+            this->value = that.value;
+            return *this;
+        }
+
         FLTL_CFG_PRODUCTION_PATTERN(variable_tag)
     };
 

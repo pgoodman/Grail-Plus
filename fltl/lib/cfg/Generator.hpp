@@ -24,28 +24,31 @@ namespace fltl { namespace lib { namespace cfg {
         void default_gen_reset(Generator<AlphaT> *) throw() { }
 
         template <typename AlphaT>
+        void default_gen_free(Generator<AlphaT> *) throw() { }
+
+        template <typename AlphaT>
         class SimpleGenerator {
         public:
 
             static void
             reset_next_production(Generator<AlphaT> *state) throw() {
+                state->free_func(state);
                 state->cursor.production = state->cfg->first_production;
+                if(0 != state->cursor.production) {
+                    Production<AlphaT>::hold(state->cursor.production);
+                }
             }
 
             static Production<AlphaT> *
             find_next_production(Production<AlphaT> *prod) throw() {
-
-                //printf("FIND_NEXT_PRODUCTION(%p)\n", reinterpret_cast<void *>(prod));
 
                 if(0 == prod) {
                     return 0;
                 }
 
                 // go look for the next production
-                cfg::Production<AlphaT> *next_prod(prod->next);
-                cfg::Variable<AlphaT> *curr_var(prod->var);
-
-                //printf("... NEXT(%p)\n", reinterpret_cast<void *>(next_prod));
+                Production<AlphaT> *next_prod(prod->next);
+                Variable<AlphaT> *curr_var(prod->var);
 
                 for(;;) {
                     if(0 != next_prod && !next_prod->is_deleted) {
@@ -77,27 +80,63 @@ namespace fltl { namespace lib { namespace cfg {
                 );
 
                 // update or clear the binding
-                cfg::Production<AlphaT> *prod(state->cursor.production);
-                OpaqueProduction<AlphaT> opaque_prod(prod);
+                Production<AlphaT> *curr_prod(state->cursor.production);
+                Production<AlphaT> *prev(0);
+                OpaqueProduction<AlphaT> opaque_prod;
 
-                *binder = opaque_prod;
-
-                if(0 == prod) {
+                // are we looking at the right production? we might need
+                // to move forward if the production that was meant to be
+                // the cursor was deleted
+                if(0 == curr_prod) {
+                    *binder = opaque_prod;
                     return false;
+                } else {
+
+                    while(curr_prod->is_deleted) {
+
+                        prev = curr_prod;
+                        curr_prod = find_next_production(prev);
+                        Production<AlphaT>::release(prev);
+
+                        if(0 != curr_prod) {
+                            Production<AlphaT>::hold(curr_prod);
+                        } else {
+                            *binder = opaque_prod;
+                            state->cursor.production = 0;
+                            return false;
+                        }
+                    }
                 }
 
-                state->cursor.production = find_next_production(prod);
+                opaque_prod.assign(curr_prod);
+                Production<AlphaT>::release(curr_prod);
+                *binder = opaque_prod;
+
+                state->cursor.production = find_next_production(curr_prod);
+
+                if(0 != state->cursor.production) {
+                    Production<AlphaT>::hold(state->cursor.production);
+                }
 
                 return true;
+            }
+
+            static void free_next_production(Generator<AlphaT> *state) throw() {
+                if(0 != state->cursor.production) {
+                    Production<AlphaT>::release(state->cursor.production);
+                    state->cursor.production = 0;
+                }
             }
 
             /// reset the variable generator
             static void reset_next_variable(Generator<AlphaT> *state) throw() {
                 Production<AlphaT> *first_prod(state->cfg->first_production);
                 if(0 == first_prod) {
-                    state->cursor.variable = 0;
+                    state->cursor.variable_offset = 1;
                 } else {
-                    state->cursor.variable = first_prod->var;
+                    state->cursor.variable_offset = static_cast<unsigned>(
+                        first_prod->var->id
+                    );
                 }
             }
 
@@ -108,21 +147,30 @@ namespace fltl { namespace lib { namespace cfg {
                     helper::unsafe_cast<Symbol<AlphaT> *>(state->binder)
                 );
 
-                Variable<AlphaT> *var(state->cursor.variable);
+                unsigned offset(state->cursor.variable_offset);
+                Variable<AlphaT> *var(0);
 
-                // bad variable
-                if(0 == var) {
+            check_var_offset:
 
+                if(offset >= state->cfg->variable_map.size()) {
                     binder->value = 0;
+                    state->cursor.variable_offset = offset;
                     return false;
+                }
+
+                var = state->cfg->variable_map.get(offset);
+
+                // bad variable or variable is deleted
+                if(0 == var || 0 == var->first_production) {
+                    ++offset;
+                    goto check_var_offset;
+                }
 
                 // bind the variable and point the cursor at the next
                 // variable
-                } else {
-                    binder->value = var->id;
-                    state->cursor.variable = var->next;
-                    return true;
-                }
+                binder->value = var->id;
+                state->cursor.variable_offset = offset + 1;
+                return true;
             }
 
             /// reset the terminal generator
@@ -163,19 +211,38 @@ namespace fltl { namespace lib { namespace cfg {
 
                 Production<AlphaT> *curr_prod(state->cursor.production);
                 Production<AlphaT> *next_prod(0);
+                Production<AlphaT> *prev(0);
 
                 if(0 == curr_prod) {
                     return false;
+                } else {
+
+                    while(curr_prod->is_deleted) {
+
+                        prev = curr_prod;
+                        curr_prod = SimpleGenerator<AlphaT>::find_next_production(
+                            prev
+                        );
+
+                        Production<AlphaT>::release(prev);
+
+                        if(0 != curr_prod) {
+                            Production<AlphaT>::hold(curr_prod);
+                        } else {
+                            state->cursor.production = 0;
+                            return false;
+                        }
+                    }
                 }
 
                 OpaqueProduction<AlphaT> opaque_prod;
 
                 do {
-
+                next_iteration:
                     opaque_prod.assign(curr_prod);
+                    Production<AlphaT>::release(curr_prod);
 
                     // go find the next production to bind
-                    //state->cfg->debug(opaque_prod.symbols());
                     next_prod = SimpleGenerator<AlphaT>::find_next_production(
                         curr_prod
                     );
@@ -190,6 +257,7 @@ namespace fltl { namespace lib { namespace cfg {
                         }
 
                         break;
+
                     } else {
 
                         opaque_prod.assign(0);
@@ -206,6 +274,11 @@ namespace fltl { namespace lib { namespace cfg {
                         } else {
                             curr_prod = next_prod;
                             next_prod = 0;
+
+                            if(0 != curr_prod) {
+                                Production<AlphaT>::hold(curr_prod);
+                                goto next_iteration;
+                            }
                         }
                     }
 
@@ -217,8 +290,13 @@ namespace fltl { namespace lib { namespace cfg {
                     return false;
                 }
 
+                if(0 != next_prod) {
+                    Production<AlphaT>::hold(next_prod);
+                }
+
                 // bind the production
                 if(0 != state->binder) {
+
                     OpaqueProduction<AlphaT> *binder(
                         helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
                             state->binder
@@ -232,6 +310,7 @@ namespace fltl { namespace lib { namespace cfg {
             }
 
             static void reset_next_pattern(Generator<AlphaT> *state) throw() {
+                state->free_func(state);
                 if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
                     state->cursor.production = state->cfg->variable_map.get(
                         static_cast<unsigned>(
@@ -240,6 +319,10 @@ namespace fltl { namespace lib { namespace cfg {
                     )->first_production;
                 } else {
                     state->cursor.production = state->cfg->first_production;
+                }
+
+                if(0 != state->cursor.production) {
+                    Production<AlphaT>::hold(state->cursor.production);
                 }
             }
         };
@@ -261,6 +344,7 @@ namespace fltl { namespace lib { namespace cfg {
         typedef void (reset_gen_type)(self_type *);
         typedef bool (bind_next_type)(self_type *);
         typedef bool (pattern_func_type)(void *, const production_type &);
+        typedef void (free_func_type)(self_type *);
 
         /// CFG from which we are generating stuff
         CFG<AlphaT> *cfg;
@@ -268,7 +352,7 @@ namespace fltl { namespace lib { namespace cfg {
         union {
 
             /// the last variable bound by the generator
-            Variable<AlphaT> *variable;
+            unsigned variable_offset;
 
             /// the last production bound by the generator
             Production<AlphaT> *production;
@@ -289,18 +373,27 @@ namespace fltl { namespace lib { namespace cfg {
         /// reset the generator
         reset_gen_type *reset_func;
 
+        /// free the generator
+        free_func_type *free_func;
+
+        /// have we started?
+        bool has_been_used;
+
         Generator(
             CFG<AlphaT> *_cfg,
             void *_binder,
             detail::PatternData<AlphaT> *_pattern,
             bind_next_type *_binder_func,
-            reset_gen_type *_reset_func
+            reset_gen_type *_reset_func,
+            free_func_type *_free_func
         ) throw()
             : cfg(_cfg)
             , binder(_binder)
             , pattern(_pattern)
             , binder_func(_binder_func)
             , reset_func(_reset_func)
+            , free_func(_free_func)
+            , has_been_used(false)
         {
             memset(&cursor, 0, sizeof cursor);
 
@@ -317,6 +410,8 @@ namespace fltl { namespace lib { namespace cfg {
             , pattern(0)
             , binder_func(&detail::default_gen_next)
             , reset_func(&detail::default_gen_reset)
+            , free_func(&detail::default_gen_free)
+            , has_been_used(false)
         {
             memset(&cursor, 0, sizeof cursor);
         }
@@ -328,6 +423,8 @@ namespace fltl { namespace lib { namespace cfg {
             , pattern(that.pattern)
             , binder_func(that.binder_func)
             , reset_func(that.reset_func)
+            , free_func(that.free_func)
+            , has_been_used(false)
         {
             memcpy(&cursor, &(that.cursor), sizeof cursor);
 
@@ -340,6 +437,7 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != pattern) {
                 detail::PatternData<AlphaT>::decref(pattern);
             }
+            free_func(this);
         }
 
         self_type &operator=(self_type &that) throw() {
@@ -351,6 +449,7 @@ namespace fltl { namespace lib { namespace cfg {
             if(0 != pattern) {
                 detail::PatternData<AlphaT>::decref(pattern);
             }
+            free_func(this);
 
             cfg = that.cfg;
             memcpy(&cursor, &(that.cursor), sizeof cursor);
@@ -358,6 +457,8 @@ namespace fltl { namespace lib { namespace cfg {
             pattern = that.pattern;
             binder_func = that.binder_func;
             reset_func = that.reset_func;
+            free_func = that.free_func;
+            has_been_used = false;
 
             if(0 != pattern) {
                 detail::PatternData<AlphaT>::incref(pattern);
@@ -375,6 +476,10 @@ namespace fltl { namespace lib { namespace cfg {
         /// conditions and then bind the binder objects. returns true if
         /// we were able to find a successful binding, false otherwise.
         inline bool match_next(void) throw() {
+            if(!has_been_used) {
+                has_been_used = true;
+                reset_func(this);
+            }
             return binder_func(this);
         }
     };

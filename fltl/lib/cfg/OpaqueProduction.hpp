@@ -107,6 +107,17 @@ namespace fltl { namespace lib { namespace cfg {
             return production->length();
         }
 
+        /// was this production automatically added to its variable? this
+        /// happens in the event that we remove all productions from a
+        /// variable.
+        inline bool was_automatically_made(void) const throw() {
+            assert(
+                0 != production &&
+                "Unable to access state of non-existent production."
+            );
+            return production->var->null_production == production;
+        }
+
         /// equivalence of productions; to check that symbols are equivalent,
         /// use a.symbols() == b.symbols().
         inline bool operator==(const self_type &that) const throw() {

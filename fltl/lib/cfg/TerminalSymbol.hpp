@@ -23,6 +23,8 @@ namespace fltl { namespace lib { namespace cfg {
         friend class detail::PatternData<AlphaT>;
         friend struct std::less<TerminalSymbol<AlphaT> >;
 
+        typedef TerminalSymbol<AlphaT> self_type;
+
         explicit TerminalSymbol(const internal_sym_type _value) throw()
             : cfg::Symbol<AlphaT>(_value)
         { }
@@ -37,6 +39,12 @@ namespace fltl { namespace lib { namespace cfg {
         /// note: *not* const!!
         Unbound<AlphaT,terminal_tag> operator~(void) throw() {
             return Unbound<AlphaT,terminal_tag>(this);
+        }
+
+        self_type &operator=(const Symbol<AlphaT> &that) throw() {
+            assert(that.is_terminal());
+            this->value = that.value;
+            return *this;
         }
     };
 }}}

@@ -18,6 +18,8 @@
 
 #include "fltl/include/trait/Uncopyable.hpp"
 
+#define FLTL_USE_BLOCK_ALLOCATOR 0
+
 namespace fltl { namespace helper {
 
     namespace detail {
@@ -119,7 +121,7 @@ namespace fltl { namespace helper {
         }
 
         inline T *allocate(void) throw() {
-
+#if FLTL_USE_BLOCK_ALLOCATOR
             if(0 == free_list) {
                 block_list = new block_type(block_list);
                 free_list = &(block_list->slots[0]);
@@ -129,12 +131,13 @@ namespace fltl { namespace helper {
             free_list = obj->next;
 
             return &(obj->obj);
-
-            //return new T;
+#else
+            return new T;
+#endif
         }
 
         inline void deallocate(T *ptr) throw() {
-
+#if FLTL_USE_BLOCK_ALLOCATOR
             // destroy and re-instantiate
             ptr->~T();
             new (ptr) T;
@@ -156,8 +159,9 @@ namespace fltl { namespace helper {
 
             new_head->next = free_list;
             free_list = new_head;
-
-            //delete ptr;
+#else
+            delete ptr;
+#endif
         }
     };
 
