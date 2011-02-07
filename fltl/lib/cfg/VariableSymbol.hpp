@@ -37,6 +37,16 @@ namespace fltl { namespace lib { namespace cfg {
             : Symbol<AlphaT>(1)
         { }
 
+        VariableSymbol(const self_type &that) throw()
+            : Symbol<AlphaT>(that)
+        { }
+
+        VariableSymbol(const Symbol<AlphaT> &that) throw()
+            : Symbol<AlphaT>(that)
+        {
+            assert(that.is_variable());
+        }
+
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
         Unbound<AlphaT,variable_tag> operator~(void) throw() {
@@ -50,6 +60,10 @@ namespace fltl { namespace lib { namespace cfg {
         }
 
         FLTL_CFG_PRODUCTION_PATTERN(variable_tag)
+
+        bool operator<(const self_type &that) const throw() {
+            return this->value < that.value;
+        }
     };
 
 }}}

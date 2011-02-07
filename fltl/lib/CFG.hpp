@@ -489,7 +489,6 @@ namespace fltl { namespace lib {
                 // the null production is equivalent to the production we're
                 // trying to add
                 if(var->first_production->is_equivalent_to(*prod)) {
-                    var->null_production = 0;
                     production_allocator->deallocate(prod);
                     prod = var->first_production;
 
@@ -502,8 +501,6 @@ namespace fltl { namespace lib {
 
                     cfg::Production<AlphaT>::release(var->null_production);
 
-                    var->null_production = 0;
-
                     if(0 != var->first_production) {
                         var->first_production->prev = prod;
                     }
@@ -512,6 +509,8 @@ namespace fltl { namespace lib {
 
                     cfg::Production<AlphaT>::hold(prod);
                 }
+
+                var->null_production = 0;
 
             // no null production; go look for equivalent productions to
             // make sure we don't add a duplicate
@@ -535,26 +534,29 @@ namespace fltl { namespace lib {
                         // and move it to the front
                         prod = related_prod;
                         ++num_productions_;
+                        prod->is_deleted = false;
 
                         cfg::Production<AlphaT>::hold(prod);
 
-                        // we can be sure this isn't the first production as
-                        // if the first production is a deleted production
-                        // then something is wrong: if all productions are
-                        // deleted then the first should be the non-deleted
-                        // null production
+                        assert(0 != prod->prev);
 
-                        if(0 != prod->prev) {
-                            prod->prev = prod->next;
+
+                        // the previous production isn't deleted, so
+                        // don't move this one.
+                        if(!prod->prev->is_deleted) {
+                            goto done;
                         }
 
+                        // the previous production is deleted, unlink
+                        // this production and move it to the front.
+                        prod->prev->next = prod->next;
                         if(0 != prod->next) {
                             prod->next->prev = prod->prev;
                         }
 
-                        prod->is_deleted = false;
                         prod->prev = 0;
                         prod->next = var->first_production;
+                        var->first_production->prev = prod;
                         var->first_production = prod;
 
                         goto done;
@@ -660,9 +662,12 @@ namespace fltl { namespace lib {
 
                     // change the first production of this variable
                     var->first_production = prod->next;
-                    prod->next->prev = 0;
+                    var->first_production->prev = 0;
+                    prod->next = var->first_production->next;
+                    prod->prev = var->first_production;
+                    var->first_production->next = prod;
 
-                    move_production_to_end(prod, var->first_production);
+                    move_production_to_end(prod);
                 }
 
             // this is not the first production, i.e. there is no null
@@ -671,21 +676,7 @@ namespace fltl { namespace lib {
             } else {
 
                 --num_productions_;
-
-                // this is the last non-deleted production, yay!
-                if(0 == prod->next || prod->next->is_deleted) {
-                    
-                    cfg::Production<AlphaT>::release(prod);
-
-                // not the last production, and there is a non-deleted
-                // production after this one
-                } else {
-
-                    prod->prev->next = prod->next;
-                    prod->next->prev = prod->prev;
-
-                    move_production_to_end(prod, prod->next);
-                }
+                move_production_to_end(prod);
             }
 
         done:
@@ -696,15 +687,72 @@ namespace fltl { namespace lib {
 
     private:
 
+        /*
+        void print_productions(cfg::Production<AlphaT> *prod) throw() {
+            for(unsigned i(0); 0 != prod; prod = prod->next, ++i) {
+                printf("(%p [%p, %u] %p) ", reinterpret_cast<void *>(prod->prev), reinterpret_cast<void *>(prod), prod->is_deleted, reinterpret_cast<void *>(prod->next));
+                if(i > 10) {
+                    exit(0);
+                }
+            }
+            printf("\n");
+        }
+        */
+
         /// go look for the first deleted production related to
         /// this variable
         void move_production_to_end(
-            cfg::Production<AlphaT> *prod,
-            cfg::Production<AlphaT> *last
+            cfg::Production<AlphaT> *prod
         ) throw() {
 
-            for(cfg::Production<AlphaT> *pp(last->next);
-                0 != pp; pp = pp->next) {
+            if(0 == prod->next || prod->next->is_deleted) {
+                cfg::Production<AlphaT>::release(prod);
+                return;
+            }
+
+            // we are guaranteed now that there is a next production
+            // and there is a previous production; we are also guranteed that
+            // the next production is not deleted.
+            prod->prev->next = prod->next;
+            prod->next->prev = prod->prev;
+
+            //printf("... SET-PREV->NEXT(%p,%p)\n", reinterpret_cast<void *>(prod->prev), reinterpret_cast<void *>(prod->next));
+            //printf("... SET-NEXT->PREV(%p,%p)\n", reinterpret_cast<void *>(prod->next), reinterpret_cast<void *>(prod->prev));
+
+            cfg::Production<AlphaT> *last(prod->next);
+            cfg::Production<AlphaT> *curr(last->next);
+            prod->next = 0;
+            prod->prev = 0;
+
+            for(; 0 != curr; last = curr, curr = curr->next) {
+                if(curr->is_deleted) {
+                    break;
+                }
+            }
+
+            //printf("...... SET-LAST->NEXT(%p,%p)\n", reinterpret_cast<void *>(last), reinterpret_cast<void *>(prod));
+            //printf("...... SET-LAST->NEXT->PREV(%p,%p)\n", reinterpret_cast<void *>(last->next), reinterpret_cast<void *>(0));
+
+            prod->next = last->next;
+
+            if(0 != last->next) {
+                last->next->prev = prod;
+            }
+
+            last->next = prod;
+            prod->prev = last;
+
+            cfg::Production<AlphaT>::release(prod);
+
+
+            //for(cfg::Production<AlphaT> *last(last);
+
+            /*
+            for(cfg::Production<AlphaT> *pp(last);
+                0 != pp;
+                pp = pp->next) {
+
+                printf("last=%p pp=%p prod=%p\n", reinterpret_cast<void *>(last), reinterpret_cast<void *>(pp), reinterpret_cast<void *>(prod));
 
                 last = pp;
 
@@ -713,9 +761,13 @@ namespace fltl { namespace lib {
 
                     prod->next = pp;
                     prod->prev = pp->prev;
-                    pp->prev->next = prod;
-                    pp->prev = prod;
                     
+                    if(0 != pp->prev) {
+                        pp->prev->next = prod;
+                    }
+
+                    pp->prev = prod;
+
                     cfg::Production<AlphaT>::release(prod);
 
                     return;
@@ -724,11 +776,17 @@ namespace fltl { namespace lib {
 
             // there are no deleted productions, add this production
             // to the end
-            last->next = prod;
-            prod->prev = last;
+            if(last == prod) {
+                prod->prev = 0;
+            } else {
+                last->next = prod;
+                prod->prev = last;
+
+            }
             prod->next = 0;
-            
+
             cfg::Production<AlphaT>::release(prod);
+            */
         }
 
     public:

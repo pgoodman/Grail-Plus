@@ -35,6 +35,16 @@ namespace fltl { namespace lib { namespace cfg {
             : Symbol<AlphaT>(-1)
         { }
 
+        TerminalSymbol(const self_type &that) throw()
+            : Symbol<AlphaT>(that)
+        { }
+
+        TerminalSymbol(const Symbol<AlphaT> &that) throw()
+            : Symbol<AlphaT>(that)
+        {
+            assert(that.is_terminal());
+        }
+
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
         Unbound<AlphaT,terminal_tag> operator~(void) throw() {
@@ -45,6 +55,10 @@ namespace fltl { namespace lib { namespace cfg {
             assert(that.is_terminal());
             this->value = that.value;
             return *this;
+        }
+
+        bool operator<(const self_type &that) const throw() {
+            return this->value < that.value;
         }
     };
 }}}

@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <set>
+#include <utility>
 
 #include "fltl/lib/CFG.hpp"
 
@@ -225,6 +226,8 @@ private:
         production_type prod_related_to_B;
         production_type P;
 
+        std::set<std::pair<variable_type,variable_type> > eliminated;
+
         // generator that will find all unit productions
         generator_type unit_rules(cfg.search(
             ~unit_production,
@@ -248,6 +251,7 @@ private:
 
             for(unit_rules.rewind(); unit_rules.match_next(); ) {
 
+                eliminated.insert(std::make_pair(A, B));
                 cfg.remove_production(unit_production);
 
                 // don't follow into self-loops!
@@ -265,8 +269,10 @@ private:
                     if(1 == str.length()) {
                         if(str.at(0).is_variable()) {
                             if(A != str.at(0)) {
-                                cfg.add_production(A, str);
-                                added_unit_rhs = true;
+                                if(0 == eliminated.count(std::make_pair(A, variable_type(str.at(0))))) {
+                                    cfg.add_production(A, str);
+                                    added_unit_rhs = true;
+                                }
                             } else {
                                 found_self_loops = true;
                             }
@@ -382,9 +388,6 @@ public:
             return;
         }
 
-        printf("\ninput:\n");
-        print_grammar(cfg);
-
         // add a new start variable
         variable_type old_start_var(cfg.get_start_variable());
         variable_type new_start_var(cfg.add_variable());
@@ -393,20 +396,11 @@ public:
 
         remove_long_productions(cfg);
 
-        printf("\nstep 1:\n");
-        print_grammar(cfg);
-
         // buffer for builder productions
         production_builder_type buffer;
         remove_epsilon_rules(cfg, new_start_var, buffer);
 
-        printf("\nstep 2:\n");
-        print_grammar(cfg);
-
         remove_unit_productions(cfg, new_start_var);
-
-        printf("\nstep 3:\n");
-        print_grammar(cfg);
 
         // keep track of those productions that only generate a terminal
         std::map<terminal_type, variable_type> terminal_rules;
@@ -431,9 +425,6 @@ public:
         }
 
         clean_up_terminals(cfg, terminal_rules, vars_to_replace);
-
-        printf("\nstep 4:\n");
-        print_grammar(cfg);
     }
 };
 
@@ -509,22 +500,21 @@ int main(void) {
         cfg.add_production(B, B + A + B + A + B);
         cfg.add_production(B, cfg.epsilon());
 
-        /*
-        //cfg.add_production(S, S);
-        cfg.add_production(S, A);
-        cfg.add_production(A, B);
-        //cfg.add_production(A, S);
-        //cfg.add_production(B, cfg.epsilon());
-        //cfg.add_production(B, A);
-        cfg.add_production(B, S);
 
-        //print_grammar(cfg);
-        //printf("\n");
-        */
+        cfg.add_production(S, S);
+        cfg.add_production(S, A);
+        cfg.add_production(S, B);
+        cfg.add_production(A, A);
+        cfg.add_production(A, B);
+        cfg.add_production(A, S);
+        cfg.add_production(B, S);
+        cfg.add_production(B, A);
+        cfg.add_production(B, B);
+
         CFG_TO_CNF<char>::run(cfg);
+        print_grammar(cfg);
 
         j += cfg.num_productions();
-        //print_grammar(cfg);
     }
 
     printf("\n\nj = %u\n", j);
