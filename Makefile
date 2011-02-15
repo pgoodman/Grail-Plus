@@ -45,12 +45,15 @@ endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}
 OBJS = bin/main.o bin/test/Test.o bin/test/cfg/CFG.o
-OUT = bin/main
+OUT = bin/grail
 
 all: ${OBJS}
 	${CXX} ${LD_FLAGS} ${OBJS} -o ${OUT}
 
-bin/%.o: fltl/%.cpp
+bin/%.o: grail/%.cpp
+	${CXX} ${CXX_FLAGS} -c $< -o $@
+
+bin/lib/%.o: grail/lib/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
 	
 bin/test/%.o: fltl/test/%.cpp

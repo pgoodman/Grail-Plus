@@ -238,6 +238,8 @@ namespace fltl { namespace lib {
 
         /// represents any single symbol in a production
         cfg::AnySymbol<AlphaT> _;
+
+        /// represents and string of zero or more symbols in a production
         cfg::AnySymbolString<AlphaT> __;
 
         /// constructor
@@ -716,9 +718,6 @@ namespace fltl { namespace lib {
             prod->prev->next = prod->next;
             prod->next->prev = prod->prev;
 
-            //printf("... SET-PREV->NEXT(%p,%p)\n", reinterpret_cast<void *>(prod->prev), reinterpret_cast<void *>(prod->next));
-            //printf("... SET-NEXT->PREV(%p,%p)\n", reinterpret_cast<void *>(prod->next), reinterpret_cast<void *>(prod->prev));
-
             cfg::Production<AlphaT> *last(prod->next);
             cfg::Production<AlphaT> *curr(last->next);
             prod->next = 0;
@@ -730,9 +729,6 @@ namespace fltl { namespace lib {
                 }
             }
 
-            //printf("...... SET-LAST->NEXT(%p,%p)\n", reinterpret_cast<void *>(last), reinterpret_cast<void *>(prod));
-            //printf("...... SET-LAST->NEXT->PREV(%p,%p)\n", reinterpret_cast<void *>(last->next), reinterpret_cast<void *>(0));
-
             prod->next = last->next;
 
             if(0 != last->next) {
@@ -743,50 +739,6 @@ namespace fltl { namespace lib {
             prod->prev = last;
 
             cfg::Production<AlphaT>::release(prod);
-
-
-            //for(cfg::Production<AlphaT> *last(last);
-
-            /*
-            for(cfg::Production<AlphaT> *pp(last);
-                0 != pp;
-                pp = pp->next) {
-
-                printf("last=%p pp=%p prod=%p\n", reinterpret_cast<void *>(last), reinterpret_cast<void *>(pp), reinterpret_cast<void *>(prod));
-
-                last = pp;
-
-                // there is at least one already deleted production
-                if(pp->is_deleted) {
-
-                    prod->next = pp;
-                    prod->prev = pp->prev;
-                    
-                    if(0 != pp->prev) {
-                        pp->prev->next = prod;
-                    }
-
-                    pp->prev = prod;
-
-                    cfg::Production<AlphaT>::release(prod);
-
-                    return;
-                }
-            }
-
-            // there are no deleted productions, add this production
-            // to the end
-            if(last == prod) {
-                prod->prev = 0;
-            } else {
-                last->next = prod;
-                prod->prev = last;
-
-            }
-            prod->next = 0;
-
-            cfg::Production<AlphaT>::release(prod);
-            */
         }
 
     public:
