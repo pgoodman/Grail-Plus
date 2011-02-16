@@ -25,7 +25,8 @@ ifeq (${CXX}, g++)
     				  -Wvolatile-register-var \
     				  -Wstack-protector \
     				  -Wstrict-aliasing=2 \
-    				  -Wold-style-cast # -Weffc++
+    				  -Wold-style-cast \
+    				  -Wuninitialized
 endif
 
 # are we compiling with icc?

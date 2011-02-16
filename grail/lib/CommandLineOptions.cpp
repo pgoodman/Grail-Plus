@@ -129,8 +129,8 @@ namespace grail {
         CommandLineOption *opt_to_fill(0);
         bool opt_to_fill_is_long(false);
         const char *first_char(0);
-        size_t equals_offset;
-        int equals_argv;
+        size_t equals_offset(0);
+        int equals_argv(-1);
 
         for(int i(1); i < argc; ++i) {
 
@@ -163,8 +163,9 @@ namespace grail {
                         &detail::iskeychar)
                     );
 
-                    std::string kw(
-                        static_cast<const char *>(&(first_char[2])),
+                    std::string kw;
+                    kw.assign(
+                        &(first_char[2]),
                         static_cast<size_t>(next_char - (first_char + 2))
                     );
 
