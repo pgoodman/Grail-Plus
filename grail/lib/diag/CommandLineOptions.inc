@@ -1,0 +1,16 @@
+
+DIAG(err_bad_long_option,"Unexpected character found. Expected an alphabetic character (for long options; e.g. --help for help).")
+DIAG(err_redefine_option,"Command-line option cannot be used more than once.")
+DIAG(note_prev_option_definition,"Previous use of option was here.")
+DIAG(err_equals_with_short_option,"Unexpected '=' found with short option. '=' can only be used to specify the value of a long option. (e.g. -oX, -o X, --long-o=X, --long-o X, but not -o=X)")
+DIAG(err_bad_first_option_char,"Unexpected character found. Expected either an alphabetic character (for short options; e.g. -h for help) or another '-' followed by at least one alphabetic character (for long options; e.g. --help for help).")
+DIAG(err_equal_with_no_option,"Unexpected '=' found without an associated long option (e.g. --foo=bar).")
+DIAG(err_equal_with_no_value,"Unexpected '=' found without an associated value.")
+DIAG(err_required_long_option,"The long option '--%s' is required.")
+DIAG(err_required_short_option,"The short option '-%c' is required.")
+DIAG(err_required_long_or_short_option,"One of the keyword option '--%s' or short-form '-%c' is required.")
+DIAG(err_option_requires_val,"This option requires that a value be specified; however, no value was given. For example, a value X can be passed to an option '-o' or '--long-o' using '-oX' or '--long-o=X'.")
+DIAG(err_option_no_val,"This option requires that no value be specified; however, a value was given.")
+DIAG(err_too_few_positional_opts,"Too few positional command-line options were specified. The minimum number of positional command-line options required is %u.")
+DIAG(err_too_many_positional_opts,"Too many positional command-line options were specified. The maximum number of positional command-line options is %u.")
+

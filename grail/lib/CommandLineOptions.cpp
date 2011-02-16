@@ -58,6 +58,7 @@ namespace grail {
         , val_end(0)
         , is_positional(false)
         , is_positional_candidate(true)
+        , is_accounted_for(false)
         , next(0)
     { }
 
@@ -88,6 +89,7 @@ namespace grail {
         , last(0)
         , long_options()
         , has_errors(false)
+        , num_positional(0)
     {
         memset(short_options, 0, sizeof(CommandLineOption *) * 52);
     }
@@ -126,13 +128,16 @@ namespace grail {
 
         CommandLineOption *opt_to_fill(0);
         bool opt_to_fill_is_long(false);
+        const char *first_char(0);
+        size_t equals_offset;
+        int equals_argv;
 
         for(int i(1); i < argc; ++i) {
 
-            const char *first_char(detail::eat_chars(
+            first_char = detail::eat_chars(
                 &(argv[i][0]),
                 &isspace
-            ));
+            );
             size_t offset(static_cast<size_t>(first_char - argv[i]));
 
         process_first_char:
@@ -226,6 +231,18 @@ namespace grail {
                     // letter, possibly preceded by some whitespace
                     } else {
                         short_options[opt]->init(i, next_char);
+
+                        // go look for an '=' in this short option
+                        for(const char *curr(short_options[opt]->val_begin);
+                            0 != curr && curr < short_options[opt]->val_end;
+                            ++curr) {
+                            if('=' == *curr && '\\' != *(curr - 1)) {
+                                return error(
+                                    diag::err_equals_with_short_option,
+                                    i, static_cast<size_t>(curr - argv[i])
+                                );
+                            }
+                        }
                     }
 
                 // error, bad option type
@@ -236,7 +253,10 @@ namespace grail {
                 }
 
             // looks like a long option to fill in
-            } else if('=' == first_char[0]) {
+            } else if('=' == *first_char) {
+
+                equals_argv = i;
+                equals_offset = static_cast<size_t>(first_char - argv[i]);
 
                 if(0 == opt_to_fill) {
                     return error(
@@ -252,6 +272,7 @@ namespace grail {
                 // wasn't a positional argument
                 opt_to_fill->is_positional_candidate = false;
                 ++first_char;
+
                 goto process_dangling;
 
             // we need to fill in an option
@@ -264,11 +285,32 @@ namespace grail {
                         detail::eat_chars(first_char, &isspace)
                     );
 
+                    // dangling equals
+                    if(0 == next_char || '\0' == *next_char) {
+
+                        return error(
+                            diag::err_equal_with_no_value,
+                            equals_argv, equals_offset
+                        );
+
+                    // missing value with an '=' specified
+                    } else if('-' == *next_char
+                           && !opt_to_fill->is_positional_candidate) {
+                        return error(
+                            diag::err_equal_with_no_value,
+                            equals_argv, equals_offset
+                        );
+                    }
+
                     opt_to_fill->init(i, next_char);
                     opt_to_fill = 0;
 
                 // positional argument
                 } else {
+                    opt_to_fill = make_option(i, 0);
+                    opt_to_fill->init(i, first_char);
+                    opt_to_fill->is_positional = true;
+                    ++num_positional;
                     opt_to_fill = 0;
                 }
             }
@@ -334,6 +376,16 @@ namespace grail {
             diag::diag_message[diag_id],
             loc->opt_argv,
             static_cast<size_t>(loc->opt_begin - argv[loc->opt_argv])
+        );
+    }
+
+    void CommandLineOptions::note(const char *diag) throw() {
+        message(
+            "note",
+            FLTL_F_BLUE,
+            diag,
+            -1,
+            0
         );
     }
 
@@ -470,14 +522,19 @@ namespace grail {
             error(diag::err_option_requires_val, opt);
         } else if(opt::NO_VAL == vc && 0 != opt->val_begin) {
             if(opt->is_positional_candidate) {
+                ++num_positional;
                 opt->is_positional = true;
+                opt->opt_begin = 0;
+                opt->is_accounted_for = false;
             } else {
                 error(diag::err_option_no_val, opt);
             }
+        } else {
+            opt->is_accounted_for = true;
         }
     }
 
-    void CommandLineOptions::declare(
+    option_type CommandLineOptions::declare(
         const char *long_opt,
         opt::key_constraint_type kc,
         opt::val_constraint_type vc
@@ -498,9 +555,10 @@ namespace grail {
         } else {
             check_option(opt, vc);
         }
+        return operator[](kw);
     }
 
-    void CommandLineOptions::declare(
+    option_type CommandLineOptions::declare(
         const char *long_opt_,
         char short_opt_,
         opt::key_constraint_type kc,
@@ -546,9 +604,11 @@ namespace grail {
                 short_opt
             );
         }
+
+        return operator[](short_opt_);
     }
 
-    void CommandLineOptions::declare(
+    option_type CommandLineOptions::declare(
         char short_opt,
         opt::key_constraint_type kc,
         opt::val_constraint_type vc
@@ -571,6 +631,87 @@ namespace grail {
         } else {
             check_option(opt, vc);
         }
+        return operator[](short_opt);
+    }
+
+    void CommandLineOptions::declare_min_num_positional(unsigned x) {
+        if(num_positional < x) {
+            char buffer[1024];
+            memset(buffer, 0, 1024 * sizeof(char));
+            sprintf(
+                buffer,
+                diag::diag_message[diag::err_too_few_positional_opts],
+                x
+            );
+            error(buffer);
+        }
+    }
+
+    void CommandLineOptions::declare_max_num_positional(unsigned x) {
+        if(num_positional > x) {
+            char buffer[1024];
+            memset(buffer, 0, 1024 * sizeof(char));
+            sprintf(
+                buffer,
+                diag::diag_message[diag::err_too_many_positional_opts],
+                x
+            );
+            error(buffer);
+        }
+    }
+
+    bool CommandLineOptions::has_error(void) const throw() {
+        return has_errors;
+    }
+
+    option_type CommandLineOptions::operator[](char ch) throw() {
+        assert(isalpha(ch));
+        CommandLineOption *opt(short_options[detail::alpha_to_offset(ch)]);
+        if(has_errors) {
+            return option_type(0);
+        } else if(0 == opt || opt->is_positional) {
+            return option_type(0);
+        } else {
+            return option_type(opt);
+        }
+    }
+    option_type CommandLineOptions::operator[](const char *str) throw() {
+        std::string kw(str);
+        return operator[](str);
+    }
+    option_type CommandLineOptions::operator[](const std::string &kw) throw() {
+        if(has_errors) {
+            return option_type(0);
+        } else if(0 == kw.length()) {
+            return option_type(0);
+        } else if(isalpha(kw[0]) && 1 == kw.length()) {
+            return operator[](kw[0]);
+        } else {
+            CommandLineOption *opt(long_options[kw]);
+            if(0 == opt || opt->is_positional) {
+                return option_type(0);
+            } else {
+                return option_type(opt);
+            }
+        }
+    }
+
+    option_type::option_type(CommandLineOption *opt) throw()
+        : option(opt)
+    { }
+    option_type::option_type(void) throw()
+        : option(0)
+    { }
+    option_type::option_type(const option_type &that) throw()
+        : option(that.option)
+    { }
+    option_type &option_type::operator=(const option_type &that) throw() {
+        option = that.option;
+        return *this;
+    }
+
+    bool option_type::is_valid(void) const throw() {
+        return 0 != option;
     }
 }
 
