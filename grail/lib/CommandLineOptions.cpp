@@ -134,6 +134,8 @@ namespace grail {
 
         for(int i(1); i < argc; ++i) {
 
+            printf("argv[%d] = '%s'\n", i, argv[i]);
+
             first_char = detail::eat_chars(
                 &(argv[i][0]),
                 &isspace
@@ -148,6 +150,7 @@ namespace grail {
 
             // keyword argument
             } else if('-' == *first_char) {
+
                 opt_to_fill = 0;
 
                 // long option
@@ -189,7 +192,7 @@ namespace grail {
                     goto process_first_char;
 
                 // short option
-                } else if(isalpha(first_char[1])){
+                } else if(isalpha(first_char[1])) {
 
                     // go fin the next non-space character
                     const char *next_char(detail::eat_chars(
@@ -296,12 +299,16 @@ namespace grail {
                         );
 
                     // missing value with an '=' specified
-                    } else if('-' == *next_char
-                           && !opt_to_fill->is_positional_candidate) {
-                        return error(
-                            diag::err_equal_with_no_value,
-                            equals_argv, equals_offset
-                        );
+                    } else if('-' == *next_char) {
+                        if(!opt_to_fill->is_positional_candidate) {
+                            return error(
+                                diag::err_equal_with_no_value,
+                                equals_argv, equals_offset
+                            );
+                        } else {
+                            first_char = next_char;
+                            goto process_first_char;
+                        }
                     }
 
                     opt_to_fill->init(i, next_char);
