@@ -163,11 +163,12 @@ namespace grail {
                         &detail::iskeychar)
                     );
 
-                    std::string kw;
-                    kw.assign(
-                        &(first_char[2]),
-                        static_cast<size_t>(next_char - (first_char + 2))
-                    );
+                    // assign the whole thing, then resize down; used to get
+                    // around an annoying gcc 4.1.2 bug
+                    std::string kw(&(first_char[2]));
+                    kw.resize(static_cast<size_t>(
+                        next_char - (first_char + 2)
+                    ));
 
                     CommandLineOption *&opt(long_options[kw]);
 
