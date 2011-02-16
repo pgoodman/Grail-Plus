@@ -32,9 +32,15 @@ int main(const int argc, const char **argv) throw() {
 
     if(options.parse()) {
 
-    }
+        using namespace grail;
 
-    return 0;
+        options.declare("help", 'h', opt::OPTIONAL, opt::NO_VAL);
+        options.declare("tool", opt::OPTIONAL, opt::REQUIRES_VAL);
+
+        return 0;
+    } else {
+        return 1;
+    }
 }
 
 #endif /* FLTL_MAIN_CPP_ */

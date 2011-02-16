@@ -13,15 +13,15 @@
 
 #if defined(_MSC_VER)
 
-#define FLTL_F_DEF
-#define FLTL_F_YELLOW
-#define FLTL_F_PINK
-#define FLTL_F_GREEN
-#define FLTL_F_RED
-#define FLTL_F_BLUE
+#define FLTL_F_DEF ""
+#define FLTL_F_YELLOW ""
+#define FLTL_F_PINK ""
+#define FLTL_F_GREEN ""
+#define FLTL_F_RED ""
+#define FLTL_F_BLUE ""
 
-#define FLTL_F_BOLD
-#define FLTL_F_UNDER
+#define FLTL_F_BOLD ""
+#define FLTL_F_UNDER ""
 
 #else
 
