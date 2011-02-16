@@ -165,7 +165,8 @@ namespace grail {
 
                     // assign the whole thing, then resize down; used to get
                     // around an annoying gcc 4.1.2 bug
-                    std::string kw(&(first_char[2]));
+                    std::string kw;
+                    kw += &(first_char[2]);
                     //,
                     //    static_cast<size_t>(next_char - (first_char + 2))
                     //);
