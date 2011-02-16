@@ -164,7 +164,7 @@ namespace grail {
                     );
 
                     std::string kw(
-                        first_char + 2,
+                        &(first_char[2]),
                         static_cast<size_t>(next_char - (first_char + 2))
                     );
 
