@@ -134,8 +134,6 @@ namespace grail {
 
         for(int i(1); i < argc; ++i) {
 
-            printf("argv[%d] = '%s'\n", i, argv[i]);
-
             first_char = detail::eat_chars(
                 &(argv[i][0]),
                 &isspace
@@ -150,6 +148,14 @@ namespace grail {
 
             // keyword argument
             } else if('-' == *first_char) {
+
+                if(0 != opt_to_fill
+                && !opt_to_fill->is_positional_candidate) {
+                    return error(
+                        diag::err_equal_with_no_value,
+                        equals_argv, equals_offset
+                    );
+                }
 
                 opt_to_fill = 0;
 
@@ -188,7 +194,7 @@ namespace grail {
                     opt = opt_to_fill = make_option(i, first_char + 2);
                     first_char = next_char;
                     opt_to_fill_is_long = true;
-                    offset = 0;
+                    offset = static_cast<size_t>(next_char - argv[i]);
                     goto process_first_char;
 
                 // short option
@@ -261,22 +267,24 @@ namespace grail {
             } else if('=' == *first_char) {
 
                 equals_argv = i;
-                equals_offset = static_cast<size_t>(first_char - argv[i]);
+                equals_offset = offset;
 
                 if(0 == opt_to_fill) {
                     return error(
-                        diag::err_equal_with_no_option, i, offset + 0UL
+                        diag::err_equal_with_no_option, i, offset
                     );
                 } else if(!opt_to_fill_is_long) {
                     return error(
-                        diag::err_equals_with_short_option, i, offset + 0UL
+                        diag::err_equals_with_short_option, i, offset
                     );
                 }
 
                 // we found and '=', so the user was explicit in that this
                 // wasn't a positional argument
                 opt_to_fill->is_positional_candidate = false;
+
                 ++first_char;
+                offset = static_cast<unsigned>(first_char - argv[i]);
 
                 goto process_dangling;
 
@@ -292,11 +300,8 @@ namespace grail {
 
                     // dangling equals
                     if(0 == next_char || '\0' == *next_char) {
-
-                        return error(
-                            diag::err_equal_with_no_value,
-                            equals_argv, equals_offset
-                        );
+                        opt_to_fill->is_positional_candidate = false;
+                        continue;
 
                     // missing value with an '=' specified
                     } else if('-' == *next_char) {
@@ -307,12 +312,12 @@ namespace grail {
                             );
                         } else {
                             first_char = next_char;
+                            offset = static_cast<size_t>(next_char - argv[i]);
                             goto process_first_char;
                         }
                     }
 
                     opt_to_fill->init(i, next_char);
-                    opt_to_fill = 0;
 
                 // positional argument
                 } else {
@@ -320,9 +325,18 @@ namespace grail {
                     opt_to_fill->init(i, first_char);
                     opt_to_fill->is_positional = true;
                     ++num_positional;
-                    opt_to_fill = 0;
                 }
+
+                opt_to_fill = 0;
             }
+        }
+
+        if(0 != opt_to_fill
+        && !opt_to_fill->is_positional_candidate) {
+            return error(
+                diag::err_equal_with_no_value,
+                equals_argv, equals_offset
+            );
         }
 
         return true;
