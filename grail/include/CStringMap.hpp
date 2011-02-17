@@ -50,6 +50,22 @@ namespace grail {
         T &get(const char *str) throw() {
             return mm[std::make_pair(str, str + strlen(str))];
         }
+
+        T &get(std::pair<const char *, const char *> pp) throw() {
+            return mm[pp];
+        }
+
+        bool contains(const char *left, const char *right) throw() {
+            return 0 != mm.count(std::make_pair(left,right));
+        }
+
+        bool contains(const char *str) throw() {
+            return 0 != mm.count(std::make_pair(str, str + strlen(str)));
+        }
+
+        bool contains(std::pair<const char *, const char *> pp) throw() {
+            return 0 != mm.count(pp);
+        }
     };
 }
 

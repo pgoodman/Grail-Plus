@@ -43,6 +43,7 @@ namespace grail {
     private:
 
         friend class CommandLineOptions;
+        friend class option_type;
 
         int opt_argv;
         int val_argv;
@@ -74,6 +75,8 @@ namespace grail {
         option_type &operator=(const option_type &that) throw();
 
         bool is_valid(void) const throw();
+
+        std::pair<const char *, const char *> raw_value(void) const throw();
     };
 
     /// container and parser for command-line options
@@ -142,6 +145,11 @@ namespace grail {
             const char *diag
         ) throw();
 
+        void note(
+            const char *diag,
+            const option_type &
+        ) throw();
+
         bool has_error(void) const throw();
 
         option_type declare(const char *long_opt, const opt::key_constraint_type kc, const opt::val_constraint_type vc) throw();
@@ -153,7 +161,6 @@ namespace grail {
 
         option_type operator[](char) throw();
         option_type operator[](const char *) throw();
-        option_type operator[](const std::string &) throw();
     };
 }
 

@@ -13,8 +13,6 @@
 
 #include "grail/include/CommandLineOptions.hpp"
 
-
-
 namespace grail {
 
     namespace opt {
@@ -415,6 +413,20 @@ namespace grail {
         );
     }
 
+    void CommandLineOptions::note(const char *diag, const option_type &opt) throw() {
+        if(0 == opt.option) {
+            note(diag);
+        } else {
+            message(
+                "note",
+                FLTL_F_BLUE,
+                diag,
+                opt.option->opt_argv,
+                static_cast<size_t>(opt.option->opt_begin - argv[opt.option->opt_argv])
+            );
+        }
+    }
+
     /// report an error with the command-line arguments. this writes errors
     /// out in a Clang-like way, i.e. it tries to highlight and pinpoint the
     /// context of an error
@@ -733,6 +745,14 @@ namespace grail {
 
     bool option_type::is_valid(void) const throw() {
         return 0 != option;
+    }
+
+    std::pair<const char *, const char *> option_type::raw_value(void) const throw() {
+        if(0 == option) {
+            return std::make_pair<const char *, const char *>(0,0);
+        } else {
+            return std::make_pair(option->val_begin, option->val_end);
+        }
     }
 }
 

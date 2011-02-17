@@ -16,11 +16,12 @@
 #include "fltl/test/Test.hpp"
 #include "fltl/test/cfg/CFG.hpp"
 
-#include "grail/algorithm/CFG_REMOVE_EPSILON.hpp"
-#include "grail/algorithm/CFG_REMOVE_UNITS.hpp"
-#include "grail/algorithm/CFG_TO_CNF.hpp"
-
 #include "grail/include/CommandLineOptions.hpp"
+#include "grail/include/CStringMap.hpp"
+
+#include "grail/cli/CFG_TO_CNF.hpp"
+#include "grail/cli/CFG_REMOVE_UNITS.hpp"
+#include "grail/cli/CFG_REMOVE_EPSILON.hpp"
 
 enum {
     GRAIL_MAJOR_VERSION = 0,
@@ -33,10 +34,11 @@ static void help_header(const char *argv0) throw() {
         "  tool-selection option:\n"
         "    --tool=<name>                  use the Grail+ tool named <name>\n\n"
         "  basic use options for all Grail+ tools:\n"
-        "    --help, -h                     show this message, along with any tool-specific\n"
-        "                                   help\n"
+        "    --help, -h                     show this message, along with any tool-\n"
+        "                                   specific help\n"
         "    --test                         execute all test cases\n"
         "    --version                      show the version\n\n",
+        //"                                   |                                             |"
         argv0
     );
 }
@@ -48,10 +50,34 @@ static void help_footer(void) throw() {
     );
 }
 
+typedef int (cli_tool_type)(grail::CommandLineOptions &);
+typedef void (cli_decl_type)(grail::CommandLineOptions &);
+typedef char alphabet_type;
+
+// the command-line tools
+template <typename T>
+class Tool {
+public:
+    Tool(
+        grail::CStringMap<cli_tool_type *> &tool_map,
+        grail::CStringMap<cli_decl_type *> &decl_map
+    ) {
+        tool_map.get(T::TOOL_NAME) = T::main;
+        decl_map.get(T::TOOL_NAME) = T::declare;
+    }
+};
+
+static grail::CStringMap<cli_tool_type *> tools;
+static grail::CStringMap<cli_decl_type *> declarations;
+
+#define GRAIL_DECLARE_TOOL(tpl) \
+    static Tool<grail::cli::tpl<alphabet_type> > cli__ ## tpl (tools, declarations);
+
+#include "grail/Tools.hpp"
+
 int main(const int argc, const char **argv) throw() {
 
     using namespace grail;
-    typedef char alphabet_type;
 
     CommandLineOptions options(argc, argv);
 
@@ -97,15 +123,35 @@ int main(const int argc, const char **argv) throw() {
         // delegate to the tool
         } else if(tool.is_valid()) {
 
+            // can we dispatch to a tool?
+            if(!tools.contains(tool.raw_value())) {
+
+                options.error("Unrecognized tool.");
+                options.note("Tool was specified here.", tool);
+
+                return 1;
+            }
+
+            // declare tool-specific command-line arguments
+            declarations.get(tool.raw_value())(options);
+
+            // found an error through the tool's declarations
+            if(options.has_error()) {
+                return 1;
+            }
+
             if(help.is_valid()) {
                 help_header(argv[0]);
             }
 
-
+            // run the tool
+            int ret(tools.get(tool.raw_value())(options));
 
             if(help.is_valid()) {
                 help_footer();
             }
+
+            return ret;
         }
 
         return 0;
