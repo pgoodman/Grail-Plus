@@ -13,7 +13,17 @@
 
 #include "grail/include/CommandLineOptions.hpp"
 
+
+
 namespace grail {
+
+    namespace opt {
+
+        // static array for holding short command line options
+        CommandLineOption *short_options[52] = {'\0'};
+
+        CStringMap<CommandLineOption *> long_options;
+    }
 
     namespace detail {
         static int iskeychar(int c) throw() {
@@ -87,12 +97,9 @@ namespace grail {
         , argv(argv_)
         , first(0)
         , last(0)
-        , long_options()
         , has_errors(false)
         , num_positional(0)
-    {
-        memset(short_options, 0, sizeof(CommandLineOption *) * 52);
-    }
+    { }
 
     CommandLineOptions::~CommandLineOptions(void) throw() {
         for(CommandLineOption *curr(first), *next(0);
@@ -166,20 +173,16 @@ namespace grail {
                         return error(diag::err_bad_long_option, i, offset + 2UL);
                     }
 
-                    // go find the next non-alphabetic character
+                    // go find the next non-keyword-like character
                     const char *next_char(detail::eat_chars(
                         &(first_char[2]),
-                        &detail::iskeychar)
-                    );
+                        &detail::iskeychar
+                    ));
 
-                    // assign the whole thing, then resize down; used to get
-                    // around an annoying gcc 4.1.2 bug
-                    std::string kw(
-                        &(first_char[2]),
-                        static_cast<size_t>(next_char - (first_char + 2))
-                    );
-
-                    CommandLineOption *&opt(long_options[kw]);
+                    CommandLineOption *&opt(opt::long_options.get(
+                        first_char + 2,
+                        next_char
+                    ));
 
                     if(0 != opt) {
                         error(diag::err_redefine_option, i, offset + 2UL);
@@ -209,16 +212,16 @@ namespace grail {
                     const size_t opt(detail::alpha_to_offset(first_char[1]));
 
                     // the option already exists!
-                    if(0 != short_options[opt]) {
+                    if(0 != opt::short_options[opt]) {
                         error(diag::err_redefine_option, i, offset + 1UL);
                         note(
                             diag::note_prev_option_definition,
-                            short_options[opt]
+                            opt::short_options[opt]
                         );
                         return false;
                     }
 
-                    short_options[opt] = make_option(
+                    opt::short_options[opt] = make_option(
                         i,
                         first_char + 1
                     );
@@ -229,7 +232,7 @@ namespace grail {
                     if('\0' == first_char[2]) {
 
                         opt_to_fill_is_long = false;
-                        opt_to_fill = short_options[opt];
+                        opt_to_fill = opt::short_options[opt];
 
                     // short option using an '='
                     } else if('=' == first_char[2]) {
@@ -241,11 +244,11 @@ namespace grail {
                     // the value of this option immediately follows the
                     // letter, possibly preceded by some whitespace
                     } else {
-                        short_options[opt]->init(i, next_char);
+                        opt::short_options[opt]->init(i, next_char);
 
                         // go look for an '=' in this short option
-                        for(const char *curr(short_options[opt]->val_begin);
-                            0 != curr && curr < short_options[opt]->val_end;
+                        for(const char *curr(opt::short_options[opt]->val_begin);
+                            0 != curr && curr < opt::short_options[opt]->val_end;
                             ++curr) {
                             if('=' == *curr && '\\' != *(curr - 1)) {
                                 return error(
@@ -539,7 +542,7 @@ namespace grail {
 
     void CommandLineOptions::check_option(
         CommandLineOption *opt,
-        opt::val_constraint_type vc
+        const opt::val_constraint_type vc
     ) throw() {
         if(opt::REQUIRES_VAL == vc && 0 == opt->val_begin) {
             error(diag::err_option_requires_val, opt);
@@ -558,12 +561,11 @@ namespace grail {
     }
 
     option_type CommandLineOptions::declare(
-        const char *long_opt,
-        opt::key_constraint_type kc,
-        opt::val_constraint_type vc
+        const char *long_opt_,
+        const opt::key_constraint_type kc,
+        const opt::val_constraint_type vc
     ) throw() {
-        std::string kw(long_opt);
-        CommandLineOption *&opt(long_options[kw]);
+        CommandLineOption *&opt(opt::long_options.get(long_opt_));
         if(0 == opt) {
             if(opt::REQUIRED == kc) {
                 char buffer[1024];
@@ -571,27 +573,26 @@ namespace grail {
                 sprintf(
                     buffer,
                     diag::diag_message[diag::err_required_long_option],
-                    long_opt
+                    long_opt_
                 );
                 error(buffer);
             }
         } else {
             check_option(opt, vc);
         }
-        return operator[](kw);
+        return operator[](long_opt_);
     }
 
     option_type CommandLineOptions::declare(
         const char *long_opt_,
         char short_opt_,
-        opt::key_constraint_type kc,
-        opt::val_constraint_type vc
+        const opt::key_constraint_type kc,
+        const opt::val_constraint_type vc
     ) throw() {
 
-        std::string kw(long_opt_);
-        CommandLineOption *&long_opt(long_options[kw]);
+        CommandLineOption *&long_opt(opt::long_options.get(long_opt_));
         CommandLineOption *&short_opt(
-            short_options[detail::alpha_to_offset(short_opt_)]
+            opt::short_options[detail::alpha_to_offset(short_opt_)]
         );
 
         // both are undefined
@@ -633,11 +634,11 @@ namespace grail {
 
     option_type CommandLineOptions::declare(
         char short_opt,
-        opt::key_constraint_type kc,
-        opt::val_constraint_type vc
+        const opt::key_constraint_type kc,
+        const opt::val_constraint_type vc
     ) throw() {
         CommandLineOption *&opt(
-            short_options[detail::alpha_to_offset(short_opt)]
+            opt::short_options[detail::alpha_to_offset(short_opt)]
         );
 
         if(0 == opt) {
@@ -689,7 +690,7 @@ namespace grail {
 
     option_type CommandLineOptions::operator[](char ch) throw() {
         assert(isalpha(ch));
-        CommandLineOption *opt(short_options[detail::alpha_to_offset(ch)]);
+        CommandLineOption *opt(opt::short_options[detail::alpha_to_offset(ch)]);
         if(has_errors) {
             return option_type(0);
         } else if(0 == opt || opt->is_positional) {
@@ -698,19 +699,16 @@ namespace grail {
             return option_type(opt);
         }
     }
+
     option_type CommandLineOptions::operator[](const char *str) throw() {
-        std::string kw(str);
-        return operator[](str);
-    }
-    option_type CommandLineOptions::operator[](const std::string &kw) throw() {
         if(has_errors) {
             return option_type(0);
-        } else if(0 == kw.length()) {
+        } else if(0 == str || '\0' == *str) {
             return option_type(0);
-        } else if(isalpha(kw[0]) && 1 == kw.length()) {
-            return operator[](kw[0]);
+        } else if(isalpha(str[0]) && '\0' == str[1]) {
+            return operator[](str[0]);
         } else {
-            CommandLineOption *opt(long_options[kw]);
+            CommandLineOption *opt(opt::long_options.get(str));
             if(0 == opt || opt->is_positional) {
                 return option_type(0);
             } else {

@@ -15,11 +15,10 @@
 #include <cstdio>
 #include <cassert>
 #include <cstring>
-#include <map>
-#include <utility>
-#include <string>
 
 #include "fltl/include/preprocessor/COLOR.hpp"
+
+#include "grail/include/CStringMap.hpp"
 
 namespace grail {
 
@@ -85,11 +84,9 @@ namespace grail {
         const char **argv;
 
         // the simple options for the 52 alphabetic characters
-        CommandLineOption *short_options[52];
+
         CommandLineOption *first;
         CommandLineOption *last;
-
-        std::map<std::string, CommandLineOption *> long_options;
 
         bool has_errors;
         unsigned num_positional;
@@ -128,7 +125,7 @@ namespace grail {
         ) throw();
 
         CommandLineOption *make_option(const int, const char *) throw();
-        void check_option(CommandLineOption *option, opt::val_constraint_type vc) throw();
+        void check_option(CommandLineOption *option, const opt::val_constraint_type vc) throw();
 
     public:
 
@@ -147,9 +144,9 @@ namespace grail {
 
         bool has_error(void) const throw();
 
-        option_type declare(const char *long_opt, opt::key_constraint_type kc, opt::val_constraint_type vc) throw();
-        option_type declare(const char *long_opt, char short_opt, opt::key_constraint_type kc, opt::val_constraint_type vc) throw();
-        option_type declare(char short_opt, opt::key_constraint_type kc, opt::val_constraint_type vc) throw();
+        option_type declare(const char *long_opt, const opt::key_constraint_type kc, const opt::val_constraint_type vc) throw();
+        option_type declare(const char *long_opt, char short_opt, const opt::key_constraint_type kc, const opt::val_constraint_type vc) throw();
+        option_type declare(char short_opt, const opt::key_constraint_type kc, const opt::val_constraint_type vc) throw();
 
         void declare_min_num_positional(unsigned x);
         void declare_max_num_positional(unsigned x);

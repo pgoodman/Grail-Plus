@@ -45,7 +45,7 @@ ifeq (${CXX}, clang++)
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}
-OBJS = bin/main.o bin/lib/CommandLineOptions.o bin/test/Test.o bin/test/cfg/CFG.o
+OBJS = bin/main.o bin/lib/CommandLineOptions.o bin/lib/CStringMap.o bin/test/Test.o bin/test/cfg/CFG.o
 OUT = bin/grail
 
 all: ${OBJS}
