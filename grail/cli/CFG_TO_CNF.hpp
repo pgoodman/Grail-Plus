@@ -23,8 +23,8 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &options) throw() {
-            options.declare("output", 'o', opt::OPTIONAL, opt::REQUIRES_VAL);
+        static void declare(CommandLineOptions &) throw() {
+
         }
 
         static int main(CommandLineOptions &options) throw() {
@@ -41,8 +41,6 @@ namespace grail { namespace cli {
                     "    CFG generates the empty word then the only epsilon production in the\n"
                     "    CFG will be that of the start variable.\n\n"
                     "  basic use options for cfg-to-cnf:\n"
-                    "    --output=<file>, -o<file>      output results to <file>. If left unspecified,\n"
-                    "                                   output goes to stdout.\n"
                     "    <file>                         read in a CFG from <file>.\n\n",
                     TOOL_NAME
                 );
