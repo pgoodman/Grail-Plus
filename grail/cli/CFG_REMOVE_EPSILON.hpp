@@ -33,11 +33,11 @@ namespace grail { namespace cli {
             // display help information
             if(help.is_valid()) {
 
-                //  "                                   |                                             |"
+                //  "  | |                              |                                             |"
                 printf(
                     "  %s:\n"
-                    "    Removed epsilon productions from a context-free grammar (CFG). If the CFG\n"
-                    "    generates the empty language then the only remaining epsilon will be related\n"
+                    "    Remove epsilon productions from a context-free grammar (CFG). If the CFG\n"
+                    "    generates the empty string then the only remaining epsilon will be related\n"
                     "    to the start variable.\n\n"
                     "  basic use options for cfg-to-cnf:\n"
                     "    <file>                         read in a CFG from <file>.\n\n",

@@ -30,6 +30,7 @@ enum {
 
 static void help_header(const char *argv0) throw() {
     printf(
+    //  "  | |                              |                                             |"
         "usage: %s [options] [input]\n\n"
         "  tool-selection option:\n"
         "    --tool=<name>                  use the Grail+ tool named <name>\n\n"
@@ -38,13 +39,13 @@ static void help_header(const char *argv0) throw() {
         "                                   specific help\n"
         "    --test                         execute all test cases\n"
         "    --version                      show the version\n\n",
-        //"                                   |                                             |"
         argv0
     );
 }
 
 static void help_footer(void) throw() {
     printf(
+    //  "                                   |                                             |"
         "  Grail+ is Copyright (C) 2011, Peter Goodman.\n\n"
         "  Bug reports, feedback, etc. to: peter.goodman@gmail.com\n\n"
     );
@@ -70,11 +71,16 @@ public:
 static grail::CStringMap<cli_tool_type *> tools;
 static grail::CStringMap<cli_decl_type *> declarations;
 
+#ifdef GRAIL_DECLARE_TOOL
+#undef GRAIL_DECLARE_TOOL
+#endif
+
 #define GRAIL_DECLARE_TOOL(tpl) \
     static Tool<grail::cli::tpl<alphabet_type> > cli__ ## tpl (tools, declarations);
 
 #include "grail/Tools.hpp"
 
+/// run the program
 int main(const int argc, const char **argv) throw() {
 
     using namespace grail;

@@ -34,11 +34,11 @@ namespace grail { namespace cli {
             // display help information
             if(help.is_valid()) {
 
-                //  "                                   |                                             |"
+                //  "  | |                              |                                             |"
                 printf(
                     "  %s:\n"
                     "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
-                    "    CFG generates the empty word then the only epsilon production in the\n"
+                    "    CFG generates the empty string then the only epsilon production in the\n"
                     "    CFG will be that of the start variable.\n\n"
                     "  basic use options for cfg-to-cnf:\n"
                     "    <file>                         read in a CFG from <file>.\n\n",
