@@ -23,31 +23,27 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &opt) throw() {
-            opt.declare_min_num_positional(1);
-            opt.declare_max_num_positional(1);
+        static void declare(CommandLineOptions &opt, bool in_help) throw() {
+            if(!in_help) {
+                opt.declare_min_num_positional(1);
+                opt.declare_max_num_positional(1);
+            }
+        }
+
+        static void help(void) throw() {
+            //  "  | |                              |                                             |"
+            printf(
+                "  %s:\n"
+                "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
+                "    CFG generates the empty string then the only epsilon production in the\n"
+                "    CFG will be that of the start variable.\n\n"
+                "  basic use options for cfg-to-cnf:\n"
+                "    <file>                         read in a CFG from <file>.\n\n",
+                TOOL_NAME
+            );
         }
 
         static int main(CommandLineOptions &options) throw() {
-
-            option_type help(options["h"]);
-
-            // display help information
-            if(help.is_valid()) {
-
-                //  "  | |                              |                                             |"
-                printf(
-                    "  %s:\n"
-                    "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
-                    "    CFG generates the empty string then the only epsilon production in the\n"
-                    "    CFG will be that of the start variable.\n\n"
-                    "  basic use options for cfg-to-cnf:\n"
-                    "    <file>                         read in a CFG from <file>.\n\n",
-                    TOOL_NAME
-                );
-
-                return 0;
-            }
 
             // run the tool
             option_type file(options[0U]);

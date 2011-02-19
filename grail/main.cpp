@@ -23,67 +23,99 @@
 #include "grail/cli/CFG_REMOVE_UNITS.hpp"
 #include "grail/cli/CFG_REMOVE_EPSILON.hpp"
 
-enum {
-    GRAIL_MAJOR_VERSION = 0,
-    GRAIL_MINOR_VERSION = 2
-};
+namespace {
 
-static void help_header(const char *argv0) throw() {
-    printf(
-    //  "  | |                              |                                             |"
-        "usage: %s [options] [input]\n\n"
-        "  tool-selection option:\n"
-        "    --tool=<name>                  use the Grail+ tool named <name>\n\n"
-        "  basic use options for all Grail+ tools:\n"
-        "    --help, -h                     show this message, along with any tool-\n"
-        "                                   specific help\n"
-        "    --test                         execute all test cases\n"
-        "    --version                      show the version\n\n",
-        argv0
-    );
-}
+    enum {
+        GRAIL_MAJOR_VERSION = 0,
+        GRAIL_MINOR_VERSION = 2
+    };
 
-static void help_footer(void) throw() {
-    printf(
-    //  "                                   |                                             |"
-        "  Grail+ is Copyright (C) 2011, Peter Goodman.\n\n"
-        "  Bug reports, feedback, etc. to: peter.goodman@gmail.com\n\n"
-    );
-}
-
-typedef int (cli_tool_type)(grail::CommandLineOptions &);
-typedef void (cli_decl_type)(grail::CommandLineOptions &);
-typedef char alphabet_type;
-
-// the command-line tools
-template <typename T>
-class Tool {
-public:
-    Tool(
-        grail::CStringMap<cli_tool_type *> &tool_map,
-        grail::CStringMap<cli_decl_type *> &decl_map
-    ) {
-        tool_map.get(T::TOOL_NAME) = T::main;
-        decl_map.get(T::TOOL_NAME) = T::declare;
+    static void help_header(const char *argv0) throw() {
+        printf(
+        //  "  | |                              |                                             |"
+            "usage: %s [options] [input]\n\n"
+            "  tool-selection option:\n"
+            "    --tool=<name>                  use the Grail+ tool named <name>\n\n"
+            "  basic use options for all Grail+ tools:\n"
+            "    --help, -h                     show this message, along with any tool-\n"
+            "                                   specific help\n"
+            "    --test                         execute all test cases\n"
+            "    --version                      show the version\n\n",
+            argv0
+        );
     }
-};
 
-static grail::CStringMap<cli_tool_type *> tools;
-static grail::CStringMap<cli_decl_type *> declarations;
+    static void help_footer(void) throw() {
+        printf(
+        //  "                                   |                                             |"
+            "  Grail+ is Copyright (C) 2011, Peter Goodman.\n\n"
+            "  Bug reports, feedback, etc. to: peter.goodman@gmail.com\n\n"
+        );
+    }
+
+    typedef int (cli_tool_type)(grail::CommandLineOptions &);
+    typedef void (cli_decl_type)(grail::CommandLineOptions &, bool);
+    typedef void (cli_help_type)(void);
+    typedef char alphabet_type;
+
+    // tool information
+    struct ToolMeta {
+    public:
+        ToolMeta *next;
+        cli_tool_type *tool_func;
+        cli_decl_type *decl_func;
+        cli_help_type *help_func;
+        char const * const *name;
+    };
+
+    /// map holding the tools
+    static ToolMeta *first_tool(0);
+    static ToolMeta *last_tool(0);
+    static grail::CStringMap<ToolMeta *> tools;
+
+    // chain together command-line tools
+    struct ToolAdder {
+    public:
+        ToolAdder(ToolMeta *meta) throw() {
+            if(0 == last_tool) {
+                first_tool = meta;
+                last_tool = meta;
+            } else {
+                last_tool->next = meta;
+                last_tool = meta;
+            }
+        }
+    };
 
 #ifdef GRAIL_DECLARE_TOOL
 #undef GRAIL_DECLARE_TOOL
 #endif
 
 #define GRAIL_DECLARE_TOOL(tpl) \
-    static Tool<grail::cli::tpl<alphabet_type> > cli__ ## tpl (tools, declarations);
+    static ToolMeta cli__ ## tpl ## __meta = { \
+        0, \
+        grail::cli::tpl<alphabet_type>::main, \
+        grail::cli::tpl<alphabet_type>::declare, \
+        grail::cli::tpl<alphabet_type>::help, \
+        &(grail::cli::tpl<alphabet_type>::TOOL_NAME) \
+    }; \
+    static ToolAdder cli__ ## tpl (&(cli__ ## tpl ## __meta));
 
 #include "grail/Tools.hpp"
+
+}
 
 /// run the program
 int main(const int argc, const char **argv) throw() {
 
     using namespace grail;
+
+    // in the tools; this needs to be done *after* static initialization
+    // because we are not guaranteed that the tool names will be initialized
+    // by the time ToolAdder constructors are called.
+    for(ToolMeta *meta(first_tool); 0 != meta; meta = meta->next) {
+        tools.get(*(meta->name)) = meta;
+    }
 
     CommandLineOptions options(argc, argv);
 
@@ -129,17 +161,17 @@ int main(const int argc, const char **argv) throw() {
         // delegate to the tool
         } else if(tool.is_valid()) {
 
-            // can we dispatch to a tool?
-            if(!tools.contains(tool.raw_value())) {
+            ToolMeta *tool_meta(tools.get(tool.raw_value()));
 
+            // can we dispatch to a tool?
+            if(0 == tool_meta) {
                 options.error("Unrecognized tool.");
                 options.note("Tool was specified here.", tool);
-
                 return 1;
             }
 
             // declare tool-specific command-line arguments
-            declarations.get(tool.raw_value())(options);
+            tool_meta->decl_func(options, help.is_valid());
 
             // found an error through the tool's declarations
             if(options.has_error()) {
@@ -148,16 +180,11 @@ int main(const int argc, const char **argv) throw() {
 
             if(help.is_valid()) {
                 help_header(argv[0]);
-            }
-
-            // run the tool
-            int ret(tools.get(tool.raw_value())(options));
-
-            if(help.is_valid()) {
+                tool_meta->help_func();
                 help_footer();
+            } else {
+                return tool_meta->tool_func(options);
             }
-
-            return ret;
         }
 
         return 0;

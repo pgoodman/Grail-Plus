@@ -23,8 +23,13 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &options) throw() {
+        static void declare(CommandLineOptions &options, bool in_help) throw() {
             (void) options;
+            (void) in_help;
+        }
+
+        static void help(void) throw() {
+
         }
 
         static int main(CommandLineOptions &options) throw() {

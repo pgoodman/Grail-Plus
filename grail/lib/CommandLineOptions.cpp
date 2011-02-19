@@ -680,17 +680,21 @@ namespace grail {
             );
         }
 
-        return operator[](short_opt_);
+        char short_str[2];
+        short_str[0] = short_opt_;
+        short_str[1] = '\0';
+
+        return operator[](short_str);
     }
 
     /// declare an option that only has a short-form
     option_type CommandLineOptions::declare(
-        char short_opt,
+        char short_opt_,
         const opt::key_constraint_type kc,
         const opt::val_constraint_type vc
     ) throw() {
         CommandLineOption *&opt(
-            opt::short_options[detail::alpha_to_offset(short_opt)]
+            opt::short_options[detail::alpha_to_offset(short_opt_)]
         );
 
         if(0 == opt) {
@@ -700,14 +704,19 @@ namespace grail {
                 sprintf(
                     buffer,
                     diag::diag_message[diag::err_required_short_option],
-                    short_opt
+                    short_opt_
                 );
                 error(buffer);
             }
         } else {
             check_option(opt, vc);
         }
-        return operator[](short_opt);
+
+        char short_str[2];
+        short_str[0] = short_opt_;
+        short_str[1] = '\0';
+
+        return operator[](short_str);
     }
 
     /// declare that this tool requires a minimum number of positional
