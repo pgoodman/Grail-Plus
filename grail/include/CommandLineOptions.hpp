@@ -20,6 +20,8 @@
 
 #include "grail/include/CStringMap.hpp"
 
+/// this code is a bit of a mishmash
+
 namespace grail {
 
     namespace opt {
@@ -55,7 +57,7 @@ namespace grail {
         bool is_accounted_for;
         CommandLineOption *next;
 
-        void init(const int, const char *) throw();
+        const char *init(const int, const char *) throw();
 
         CommandLineOption(void) throw();
     };
@@ -65,6 +67,7 @@ namespace grail {
         friend class CommandLineOptions;
 
         const CommandLineOption *option;
+        const char *c_str_val;
 
         option_type(CommandLineOption *) throw();
 
@@ -72,9 +75,12 @@ namespace grail {
 
         option_type(void) throw();
         option_type(const option_type &that) throw();
+        ~option_type(void) throw();
         option_type &operator=(const option_type &that) throw();
 
         bool is_valid(void) const throw();
+        bool has_value(void) const throw();
+        const char *value(void) throw();
 
         std::pair<const char *, const char *> raw_value(void) const throw();
     };
@@ -159,8 +165,9 @@ namespace grail {
         void declare_min_num_positional(unsigned x);
         void declare_max_num_positional(unsigned x);
 
-        option_type operator[](char) throw();
         option_type operator[](const char *) throw();
+
+        option_type operator[](const unsigned) throw();
     };
 }
 

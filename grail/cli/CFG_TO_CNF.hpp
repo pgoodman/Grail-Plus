@@ -23,13 +23,14 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &) throw() {
-
+        static void declare(CommandLineOptions &opt) throw() {
+            opt.declare_min_num_positional(1);
+            opt.declare_max_num_positional(1);
         }
 
         static int main(CommandLineOptions &options) throw() {
 
-            option_type help(options['h']);
+            option_type help(options["h"]);
 
             // display help information
             if(help.is_valid()) {
@@ -45,10 +46,12 @@ namespace grail { namespace cli {
                     TOOL_NAME
                 );
 
-            // run the tool
-            } else {
-
+                return 0;
             }
+
+            // run the tool
+            option_type file(options[0U]);
+            printf("opening file: %s\n", file.value());
 
             return 0;
         }

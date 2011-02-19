@@ -13,6 +13,8 @@
 
 #include "grail/include/CommandLineOptions.hpp"
 
+/// this code is a bit of a mishmash
+
 namespace grail {
 
     namespace opt {
@@ -21,6 +23,11 @@ namespace grail {
         CommandLineOption *short_options[52] = {'\0'};
 
         CStringMap<CommandLineOption *> long_options;
+
+        const char * const EMPTY_VALUE("");
+
+        CommandLineOption *last_positional_indexed(0);
+        unsigned last_positional_index(0);
     }
 
     namespace detail {
@@ -71,19 +78,31 @@ namespace grail {
     { }
 
     /// initialize the begin and end offsets for a command line option
-    void CommandLineOption::init(const int val_argv_, const char *val_start) throw() {
+    /// this attempt
+    const char *CommandLineOption::init(
+        const int val_argv_,
+        const char *val_start
+    ) throw() {
         val_begin = val_start;
         val_end = val_start;
         val_argv = val_argv_;
 
+        char prev_char('\0');
         for(const char *end_next(val_end);
             0 != end_next && '\0' != *end_next;
-            ++end_next) {
+            prev_char = *end_next, ++end_next) {
+
+            if('-' == *end_next && isspace(prev_char)) {
+                val_end = end_next;
+                break;
+            }
 
             if(!isspace(*end_next)) {
                 val_end = end_next + 1;
             }
         }
+
+        return val_end;
     }
 
     /// constructor
@@ -242,11 +261,13 @@ namespace grail {
                     // the value of this option immediately follows the
                     // letter, possibly preceded by some whitespace
                     } else {
-                        opt::short_options[opt]->init(i, next_char);
+                        const char *end_char(opt::short_options[opt]->init(
+                            i, next_char
+                        ));
 
                         // go look for an '=' in this short option
-                        for(const char *curr(opt::short_options[opt]->val_begin);
-                            0 != curr && curr < opt::short_options[opt]->val_end;
+                        for(const char *curr(next_char);
+                            0 != curr && curr < end_char;
                             ++curr) {
                             if('=' == *curr && '\\' != *(curr - 1)) {
                                 return error(
@@ -255,6 +276,10 @@ namespace grail {
                                 );
                             }
                         }
+
+                        first_char = end_char;
+                        offset = static_cast<size_t>(first_char - argv[i]);
+                        goto process_first_char;
                     }
 
                 // error, bad option type
@@ -304,31 +329,39 @@ namespace grail {
                         opt_to_fill->is_positional_candidate = false;
                         continue;
 
-                    // missing value with an '=' specified
                     } else if('-' == *next_char) {
+
+                        // missing value with an '=' specified
                         if(!opt_to_fill->is_positional_candidate) {
                             return error(
                                 diag::err_equal_with_no_value,
                                 equals_argv, equals_offset
                             );
+
+                        // no value missing, process the thing as an option
                         } else {
                             first_char = next_char;
-                            offset = static_cast<size_t>(next_char - argv[i]);
-                            goto process_first_char;
+                            offset = static_cast<size_t>(first_char - argv[i]);
                         }
-                    }
 
-                    opt_to_fill->init(i, next_char);
+                    // we found the value
+                    } else {
+
+                        first_char = opt_to_fill->init(i, next_char);
+                        offset = static_cast<unsigned>(first_char - argv[i]);
+                    }
 
                 // positional argument
                 } else {
                     opt_to_fill = make_option(i, 0);
-                    opt_to_fill->init(i, first_char);
+                    first_char = opt_to_fill->init(i, first_char);
+                    offset = static_cast<size_t>(first_char - argv[i]);
                     opt_to_fill->is_positional = true;
                     ++num_positional;
                 }
 
                 opt_to_fill = 0;
+                goto process_first_char;
             }
         }
 
@@ -552,6 +585,9 @@ namespace grail {
         }
     }
 
+    /// perform some post-checking on an option. this disambiguates values
+    /// that are candidates for positional arguments, and warns about invalid
+    /// values.
     void CommandLineOptions::check_option(
         CommandLineOption *opt,
         const opt::val_constraint_type vc
@@ -572,6 +608,7 @@ namespace grail {
         }
     }
 
+    /// declare an option that can only be addressed by a long keyword form.
     option_type CommandLineOptions::declare(
         const char *long_opt_,
         const opt::key_constraint_type kc,
@@ -595,6 +632,8 @@ namespace grail {
         return operator[](long_opt_);
     }
 
+    /// declare an option that can be addressed by either one of a short form
+    /// or a long form
     option_type CommandLineOptions::declare(
         const char *long_opt_,
         char short_opt_,
@@ -644,6 +683,7 @@ namespace grail {
         return operator[](short_opt_);
     }
 
+    /// declare an option that only has a short-form
     option_type CommandLineOptions::declare(
         char short_opt,
         const opt::key_constraint_type kc,
@@ -670,6 +710,10 @@ namespace grail {
         return operator[](short_opt);
     }
 
+    /// declare that this tool requires a minimum number of positional
+    /// arguments. this should use used *after* declaring keyword arguments
+    /// as keyword arguments disambiguate things that look like values to
+    /// keyword arguments.
     void CommandLineOptions::declare_min_num_positional(unsigned x) {
         if(num_positional < x) {
             char buffer[1024];
@@ -683,6 +727,10 @@ namespace grail {
         }
     }
 
+    /// declare that this tool accepts no more than a certain number of
+    /// positional arguments. this should use used *after* declaring keyword
+    /// arguments as keyword arguments disambiguate things that look like
+    /// values to keyword arguments.
     void CommandLineOptions::declare_max_num_positional(unsigned x) {
         if(num_positional > x) {
             char buffer[1024];
@@ -700,51 +748,111 @@ namespace grail {
         return has_errors;
     }
 
-    option_type CommandLineOptions::operator[](char ch) throw() {
-        assert(isalpha(ch));
-        CommandLineOption *opt(opt::short_options[detail::alpha_to_offset(ch)]);
+    option_type CommandLineOptions::operator[](const char *str) throw() {
         if(has_errors) {
             return option_type(0);
-        } else if(0 == opt || opt->is_positional) {
+        } else if(0 == str || '\0' == *str) {
+            return option_type(0);
+        }
+
+        CommandLineOption *opt(0);
+        if(isalpha(str[0]) && '\0' == str[1]) {
+            opt = opt::short_options[detail::alpha_to_offset(str[0])];
+        } else {
+            opt = opt::long_options.get(str);
+        }
+
+        if(0 == opt || opt->is_positional) {
             return option_type(0);
         } else {
             return option_type(opt);
         }
     }
 
-    option_type CommandLineOptions::operator[](const char *str) throw() {
-        if(has_errors) {
-            return option_type(0);
-        } else if(0 == str || '\0' == *str) {
-            return option_type(0);
-        } else if(isalpha(str[0]) && '\0' == str[1]) {
-            return operator[](str[0]);
-        } else {
-            CommandLineOption *opt(opt::long_options.get(str));
-            if(0 == opt || opt->is_positional) {
-                return option_type(0);
-            } else {
-                return option_type(opt);
+    /// access a positional option
+    option_type CommandLineOptions::operator[](const unsigned offset) throw() {
+        if(offset < num_positional) {
+            CommandLineOption *opt(first);
+            unsigned i(0);
+
+            // we likely will scan positional arguments in the order that
+            // they appear and so we remember where we were when we scanned
+            // the last time
+            if(0 != opt::last_positional_indexed
+            && offset >= opt::last_positional_index) {
+                opt = opt::last_positional_indexed;
+                i = opt::last_positional_index;
+            }
+
+            for(; 0 != opt && i <= offset; opt = opt->next) {
+                if(opt->is_positional) {
+                    if(offset == i) {
+                        opt::last_positional_indexed = opt;
+                        opt::last_positional_index = i;
+                        return option_type(opt);
+                    }
+
+                    ++i;
+                }
             }
         }
+        return option_type();
     }
 
     option_type::option_type(CommandLineOption *opt) throw()
         : option(opt)
+        , c_str_val(0)
     { }
     option_type::option_type(void) throw()
         : option(0)
+        , c_str_val(0)
     { }
     option_type::option_type(const option_type &that) throw()
         : option(that.option)
+        , c_str_val(0)
     { }
+    option_type::~option_type(void) throw() {
+        if(0 != c_str_val && opt::EMPTY_VALUE != c_str_val) {
+            delete [] c_str_val;
+        }
+        c_str_val = 0;
+        option = 0;
+    }
     option_type &option_type::operator=(const option_type &that) throw() {
         option = that.option;
+        if(0 != c_str_val && opt::EMPTY_VALUE != c_str_val) {
+            delete [] c_str_val;
+        }
+        c_str_val = 0;
         return *this;
     }
 
     bool option_type::is_valid(void) const throw() {
         return 0 != option;
+    }
+
+    bool option_type::has_value(void) const throw() {
+        return 0 != option && 0 != option->val_begin && 0 != option->val_end;
+    }
+
+    const char *option_type::value(void) throw() {
+        if(0 == c_str_val) {
+            if(0 == option || 0 == option->val_begin) {
+                c_str_val = opt::EMPTY_VALUE;
+            } else {
+                const size_t len(static_cast<size_t>(
+                    option->val_end - option->val_begin
+                ) + 1UL);
+
+                char *c_str(new char[len]);
+                memcpy(c_str, option->val_begin, len - 1);
+                c_str[len - 1] = '\0';
+
+                c_str_val = c_str;
+            }
+        }
+
+        return c_str_val;
     }
 
     std::pair<const char *, const char *> option_type::raw_value(void) const throw() {

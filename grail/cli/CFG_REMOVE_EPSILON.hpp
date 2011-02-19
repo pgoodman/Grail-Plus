@@ -28,7 +28,7 @@ namespace grail { namespace cli {
         }
 
         static int main(CommandLineOptions &options) throw() {
-            option_type help(options['h']);
+            option_type help(options["h"]);
 
             // display help information
             if(help.is_valid()) {
