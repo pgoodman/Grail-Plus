@@ -40,7 +40,8 @@ namespace {
             "    --help, -h                     show this message, along with any tool-\n"
             "                                   specific help\n"
             "    --test                         execute all test cases\n"
-            "    --version                      show the version\n\n",
+            "    --version                      show the version\n"
+            "    --tools                        list all installed tools\n\n",
             argv0
         );
     }
@@ -123,6 +124,7 @@ int main(const int argc, const char **argv) throw() {
 
         option_type help(options.declare("help", 'h', opt::OPTIONAL, opt::NO_VAL));
         option_type tool(options.declare("tool", opt::OPTIONAL, opt::REQUIRES_VAL));
+        option_type list_tools(options.declare("tools", opt::OPTIONAL, opt::NO_VAL));
         option_type test(options.declare("test", opt::OPTIONAL, opt::NO_VAL));
         option_type version(options.declare("version", opt::OPTIONAL, opt::NO_VAL));
 
@@ -142,6 +144,18 @@ int main(const int argc, const char **argv) throw() {
         } else if(test.is_valid()) {
 
             fltl::test::run_tests();
+
+        // list out all installed tools
+        } else if(list_tools.is_valid()) {
+            printf(
+                "The following tools are installed and can be accessed using the\n"
+                "tool-selection option (--tool). To view tool-specific help, select\n"
+                "a tool using (--tool) and use the help option (--help).\n\n"
+            );
+            for(ToolMeta *meta(first_tool); 0 != meta; meta = meta->next) {
+                printf("  %s\n", *(meta->name));
+            }
+            printf("\n");
 
         // no tool, no help
         } else if(!help.is_valid() && !tool.is_valid()) {
