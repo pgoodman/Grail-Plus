@@ -16,6 +16,8 @@
 
 #include "fltl/lib/CFG.hpp"
 
+#include "grail/include/io/fprint.hpp"
+
 namespace grail { namespace io {
 
     template <typename AlphaT>

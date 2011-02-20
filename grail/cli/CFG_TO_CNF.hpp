@@ -11,11 +11,13 @@
 #ifndef FLTL_CLI_CFG_TO_CNF_HPP_
 #define FLTL_CLI_CFG_TO_CNF_HPP_
 
+#include <cstdio>
+
 #include "grail/include/CommandLineOptions.hpp"
 
 #include "grail/algorithm/CFG_TO_CNF.hpp"
 
-#include "grail/include/io/fprint.hpp"
+#include "grail/include/io/fread_cfg.hpp"
 #include "grail/include/io/fprint_cfg.hpp"
 
 namespace grail { namespace cli {
@@ -52,48 +54,25 @@ namespace grail { namespace cli {
 
             // run the tool
             option_type file(options[0U]);
-            printf("opening file: %s\n", file.value());
 
-            CFG<char> cfg;
+            FILE *fp(fopen(file.value(), "r"));
+            if(0 == fp) {
 
-            CFG<char>::term_t a(cfg.get_terminal('a'));
-            CFG<char>::term_t b(cfg.get_terminal('b'));
+                options.error(
+                    "Unable to open file containing context-free "
+                    "grammar for reading."
+                );
+                options.note("File specified here:", file);
 
-            CFG<char>::var_t S(cfg.add_variable());
-            CFG<char>::var_t A(cfg.add_variable());
-            CFG<char>::var_t B(cfg.add_variable());
+                return 1;
+            }
 
-            cfg.add_production(S, A + S + A);
-            cfg.add_production(S, a + B);
-            cfg.add_production(S, A + S + S + A);
-            cfg.add_production(S, A + B + a + S + A + S + A + B);
-
-            cfg.add_production(A, B);
-            cfg.add_production(A, S);
-            cfg.add_production(A, S + S);
-            cfg.add_production(A, S + a);
-            cfg.add_production(A, B + B);
-
-            cfg.add_production(B, b);
-            cfg.add_production(B, a);
-            cfg.add_production(B, A + A);
-            cfg.add_production(B, B + A + B + A + B);
-            cfg.add_production(B, cfg.epsilon());
-
-
-            cfg.add_production(S, S);
-            cfg.add_production(S, A);
-            cfg.add_production(S, B);
-            cfg.add_production(A, A);
-            cfg.add_production(A, B);
-            cfg.add_production(A, S);
-            cfg.add_production(B, S);
-            cfg.add_production(B, A);
-            cfg.add_production(B, B);
-
-
+            CFG<AlphaT> cfg;
+            io::fread(fp, cfg);
             algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
             io::fprint(stdout, cfg);
+
+            fclose(fp);
 
             return 0;
         }

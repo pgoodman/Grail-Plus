@@ -47,7 +47,7 @@ endif
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}
 OBJS = bin/main.o bin/lib/CommandLineOptions.o 
 OBJS += bin/lib/CStringMap.o bin/test/Test.o bin/test/cfg/CFG.o
-OBJS += bin/lib/io/fprint.o 
+OBJS += bin/lib/io/fprint.o bin/lib/io/UTF8FileBuffer.o  
 OUT = bin/grail
 
 all: ${OBJS}

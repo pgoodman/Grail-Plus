@@ -450,12 +450,29 @@ namespace grail {
         if(0 == opt.option) {
             note(diag);
         } else {
+            size_t argv_offset(0);
+            size_t offset(0);
+
+            if(0 == opt.option->opt_begin) {
+
+                argv_offset = opt.option->val_argv;
+                offset = static_cast<size_t>(
+                    opt.option->val_begin - argv[opt.option->val_argv]
+                );
+
+            } else {
+                argv_offset = opt.option->opt_argv;
+                offset = static_cast<size_t>(
+                    opt.option->opt_begin - argv[opt.option->opt_argv]
+                );
+            }
+
             message(
                 "note",
                 FLTL_F_BLUE,
                 diag,
-                opt.option->opt_argv,
-                static_cast<size_t>(opt.option->opt_begin - argv[opt.option->opt_argv])
+                argv_offset,
+                offset
             );
         }
     }
