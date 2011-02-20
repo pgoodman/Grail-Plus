@@ -45,7 +45,9 @@ ifeq (${CXX}, clang++)
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}
-OBJS = bin/main.o bin/lib/CommandLineOptions.o bin/lib/CStringMap.o bin/test/Test.o bin/test/cfg/CFG.o
+OBJS = bin/main.o bin/lib/CommandLineOptions.o 
+OBJS += bin/lib/CStringMap.o bin/test/Test.o bin/test/cfg/CFG.o
+OBJS += bin/lib/io/fprint.o 
 OUT = bin/grail
 
 all: ${OBJS}
@@ -55,6 +57,9 @@ bin/%.o: grail/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
 
 bin/lib/%.o: grail/lib/%.cpp
+	${CXX} ${CXX_FLAGS} -c $< -o $@
+
+bin/lib/printer/%.o: grail/lib/io/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
 	
 bin/test/%.o: fltl/test/%.cpp

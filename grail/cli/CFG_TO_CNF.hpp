@@ -15,6 +15,9 @@
 
 #include "grail/algorithm/CFG_TO_CNF.hpp"
 
+#include "grail/include/io/fprint.hpp"
+#include "grail/include/io/fprint_cfg.hpp"
+
 namespace grail { namespace cli {
 
     template <typename AlphaT>
@@ -45,9 +48,52 @@ namespace grail { namespace cli {
 
         static int main(CommandLineOptions &options) throw() {
 
+            using fltl::lib::CFG;
+
             // run the tool
             option_type file(options[0U]);
             printf("opening file: %s\n", file.value());
+
+            CFG<char> cfg;
+
+            CFG<char>::term_t a(cfg.get_terminal('a'));
+            CFG<char>::term_t b(cfg.get_terminal('b'));
+
+            CFG<char>::var_t S(cfg.add_variable());
+            CFG<char>::var_t A(cfg.add_variable());
+            CFG<char>::var_t B(cfg.add_variable());
+
+            cfg.add_production(S, A + S + A);
+            cfg.add_production(S, a + B);
+            cfg.add_production(S, A + S + S + A);
+            cfg.add_production(S, A + B + a + S + A + S + A + B);
+
+            cfg.add_production(A, B);
+            cfg.add_production(A, S);
+            cfg.add_production(A, S + S);
+            cfg.add_production(A, S + a);
+            cfg.add_production(A, B + B);
+
+            cfg.add_production(B, b);
+            cfg.add_production(B, a);
+            cfg.add_production(B, A + A);
+            cfg.add_production(B, B + A + B + A + B);
+            cfg.add_production(B, cfg.epsilon());
+
+
+            cfg.add_production(S, S);
+            cfg.add_production(S, A);
+            cfg.add_production(S, B);
+            cfg.add_production(A, A);
+            cfg.add_production(A, B);
+            cfg.add_production(A, S);
+            cfg.add_production(B, S);
+            cfg.add_production(B, A);
+            cfg.add_production(B, B);
+
+
+            algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
+            io::fprint(stdout, cfg);
 
             return 0;
         }

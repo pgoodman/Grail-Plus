@@ -66,7 +66,6 @@ namespace grail { namespace algorithm {
             std::set<variable_type> removed_epsilon;
 
             // while there are still epsilon rules
-            unsigned old_num_productions(0);
             for(bool added_epsilon_rule(true); added_epsilon_rule; ) {
 
                 added_epsilon_rule = false;
@@ -80,13 +79,12 @@ namespace grail { namespace algorithm {
                         continue;
                     }
 
-                    old_num_productions = cfg.num_productions();
                     cfg.remove_production(null_prod);
                     removed_epsilon.insert(A);
 
                     // remove A, we just deleted its only production which was the
                     // epsilon production, remove the variable entirely
-                    if(old_num_productions == cfg.num_productions()) {
+                    if(cfg.has_default_production(A)) {
                         cfg.remove_variable(A);
                         continue;
                     }

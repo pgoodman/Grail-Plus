@@ -162,13 +162,13 @@ namespace fltl { namespace lib {
         /// injective mapping between non-zero negative integers and pointers
         /// to the parameterized alphabet type. the association between
         /// terminals and their representations needs to be maintained.
-        helper::Array<AlphaT> terminal_map;
+        mutable helper::Array<AlphaT> terminal_map;
         std::map<AlphaT, cfg::internal_sym_type> terminal_map_inv;
 
         /// injective mapping between non-zero positive integers and pointers
         /// to the structure containing the productions related to the
         /// variable.
-        helper::Array<cfg::Variable<AlphaT> *> variable_map;
+        mutable helper::Array<cfg::Variable<AlphaT> *> variable_map;
 
         /// unused variables
         cfg::Variable<AlphaT> *unused_variables;
@@ -200,6 +200,8 @@ namespace fltl { namespace lib {
             assert(false);
             return *this;
         }
+
+        typedef CFG<AlphaT> self_type;
 
     public:
 
@@ -280,6 +282,7 @@ namespace fltl { namespace lib {
             num_productions_ = 0;
         }
 
+        /// get the starting variable for this grammar
         const variable_type get_start_variable(void) const throw() {
             assert(
                 0 != start_variable &&
@@ -359,7 +362,7 @@ namespace fltl { namespace lib {
         /// remove a variable from a grammar. this marks all of the variables
         /// productions as deleted. this, however, does NOT ensure that the
         /// variable is used anywhere else in the grammar.
-        void remove_relation(const variable_type _var) throw() {
+        void unsafe_remove_variable(const variable_type _var) throw() {
             cfg::Variable<AlphaT> *var(get_variable(_var));
 
             // release the productions
@@ -415,7 +418,7 @@ namespace fltl { namespace lib {
         /// relate to this variable. this can have the effect of removing
         /// many variables
         void remove_variable(variable_type _var) throw() {
-            remove_relation(_var);
+            unsafe_remove_variable(_var);
 
             production_type P;
             variable_type V;
@@ -465,6 +468,14 @@ namespace fltl { namespace lib {
 
             terminal_type ret(term_id);
             return ret;
+        }
+
+        /// get the alphabetic value for a terminal
+        inline const AlphaT &get_alpha(const terminal_type term) const throw() {
+            assert(0 != term.value);
+            const unsigned id(static_cast<unsigned>(term.value * -1));
+            assert(id < terminal_map.size());
+            return terminal_map.get(id);
         }
 
         /// add a production to the grammar from a symbol string
@@ -775,11 +786,17 @@ namespace fltl { namespace lib {
             return terminal_map.size() - 1U;
         }
 
+        /// does a variable only have the default production?
+        inline bool has_default_production(variable_type _var) const throw() {
+            cfg::Variable<AlphaT> *var(get_variable(_var));
+            return var->first_production == var->null_production;
+        }
+
         /// create a variable generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, cfg::variable_tag> sym) throw() {
+        search(cfg::Unbound<AlphaT, cfg::variable_tag> sym) const throw() {
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(sym.symbol), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_variable),
@@ -791,9 +808,9 @@ namespace fltl { namespace lib {
 
         /// create a terminal generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, cfg::terminal_tag> sym) throw() {
+        search(cfg::Unbound<AlphaT, cfg::terminal_tag> sym) const throw() {
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(sym.symbol), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_terminal),
@@ -805,9 +822,9 @@ namespace fltl { namespace lib {
 
         /// create a production generator
         inline generator_type
-        search(cfg::Unbound<AlphaT, cfg::production_tag> uprod) throw() {
+        search(cfg::Unbound<AlphaT, cfg::production_tag> uprod) const throw() {
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(uprod.prod), // binder
                 reinterpret_cast<cfg::detail::PatternData<AlphaT> *>(0), // pattern
                 &(cfg::detail::SimpleGenerator<AlphaT>::bind_next_production),
@@ -815,12 +832,6 @@ namespace fltl { namespace lib {
                 &(cfg::detail::SimpleGenerator<AlphaT>::free_next_production)
             );
             return gen;
-        }
-
-        /// return an empty generator for symbols
-        inline generator_type
-        search(cfg::Unbound<AlphaT, cfg::symbol_tag>) throw() {
-            return cfg::Generator<AlphaT>();
         }
 
         /// go find all productions that fit a certain pattern. bind each
@@ -831,13 +842,13 @@ namespace fltl { namespace lib {
         search(
             cfg::Unbound<AlphaT, cfg::production_tag> uprod,
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
-        ) throw() {
+        ) const throw() {
 
             typedef cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
                     builder_type;
 
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(uprod.prod), // binder
                 pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
@@ -860,13 +871,13 @@ namespace fltl { namespace lib {
         inline generator_type
         search(
             cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state> pattern_builder
-        ) throw() {
+        ) const throw() {
 
             typedef cfg::detail::PatternBuilder<AlphaT,PatternT,StringT,state>
                     builder_type;
 
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(0), // binder
                 pattern_builder.pattern, // pattern
                 &(cfg::detail::PatternGenerator<
@@ -885,9 +896,9 @@ namespace fltl { namespace lib {
 
         /// go find all productions that fit a certain pattern. destructure
         /// each production according to the pattern.
-        inline generator_type search(pattern_type &pattern) throw() {
+        inline generator_type search(pattern_type &pattern) const throw() {
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(0), // binder
                 pattern.pattern, // pattern
                 pattern.gen_next,
@@ -903,9 +914,9 @@ namespace fltl { namespace lib {
         inline generator_type search(
             cfg::Unbound<AlphaT, cfg::production_tag> uprod,
             pattern_type &pattern
-        ) throw() {
+        ) const throw() {
             generator_type gen(
-                this,
+                const_cast<self_type *>(this),
                 reinterpret_cast<void *>(uprod.prod), // binder
                 pattern.pattern, // pattern
                 pattern.gen_next,
@@ -918,7 +929,7 @@ namespace fltl { namespace lib {
     private:
 
         inline cfg::Variable<AlphaT> *
-        get_variable(const variable_type _var) throw() {
+        get_variable(const variable_type _var) const throw() {
             assert(
                 0 < _var.value &&
                 _var.value < next_variable_id &&
@@ -938,7 +949,7 @@ namespace fltl { namespace lib {
         }
 
     public:
-
+        /*
         void debug(const production_type &prod) throw() {
             if(!prod.is_valid()) {
                 printf("<empty production>\n");
@@ -973,6 +984,7 @@ namespace fltl { namespace lib {
                 );
             }
         }
+        */
     };
 
     // initialize the static variables

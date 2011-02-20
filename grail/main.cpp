@@ -102,7 +102,7 @@ namespace {
     }; \
     static ToolAdder cli__ ## tpl (&(cli__ ## tpl ## __meta));
 
-#include "grail/Tools.hpp"
+#include "grail/tools.hpp"
 
 }
 

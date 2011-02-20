@@ -177,7 +177,7 @@ namespace grail { namespace algorithm {
                 if(1 == cfg.num_productions(A)) {
                     if(1 == terminal_rules.count(T)) {
                         vars_to_replace[A] = terminal_rules[T];
-                        cfg.remove_relation(A);
+                        cfg.unsafe_remove_variable(A);
                     } else {
                         terminal_rules[T] = A;
                     }
