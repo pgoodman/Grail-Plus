@@ -506,9 +506,8 @@ namespace grail {
         memset(padding, ' ', type_len * sizeof(char));
 
         // print out the message type
-        printf(FLTL_F_DEF);
-        printf(
-            FLTL_F_BOLD "%s%s: " FLTL_F_DEF FLTL_F_BOLD,
+        fprintf(stderr,
+            FLTL_F_DEF FLTL_F_BOLD "%s%s: " FLTL_F_DEF,
             type_color, type
         );
 
@@ -516,22 +515,22 @@ namespace grail {
         for(unsigned i(0), j(0); ; ++i, ++j) {
             if(msg[i] == ' ') {
                 if((type_len + j + 2) >= APPROX_LINE_SPLIT_POINT) {
-                    printf("\n%s  ", padding);
+                    fprintf(stderr, "\n%s  ", padding);
                     j = 0;
                 } else {
-                    printf(" ");
+                    fprintf(stderr, " ");
                 }
             } else if('\0' == msg[i]) {
                 break;
             } else {
-                printf("%c", msg[i]);
+                fprintf(stderr, "%c", msg[i]);
             }
         }
 
-        printf(FLTL_F_DEF "\n");
+        fprintf(stderr, FLTL_F_DEF "\n");
 
         if(0 > argv_offset) {
-            printf("\n");
+            fprintf(stderr, "\n");
             return;
         }
 
@@ -589,16 +588,16 @@ namespace grail {
         const size_t start(ERROR_CONTEXT - context + 1);
         if(0 != context && '\0' != error_buffer[start]) {
             --context;
-            printf(
+            fprintf(stderr,
                 "%s  %s\n%s  " FLTL_F_GREEN,
                 padding, &(error_buffer[start]), padding
             );
             for(size_t i(0); i < context; ++i) {
-                printf("~");
+                fprintf(stderr, "~");
             }
-            printf(FLTL_F_BOLD "^" FLTL_F_DEF "\n\n");
+            fprintf(stderr, FLTL_F_BOLD "^" FLTL_F_DEF "\n\n");
         } else {
-            printf("\n");
+            fprintf(stderr, "\n");
         }
     }
 

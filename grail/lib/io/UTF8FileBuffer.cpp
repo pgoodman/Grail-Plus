@@ -50,12 +50,12 @@ namespace grail { namespace io {
     }
 
     namespace utf8 {
-        uint32_t decode(uint32_t* state, uint32_t* codep, uint32_t byte) {
-            uint32_t type = utf8d[byte];
+        uint32_t decode(uint32_t* state, /*uint32_t* codep, */ uint32_t byte) {
+            const uint32_t type = utf8d[byte];
 
-            *codep = (*state != UTF8_ACCEPT) ?
-            (byte & 0x3fu) | (*codep << 6) :
-            (0xff >> type) & (byte);
+            //*codep = (*state != UTF8_ACCEPT) ?
+            //(byte & 0x3fu) | (*codep << 6) :
+            //(0xff >> type) & (byte);
 
             *state = utf8d[256 + *state + type];
             return *state;

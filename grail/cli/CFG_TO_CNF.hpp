@@ -43,7 +43,10 @@ namespace grail { namespace cli {
                 "    CFG generates the empty string then the only epsilon production in the\n"
                 "    CFG will be that of the start variable.\n\n"
                 "  basic use options for cfg-to-cnf:\n"
-                "    <file>                         read in a CFG from <file>.\n\n",
+                "    <file>                         read in a CFG from <file>. If \"stdin\"\n"
+                "                                   is given then input will be read from the\n"
+                "                                   terminal. Typing a new line, followed by\n"
+                "                                   Control-D (^D) will close stdin.\n\n",
                 TOOL_NAME
             );
         }
@@ -54,8 +57,16 @@ namespace grail { namespace cli {
 
             // run the tool
             option_type file(options[0U]);
+            const char *file_name(file.value());
 
-            FILE *fp(fopen(file.value(), "r"));
+            FILE *fp(0);
+
+            if(0 == strncmp("stdin", file_name, 6)) {
+                fp = stdin;
+            } else {
+                fp = fopen(file_name, "r");
+            }
+
             if(0 == fp) {
 
                 options.error(
@@ -68,7 +79,7 @@ namespace grail { namespace cli {
             }
 
             CFG<AlphaT> cfg;
-            io::fread(fp, cfg);
+            io::fread(fp, cfg, file_name);
             algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
             io::fprint(stdout, cfg);
 

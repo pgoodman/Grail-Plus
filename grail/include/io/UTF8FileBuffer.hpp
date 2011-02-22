@@ -23,9 +23,8 @@
 namespace grail { namespace io {
 
     namespace utf8 {
-        inline uint32_t decode(
+        uint32_t decode(
             uint32_t* state,
-            uint32_t* codep,
             uint32_t byte
         );
     }
@@ -50,10 +49,7 @@ namespace grail { namespace io {
         char *curr_offset;
         char *end_offset;
         bool done_reading;
-
-        /// state for utf-8 decoder
-        uint32_t state;
-        uint32_t codepoint;
+        bool at_end;
 
         /// state for line and column numbers; this information is helpful
         /// for any tool that needs to report errors at a specific location
@@ -61,38 +57,82 @@ namespace grail { namespace io {
         unsigned peek_line[2];
         unsigned peek;
 
+        /// did we unread? note: we can only unread a single codepoint!
+        bool bactracked;
+
+        unsigned length;
+
         /// file pointer
         FILE *fp;
 
     public:
 
         UTF8FileBuffer(FILE *fp_) throw()
-            : curr_offset(&(buffer[0]))
-            , end_offset(&(buffer[0]))
-            , done_reading(false)
-            , state(UTF8_ACCEPT)
-            , peek(0)
-            , fp(fp_)
+            : fp(fp_)
         {
+            reset();
+        }
+
+        void reset(void) throw() {
+
             memset(buffer, 0, sizeof(char) * (WINDOW_SIZE + 1));
             memset(scratch, 0, sizeof(char) * SCRATCH_SIZE);
             memset(peek_column, 0, sizeof(unsigned) * 2);
             memset(peek_line, 0, sizeof(unsigned) * 2);
 
+            bactracked = false;
+            curr_offset = &(buffer[0]);
+            end_offset = &(buffer[0]);
+            peek = 0;
             peek_line[0] = 1;
             peek_column[0] = 1;
+            length = 0;
+            done_reading = false;
 
-            if(0 == fp) {
-                state = UTF8_REJECT;
+            if(0 != fp) {
+                if(0 != fseek(fp, 0, SEEK_SET)) {
+                    at_end = true;
+                } else {
+                    at_end = false;
+                }
+            } else {
+                at_end = true;
             }
+        }
+
+        /// return the last uft-8 codepoint read
+        const char *reread(void) const throw() {
+            return &(scratch[0]);
+        }
+
+        /// try to unread a codepoint
+        void unread(void) throw() {
+            assert(!bactracked);
+
+            size_t amount(strlen(scratch));
+            peek = 1 - peek;
+            bactracked = true;
+            curr_offset = curr_offset - amount;
+
+            if(at_end && done_reading) {
+                at_end = false;
+            }
+
+            assert(curr_offset >= &(buffer[0]));
+        }
+
+        /// return the byte length of the most recently read codepoint
+        unsigned byte_length(void) const throw() {
+            return length;
         }
 
         /// read out a single utf-8 codepoint
         const char *read(void) throw() {
+        get_first_char:
 
             scratch[0] = '\0';
 
-            if(UTF8_REJECT == state) {
+            if(at_end) {
                 return &(scratch[0]);
             }
 
@@ -132,22 +172,32 @@ namespace grail { namespace io {
 
             // try to read one code point
             unsigned i(0);
+            uint32_t state(UTF8_ACCEPT);
+
             for(; curr_offset < end_offset; ) {
+
                 utf8::decode(
                     &state,
-                    &codepoint,
-                    static_cast<uint32_t>(*curr_offset)
+                    static_cast<uint32_t>(
+                        static_cast<unsigned char>(*curr_offset)
+                    )
                 );
 
-                assert(UTF8_REJECT != state);
+                if(UTF8_REJECT == state) {
+                    ++curr_offset;
+                    goto get_first_char;
+                }
 
-                scratch[i++] = *(curr_offset++);
+                scratch[i] = *curr_offset;
+                ++i;
+                ++curr_offset;
 
                 if(UTF8_ACCEPT == state) {
                     break;
                 }
             }
 
+            length = i;
             scratch[i] = '\0';
 
             const unsigned prev_peek(peek);
@@ -156,35 +206,40 @@ namespace grail { namespace io {
 
             // figure out the *next* line and column numbers, based on the
             // current character
-            switch(ch) {
-            case '\0':
-                peek_line[peek] = peek_line[prev_peek];
-                peek_column[peek] = peek_column[prev_peek];
-                break;
-            case ' ':
-                peek_line[peek] = peek_line[prev_peek];
-                peek_column[peek] = 1 + peek_column[prev_peek];
-                break;
-            case '\n':
-                peek_line[peek] = 1 + peek_line[prev_peek];
-                peek_column[peek] = 1;
-                break;
-            case '\t':
-                peek_line[peek] = peek_line[prev_peek];
-                peek_column[peek] = TAB_SIZE + peek_column[prev_peek];
-                break;
-            default:
-                // printable ascii or assume printable utf-8
-                if(isprint(ch) || ch > 127) {
-                    peek_line[peek] = peek_line[prev_peek];
-                    peek_column[peek] = 1 + peek_column[prev_peek];
-
-                // non-printable ascii
-                } else {
+            if(!bactracked) {
+                switch(ch) {
+                case '\0':
                     peek_line[peek] = peek_line[prev_peek];
                     peek_column[peek] = peek_column[prev_peek];
+                    at_end = true;
+                    break;
+                case ' ':
+                    peek_line[peek] = peek_line[prev_peek];
+                    peek_column[peek] = 1 + peek_column[prev_peek];
+                    break;
+                case '\n':
+                    peek_line[peek] = 1 + peek_line[prev_peek];
+                    peek_column[peek] = 1;
+                    break;
+                case '\t':
+                    peek_line[peek] = peek_line[prev_peek];
+                    peek_column[peek] = TAB_SIZE + peek_column[prev_peek];
+                    break;
+                default:
+                    // printable ascii or assume printable utf-8
+                    if(isprint(ch) || ch < 0) {
+                        peek_line[peek] = peek_line[prev_peek];
+                        peek_column[peek] = 1 + peek_column[prev_peek];
+
+                    // non-printable ascii
+                    } else {
+                        peek_line[peek] = peek_line[prev_peek];
+                        peek_column[peek] = peek_column[prev_peek];
+                    }
+                    break;
                 }
-                break;
+            } else {
+                bactracked = false;
             }
 
             return &(scratch[0]);

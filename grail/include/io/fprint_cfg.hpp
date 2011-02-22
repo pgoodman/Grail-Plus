@@ -45,7 +45,7 @@ namespace grail { namespace io {
                     id = ++next_var_id;
                 }
 
-                fprintf(ff, " $%u", id);
+                fprintf(ff, " %u", id);
             } else {
                 typename fltl::lib::CFG<AlphaT>::term_t s_as_term(s);
                 fprintf(ff, " ");
@@ -88,7 +88,7 @@ namespace grail { namespace io {
 
         const char sep[] = {':', '\0', '|', '\0'};
 
-        fprintf(ff, "$1\n");
+        fprintf(ff, "1\n");
         for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
             fprint_production(
                 ff,
@@ -114,7 +114,7 @@ namespace grail { namespace io {
                 id = ++next_var_id;
             }
 
-            fprintf(ff, "$%u\n", id);
+            fprintf(ff, "%u\n", id);
             productions.rewind();
             for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
                 fprint_production(
