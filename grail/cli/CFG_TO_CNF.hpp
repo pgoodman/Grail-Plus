@@ -80,8 +80,25 @@ namespace grail { namespace cli {
 
             CFG<AlphaT> cfg;
             io::fread(fp, cfg, file_name);
+
+            /*
+            printf("BEFORE:\n");
+            printf("num variables = %u\n", cfg.num_variables());
+            printf("num terminals = %u\n", cfg.num_terminals());
+            printf("num productions = %u\n", cfg.num_productions());
+            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
+            */
+
             algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
-            io::fprint(stdout, cfg);
+
+            /*
+            printf("\nAFTER:\n");
+            printf("num variables = %u\n", cfg.num_variables());
+            printf("num terminals = %u\n", cfg.num_terminals());
+            printf("num productions = %u\n", cfg.num_productions());
+            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
+            */
+            //io::fprint(stdout, cfg);
 
             fclose(fp);
 

@@ -57,7 +57,7 @@ namespace {
     typedef int (cli_tool_type)(grail::CommandLineOptions &);
     typedef void (cli_decl_type)(grail::CommandLineOptions &, bool);
     typedef void (cli_help_type)(void);
-    typedef char alphabet_type;
+    typedef const char *alphabet_type;
 
     // tool information
     struct ToolMeta {

@@ -53,6 +53,12 @@ namespace fltl { namespace lib { namespace cfg {
             return *this;
         }
 
+        inline void append(const symbol_type &sym) throw() {
+            if(0 != sym.value) {
+                buffer.append(sym);
+            }
+        }
+
         SymbolString<AlphaT> symbols(void) throw() {
             return SymbolString<AlphaT>(
                 &(buffer.get(0)),

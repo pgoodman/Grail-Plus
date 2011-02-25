@@ -38,12 +38,19 @@ namespace fltl { namespace lib { namespace cfg {
         /// the default empty production for this variable
         Production<AlphaT> *null_production;
 
+        /// the name associated with this variable. if the name is 0 then
+        /// an automatic name is generated when the CFG is printed. note:
+        /// the name is *owned* by the variable
+        const char *name;
+
         /// initialize the variable
         void init(
             const cfg::internal_sym_type _id,
-            Variable<AlphaT> *prev
+            Variable<AlphaT> *prev,
+            const char *_name
         ) throw() {
             id = _id;
+            name = _name;
             if(0 != prev) {
                 next = prev->next;
                 prev->next = this;
@@ -112,12 +119,15 @@ namespace fltl { namespace lib { namespace cfg {
             , next(0)
             , first_production(0)
             , null_production(0)
+            , name(0)
         { }
 
         Variable(const Variable<AlphaT> &) throw()
             : id(0)
             , next(0)
             , first_production(0)
+            , null_production(0)
+            , name(0)
         {
             assert(false);
         }
@@ -133,7 +143,12 @@ namespace fltl { namespace lib { namespace cfg {
                 cfg::Production<AlphaT>::release(prod);
             }
 
+            if(0 != name) {
+                delete [] name;
+            }
+
             null_production = 0;
+            name = 0;
         }
 
         Variable<AlphaT> &operator=(const Variable<AlphaT> &) throw() {

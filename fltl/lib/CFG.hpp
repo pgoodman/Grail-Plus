@@ -14,6 +14,7 @@
 #include <map>
 #include <utility>
 #include <stdint.h>
+#include <functional>
 
 #include "fltl/include/helper/Align.hpp"
 #include "fltl/include/helper/Array.hpp"
@@ -29,6 +30,7 @@
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 #include "fltl/include/preprocessor/REPEAT_LEFT.hpp"
 
+#include "fltl/include/trait/Alphabet.hpp"
 #include "fltl/include/trait/Uncopyable.hpp"
 
 /// make a method for pattern builder
@@ -138,6 +140,12 @@ namespace fltl { namespace lib {
     ///     - AlphaT is copy constructible
     template <typename AlphaT>
     class CFG : protected trait::Uncopyable {
+    public:
+
+        /// extract the traits
+        typedef trait::Alphabet<AlphaT> traits_type;
+        typedef typename traits_type::alphabet_type alphabet_type;
+
     private:
 
         // friend declarations
@@ -162,13 +170,33 @@ namespace fltl { namespace lib {
         /// injective mapping between non-zero negative integers and pointers
         /// to the parameterized alphabet type. the association between
         /// terminals and their representations needs to be maintained.
-        mutable helper::Array<AlphaT> terminal_map;
-        std::map<AlphaT, cfg::internal_sym_type> terminal_map_inv;
+        mutable helper::Array<std::pair<AlphaT, const char *> > terminal_map;
+        typedef std::map<
+            alphabet_type,
+            cfg::internal_sym_type,
+            typename traits_type::less_type
+        > terminal_map_inv_type;
+        terminal_map_inv_type terminal_map_inv;
+
+        /// injective mapping between strings and terminal types representing
+        /// variable terminals.
+        typedef std::map<
+            const char *,
+            cfg::TerminalSymbol<AlphaT>,
+            trait::Alphabet<const char *>::less_type
+        > variable_terminal_map_type;
+        variable_terminal_map_type variable_terminal_map;
 
         /// injective mapping between non-zero positive integers and pointers
         /// to the structure containing the productions related to the
         /// variable.
         mutable helper::Array<cfg::Variable<AlphaT> *> variable_map;
+        typedef std::map<
+            const char *,
+            cfg::VariableSymbol<AlphaT>,
+            trait::Alphabet<const char *>::less_type
+        > named_variable_map_type;
+        named_variable_map_type named_variable_map;
 
         /// unused variables
         cfg::Variable<AlphaT> *unused_variables;
@@ -251,7 +279,9 @@ namespace fltl { namespace lib {
             , next_terminal_id(-1)
             , terminal_map()
             , terminal_map_inv()
+            , variable_terminal_map()
             , variable_map()
+            , named_variable_map()
             , unused_variables(0)
             , num_productions_(0)
             , num_variables_(0)
@@ -263,7 +293,10 @@ namespace fltl { namespace lib {
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
 
-            terminal_map.append(mpl::Static<AlphaT>::VALUE);
+            terminal_map.append(std::make_pair<AlphaT,const char *>(
+                mpl::Static<AlphaT>::VALUE,
+                0
+            ));
             variable_map.append(0);
         }
 
@@ -275,6 +308,14 @@ namespace fltl { namespace lib {
             for(unsigned i(1U); i < max; ++i) {
                 variable_allocator->deallocate(variable_map.get(i));
                 variable_map.set(i, 0);
+            }
+
+            // free the terminals
+            for(unsigned i(1U); i < terminal_map.size(); ++i) {
+                traits_type::destroy(terminal_map.get(i).first);
+                trait::Alphabet<const char *>::destroy(
+                    terminal_map.get(i).second
+                );
             }
 
             first_production = 0;
@@ -297,6 +338,60 @@ namespace fltl { namespace lib {
             start_variable = get_variable(var);
         }
 
+        /// get a variable symbol. a variable symbol is either a variable
+        /// or a variable terminal.
+        const symbol_type get_variable_symbol(const char *name) throw() {
+            typename named_variable_map_type::iterator var_loc(
+                named_variable_map.find(name)
+            );
+
+            // it's a variable
+            if(named_variable_map.end() != var_loc) {
+                return (*var_loc).second;
+            }
+
+            typename variable_terminal_map_type::iterator term_loc(
+                variable_terminal_map.find(name)
+            );
+
+            // it's a variable terminal
+            if(variable_terminal_map.end() != term_loc) {
+                return (*term_loc).second;
+            }
+
+            // create a variable terminal for it
+            terminal_type term(next_terminal_id);
+            --next_terminal_id;
+            const char *name_copy(trait::Alphabet<const char *>::copy(name));
+            terminal_map.append(std::make_pair(
+                mpl::Static<AlphaT>::VALUE,
+                name_copy
+            ));
+            variable_terminal_map[name_copy] = term;
+
+            return term;
+        }
+
+        /// add or return an existing variable by name. this assumes a cstring
+        /// is being passed. If the variable doesn't exist then a new cstring
+        /// is allocated to represent it.
+        const variable_type get_variable(const char *name) throw() {
+            typename named_variable_map_type::iterator loc(
+                named_variable_map.find(name)
+            );
+
+            // no variable with this name
+            if(named_variable_map.end() == loc) {
+                variable_type var(add_variable());
+                const char *name_copy(trait::Alphabet<const char *>::copy(name));
+                get_variable(var)->name = name_copy;
+                named_variable_map[name_copy] = var;
+                return var;
+            } else {
+                return (*loc).second;
+            }
+        }
+
         /// add a new variable to the grammar
         const variable_type add_variable(void) throw() {
 
@@ -308,7 +403,7 @@ namespace fltl { namespace lib {
             if(0 == var) {
                 var = variable_allocator->allocate();
                 prev = variable_map.back();
-                var->init(next_variable_id, prev);
+                var->init(next_variable_id, prev, 0);
                 var_id = next_variable_id;
                 ++next_variable_id;
                 variable_map.append(var);
@@ -335,7 +430,7 @@ namespace fltl { namespace lib {
 
                 // link in the previous an next variables
                 curr = 0 == prev ? 0 : prev->next;
-                var->init(var->id, prev);
+                var->init(var->id, prev, 0);
                 var->next = curr;
             }
 
@@ -458,16 +553,27 @@ namespace fltl { namespace lib {
 
         /// get the terminal reference for a particular terminal.
         const terminal_type get_terminal(const AlphaT term) throw() {
-            cfg::internal_sym_type &term_id(terminal_map_inv[term]);
+            typename terminal_map_inv_type::iterator pos(
+                terminal_map_inv.find(term)
+            );
+            cfg::internal_sym_type term_id;
 
-            if(0 == term_id) {
+            // add in the terminal
+            if(terminal_map_inv.end() == pos) {
                 term_id = next_terminal_id;
                 --next_terminal_id;
-                terminal_map.append(term);
+                AlphaT copy(traits_type::copy(term));
+                terminal_map.append(std::make_pair<AlphaT,const char *>(
+                    copy, 0
+                ));
+                terminal_map_inv[copy] = term_id;
+
+            // return the terminal
+            } else {
+                term_id = (*pos).second;
             }
 
-            terminal_type ret(term_id);
-            return ret;
+            return terminal_type(term_id);
         }
 
         /// get the alphabetic value for a terminal
@@ -475,7 +581,7 @@ namespace fltl { namespace lib {
             assert(0 != term.value);
             const unsigned id(static_cast<unsigned>(term.value * -1));
             assert(id < terminal_map.size());
-            return terminal_map.get(id);
+            return terminal_map.get(id).first;
         }
 
         /// add a production to the grammar from a symbol string
@@ -700,18 +806,6 @@ namespace fltl { namespace lib {
 
     private:
 
-        /*
-        void print_productions(cfg::Production<AlphaT> *prod) throw() {
-            for(unsigned i(0); 0 != prod; prod = prod->next, ++i) {
-                printf("(%p [%p, %u] %p) ", reinterpret_cast<void *>(prod->prev), reinterpret_cast<void *>(prod), prod->is_deleted, reinterpret_cast<void *>(prod->next));
-                if(i > 10) {
-                    exit(0);
-                }
-            }
-            printf("\n");
-        }
-        */
-
         /// go look for the first deleted production related to
         /// this variable
         void move_production_to_end(
@@ -784,6 +878,12 @@ namespace fltl { namespace lib {
         /// are necessarily reachable
         inline unsigned num_terminals(void) const throw() {
             return terminal_map.size() - 1U;
+        }
+
+        /// get the number of variable terminals; these are terminals that
+        /// are left undefined in the grammar.
+        inline unsigned num_variable_terminals(void) const throw() {
+            return variable_terminal_map.size();
         }
 
         /// does a variable only have the default production?

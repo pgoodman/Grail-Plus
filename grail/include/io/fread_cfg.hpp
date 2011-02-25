@@ -21,15 +21,15 @@ namespace grail { namespace io {
 
     namespace cfg {
         typedef enum {
-            T_TERMINAL,
-            T_SYMBOL,
-            T_BEGIN_SINGLE_LINE_RELATION,
-            T_BEGIN_MULTILINE_RELATION,
-            T_EXTEND_MULTILINE_RELATION,
-            T_END_RELATION,
-            T_NEW_LINE,
-            T_END,
-            T_ERROR
+            T_TERMINAL = 0,
+            T_SYMBOL = 1,
+            T_BEGIN_SINGLE_LINE_RELATION = 2,
+            T_BEGIN_MULTILINE_RELATION = 3,
+            T_EXTEND_MULTILINE_RELATION = 4,
+            T_END_RELATION = 5,
+            T_NEW_LINE = 6,
+            T_END = 7,
+            T_ERROR = 8
         } token_type;
 
         typedef enum {
@@ -39,6 +39,15 @@ namespace grail { namespace io {
             S_ACCEPT,
             S_FAIL
         } terminal_state;
+
+        enum {
+            STATE_INITIAL = 0,
+            STATE_FINAL = 3,
+            STATE_SINK = 8,
+            STATE_SEEN_PRODUCTION_VARIABLE = 1,
+            STATE_EXTEND_OR_CAT = 6,
+            STATE_CAT_SINGLE_LINE = 5
+        };
 
         enum {
             BUFFER_SIZE = 4096,
@@ -53,6 +62,8 @@ namespace grail { namespace io {
             char *scratch,
             const char * const scratch_end
         ) throw();
+
+        uint8_t next_state(uint8_t curr_state, token_type input) throw();
 
         /// look for a string in the input stream; assumes what we're looking
         /// for has at least one non-null character in it. this also assumes
@@ -595,18 +606,17 @@ namespace grail { namespace io {
         }
     }
 
+    /// read in a context free grammar from a file
     template <typename AlphaT>
     bool fread(
         FILE *ff,
-        fltl::lib::CFG<AlphaT> &cfg,
+        fltl::lib::CFG<AlphaT> &CFG,
         const char * const file_name
     ) throw() {
 
         if(0 == ff) {
             return false;
         }
-
-        (void) cfg;
 
         cfg::token_type tt(cfg::T_END);
         UTF8FileBuffer<cfg::BUFFER_SIZE> buffer(ff);
@@ -617,38 +627,125 @@ namespace grail { namespace io {
 
         // pre-process; this goes and looks for syntax errors and tries
         // to build up a map of all of the variables.
-        unsigned num_tokens(0);
+        uint8_t prev_state(cfg::STATE_INITIAL);
+        uint8_t state(cfg::STATE_INITIAL);
+        typename fltl::lib::CFG<AlphaT>::alphabet_type terminal;
+
         for(;;) {
+
             scratch[0] = '\0';
             tt = cfg::get_token<true>(buffer, scratch, scratch_end, file_name);
+            prev_state = state;
+            state = cfg::next_state(state, tt);
 
-            if(cfg::T_END == tt) {
-                break;
-            } else if(cfg::T_ERROR == tt) {
+            if(cfg::T_ERROR == tt) {
                 return false;
-            } else {
-                ++num_tokens;
+
+            // add in the terminals
+            } else if(cfg::T_TERMINAL == tt) {
+                fltl::lib::CFG<AlphaT>::traits_type::unserialize(
+                    scratch,
+                    terminal
+                );
+                CFG.get_terminal(terminal);
+            }
+
+            switch(state) {
+            case cfg::STATE_FINAL:
+                goto parsed_successfully;
+            case cfg::STATE_SINK:
+
+                switch(tt) {
+                case cfg::T_BEGIN_SINGLE_LINE_RELATION:
+                    scratch[0] = '-'; scratch[1] = '>';
+                    scratch[2] = '\0';
+                    break;
+                case cfg::T_BEGIN_MULTILINE_RELATION:
+                    scratch[0] = ':'; scratch[1] = '\0';
+                    break;
+                case cfg::T_EXTEND_MULTILINE_RELATION:
+                    scratch[0] = '|'; scratch[1] = '\0';
+                    break;
+                case cfg::T_END_RELATION:
+                    scratch[0] = ';'; scratch[1] = '\0';
+                    break;
+                case cfg::T_NEW_LINE:
+                    scratch[0] = '\\'; scratch[1] = 'n';
+                    scratch[2] = '\0';
+                    break;
+                case cfg::T_END:
+                    scratch[0] = '<'; scratch[1] = 'E';
+                    scratch[2] = 'O'; scratch[3] = 'F';
+                    scratch[4] = '>'; scratch[5] = '\0';
+                    break;
+                default: break;
+                }
+
+                error(
+                    file_name, buffer.line(), buffer.column(),
+                    "Unexpected symbol found with value '%s'. Note: "
+                    "previous state of parsing automaton was %u.",
+                    scratch, prev_state
+                );
+
+                return false;
+
+            // record that a symbol is a variable
+            case cfg::STATE_SEEN_PRODUCTION_VARIABLE:
+                CFG.get_variable(scratch);
+                break;
             }
         }
-
-        printf("num_tokens = %u\n\n", num_tokens);
+    parsed_successfully:
 
         // go back to the start of the file
         buffer.reset();
+        typename fltl::lib::CFG<AlphaT>::production_builder_type prod_buffer;
+        typename fltl::lib::CFG<AlphaT>::variable_type var;
 
-        /*
-        for(tt = cfg::get_token(buffer, scratch, scratch_end);
-            T_ERROR != tt ;
-            tt = cfg::get_token(buffer, scratch, scratch_end)) {
+        for(state = cfg::STATE_INITIAL; ;) {
+            scratch[0] = '\0';
+            tt = cfg::get_token<true>(buffer, scratch, scratch_end, file_name);
+            state = cfg::next_state(state, tt);
 
-            printf("token %u\n", static_cast<unsigned>(tt));
+            switch(state) {
+            case cfg::STATE_CAT_SINGLE_LINE:
+                goto add_symbol;
 
-            if(T_END == tt) {
+            case cfg::STATE_EXTEND_OR_CAT:
+                if(cfg::T_EXTEND_MULTILINE_RELATION != tt) {
+                    goto add_symbol;
+                }
+                /* fall-through */
+            case cfg::STATE_INITIAL:
+                CFG.add_production(var, prod_buffer);
+                prod_buffer.clear();
+                break;
+
+            case cfg::STATE_FINAL:
+                goto done_parsing;
+
+            case cfg::STATE_SEEN_PRODUCTION_VARIABLE:
+                var = CFG.get_variable(scratch);
                 break;
             }
-        }*/
 
-        return cfg::T_END == tt;
+            continue;
+
+        add_symbol:
+            if(cfg::T_TERMINAL == tt) {
+                fltl::lib::CFG<AlphaT>::traits_type::unserialize(
+                    scratch,
+                    terminal
+                );
+                prod_buffer.append(CFG.get_terminal(terminal));
+            } else if(cfg::T_SYMBOL == tt) {
+                prod_buffer.append(CFG.get_variable_symbol(scratch));
+            }
+        }
+
+    done_parsing:
+        return true;
     }
 
 }}

@@ -25,7 +25,7 @@ namespace grail { namespace io {
     void fprint(FILE *ff, unsigned long obj) throw();
     void fprint(FILE *ff, float obj) throw();
     void fprint(FILE *ff, double obj) throw();
-    void fprint(FILE *ff, char *obj) throw();
+    void fprint(FILE *ff, const char *obj) throw();
 
 }}
 

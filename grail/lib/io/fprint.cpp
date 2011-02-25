@@ -46,7 +46,7 @@ namespace grail { namespace io {
         fprintf(ff, "%f", obj);
     }
 
-    void fprint(FILE *ff, char *obj) throw() {
+    void fprint(FILE *ff, const char *obj) throw() {
         fprintf(ff, "%s", obj);
     }
 }}
