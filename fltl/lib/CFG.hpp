@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 #include <map>
 #include <utility>
 #include <stdint.h>
@@ -170,7 +171,7 @@ namespace fltl { namespace lib {
         /// injective mapping between non-zero negative integers and pointers
         /// to the parameterized alphabet type. the association between
         /// terminals and their representations needs to be maintained.
-        mutable helper::Array<std::pair<AlphaT, const char *> > terminal_map;
+        mutable helper::Array<std::pair<alphabet_type, const char *> > terminal_map;
         typedef std::map<
             alphabet_type,
             cfg::internal_sym_type,
@@ -200,6 +201,9 @@ namespace fltl { namespace lib {
 
         /// unused variables
         cfg::Variable<AlphaT> *unused_variables;
+
+        /// represents an upper-bound on any auto-generated symbol name
+        mutable const char *auto_symbol_upper_bound;
 
         /// number of productions and variables
         unsigned num_productions_;
@@ -283,6 +287,7 @@ namespace fltl { namespace lib {
             , variable_map()
             , named_variable_map()
             , unused_variables(0)
+            , auto_symbol_upper_bound(0)
             , num_productions_(0)
             , num_variables_(0)
             , first_production(0)
@@ -321,6 +326,7 @@ namespace fltl { namespace lib {
             first_production = 0;
             unused_variables = 0;
             num_productions_ = 0;
+            auto_symbol_upper_bound = 0;
         }
 
         /// get the starting variable for this grammar
@@ -341,6 +347,9 @@ namespace fltl { namespace lib {
         /// get a variable symbol. a variable symbol is either a variable
         /// or a variable terminal.
         const symbol_type get_variable_symbol(const char *name) throw() {
+
+            assert(is_valid_symbol_name(name));
+
             typename named_variable_map_type::iterator var_loc(
                 named_variable_map.find(name)
             );
@@ -369,6 +378,13 @@ namespace fltl { namespace lib {
             ));
             variable_terminal_map[name_copy] = term;
 
+            // check if it's an upper bound
+            if('$' == *name) {
+                if(0 < strcmp(name, auto_symbol_upper_bound)) {
+                    auto_symbol_upper_bound = name_copy;
+                }
+            }
+
             return term;
         }
 
@@ -376,6 +392,9 @@ namespace fltl { namespace lib {
         /// is being passed. If the variable doesn't exist then a new cstring
         /// is allocated to represent it.
         const variable_type get_variable(const char *name) throw() {
+
+            assert(is_valid_symbol_name(name));
+
             typename named_variable_map_type::iterator loc(
                 named_variable_map.find(name)
             );
@@ -386,6 +405,14 @@ namespace fltl { namespace lib {
                 const char *name_copy(trait::Alphabet<const char *>::copy(name));
                 get_variable(var)->name = name_copy;
                 named_variable_map[name_copy] = var;
+
+                // check if it's an upper bound
+                if('$' == *name) {
+                    if(0 < strcmp(name, auto_symbol_upper_bound)) {
+                        auto_symbol_upper_bound = name_copy;
+                    }
+                }
+
                 return var;
             } else {
                 return (*loc).second;
@@ -512,7 +539,7 @@ namespace fltl { namespace lib {
         /// remove a variable and all productions in the grammar that
         /// relate to this variable. this can have the effect of removing
         /// many variables
-        void remove_variable(variable_type _var) throw() {
+        void remove_variable(const variable_type _var) throw() {
             unsafe_remove_variable(_var);
 
             production_type P;
@@ -552,7 +579,7 @@ namespace fltl { namespace lib {
         }
 
         /// get the terminal reference for a particular terminal.
-        const terminal_type get_terminal(const AlphaT term) throw() {
+        const terminal_type get_terminal(const alphabet_type term) throw() {
             typename terminal_map_inv_type::iterator pos(
                 terminal_map_inv.find(term)
             );
@@ -576,12 +603,66 @@ namespace fltl { namespace lib {
             return terminal_type(term_id);
         }
 
-        /// get the alphabetic value for a terminal
-        inline const AlphaT &get_alpha(const terminal_type term) const throw() {
+        inline bool is_variable_terminal(const terminal_type term) const throw() {
             assert(0 != term.value);
             const unsigned id(static_cast<unsigned>(term.value * -1));
             assert(id < terminal_map.size());
+            return 0 != terminal_map.get(id).second;
+        }
+
+        /// get the alphabetic value for a terminal
+        inline const alphabet_type &get_alpha(const terminal_type term) const throw() {
+            assert(0 != term.value);
+            const unsigned id(static_cast<unsigned>(term.value * -1));
+            assert(id < terminal_map.size());
+            assert(0 == terminal_map.get(id).second);
             return terminal_map.get(id).first;
+        }
+
+        /// get the name for a variable terminal
+        inline const char *get_name(const terminal_type term) const throw() {
+            assert(0 != term.value);
+            const unsigned id(static_cast<unsigned>(term.value * -1));
+            assert(id < terminal_map.size());
+            assert(0 != terminal_map.get(id).second);
+            return terminal_map.get(id).second;
+        }
+
+        /// get the name for a variable. if the variable doesn't have a name
+        /// then one is generated automatically.
+        inline const char *get_name(const variable_type _var) const throw() {
+            cfg::Variable<AlphaT> *var(get_variable(_var));
+            if(0 != var->name) {
+                return var->name;
+            }
+
+            size_t len(2);
+            unsigned long prev_ub(0);
+
+            if(0 != auto_symbol_upper_bound) {
+
+                // figure out a name for this variable
+                len = strlen(auto_symbol_upper_bound);
+                prev_ub = strtoul(
+                    &(auto_symbol_upper_bound[1]),
+                    0,
+                    10
+                );
+
+                if('9' == auto_symbol_upper_bound[len - 1]) {
+                    ++len;
+                }
+            }
+
+            // make the new name
+            char *name(new char[2 + len]);
+            name[0] = '$';
+            sprintf(&(name[1]), "%lu", prev_ub + 1);
+
+            var->name = name;
+            auto_symbol_upper_bound = name;
+
+            return name;
         }
 
         /// add a production to the grammar from a symbol string
@@ -1046,6 +1127,25 @@ namespace fltl { namespace lib {
             );
 
             return var;
+        }
+
+        /// used for checking if a symbol name (a variable name, variable
+        /// terminal name) is correctly formatted. this doesn't do complete
+        /// or proper checking, it is mainly an extra check to ensure that
+        /// imported auto-generated symbol names are indeed correctly
+        /// formatted.
+        static bool is_valid_symbol_name(const char *name) throw() {
+            if(0 == name || ('$' != *name && '\0' != *name)) {
+                return true;
+            }
+
+            for(const char *curr(name + 1); '\0' != *curr; ++curr) {
+                if(!isdigit(*curr)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
     public:

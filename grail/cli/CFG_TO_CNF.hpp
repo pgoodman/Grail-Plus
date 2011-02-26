@@ -98,7 +98,7 @@ namespace grail { namespace cli {
             printf("num productions = %u\n", cfg.num_productions());
             printf("num variable terminals = %u\n", cfg.num_variable_terminals());
             */
-            //io::fprint(stdout, cfg);
+            io::fprint(stdout, cfg);
 
             fclose(fp);
 

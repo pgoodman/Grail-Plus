@@ -24,10 +24,8 @@ namespace grail { namespace io {
     static void fprint_production(
         FILE *ff,
         const fltl::lib::CFG<AlphaT> &cfg,
-        std::map<typename fltl::lib::CFG<AlphaT>::var_t,unsigned> &var_ids,
         typename fltl::lib::CFG<AlphaT>::sym_str_t str,
-        const char *prefix,
-        unsigned &next_var_id
+        const char *prefix
     ) throw() {
 
         fprintf(ff, "  %s", prefix);
@@ -38,18 +36,16 @@ namespace grail { namespace io {
 
             if(s.is_variable()) {
                 typename fltl::lib::CFG<AlphaT>::var_t s_as_var(s);
-                unsigned &id(var_ids[s_as_var]);
-
-                // not set
-                if(0 == id) {
-                    id = ++next_var_id;
-                }
-
-                fprintf(ff, " %u", id);
+                fprintf(ff, " %s", cfg.get_name(s_as_var));
             } else {
                 typename fltl::lib::CFG<AlphaT>::term_t s_as_term(s);
-                fprintf(ff, " ");
-                fprint(ff, cfg.get_alpha(s_as_term));
+                if(!cfg.is_variable_terminal(s_as_term)) {
+                    fprintf(ff, " \"");
+                    fprint(ff, cfg.get_alpha(s_as_term));
+                    fprintf(ff, "\"");
+                } else {
+                    fprintf(ff," %s", cfg.get_name(s_as_term));
+                }
             }
         }
 
@@ -82,21 +78,15 @@ namespace grail { namespace io {
             V --->* ~S
         ));
 
-        unsigned next_var_id(1);
-        std::map<typename CFG<AlphaT>::var_t,unsigned> var_ids;
-        var_ids[SV] = 1;
-
         const char sep[] = {':', '\0', '|', '\0'};
 
-        fprintf(ff, "1\n");
+        fprintf(ff, "%s\n", cfg.get_name(SV));
         for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
             fprint_production(
                 ff,
                 cfg,
-                var_ids,
                 S,
-                &(sep[sep_offset]),
-                next_var_id
+                &(sep[sep_offset])
             );
         }
         fprintf(ff, "  ;\n");
@@ -109,21 +99,14 @@ namespace grail { namespace io {
                 continue;
             }
 
-            unsigned &id(var_ids[V]);
-            if(0 == id) {
-                id = ++next_var_id;
-            }
-
-            fprintf(ff, "%u\n", id);
+            fprintf(ff, "%s\n", cfg.get_name(V));
             productions.rewind();
             for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
                 fprint_production(
                     ff,
                     cfg,
-                    var_ids,
                     S,
-                    &(sep[sep_offset]),
-                    next_var_id
+                    &(sep[sep_offset])
                 );
             }
             fprintf(ff, "  ;\n");

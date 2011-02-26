@@ -45,8 +45,9 @@ namespace grail { namespace io {
             STATE_FINAL = 3,
             STATE_SINK = 8,
             STATE_SEEN_PRODUCTION_VARIABLE = 1,
-            STATE_EXTEND_OR_CAT = 6,
-            STATE_CAT_SINGLE_LINE = 5
+            STATE_EXTEND_OR_CAT_MULTILINE = 6,
+            STATE_CAT_SINGLE_LINE = 5,
+            STATE_DONE_PRODUCTION = 7
         };
 
         enum {
@@ -56,6 +57,7 @@ namespace grail { namespace io {
         };
 
         bool is_symbol_codepoint(const char * const cp) throw();
+        bool is_numeric_codepoint(const char * const cp) throw();
 
         terminal_state find_symbol(
             UTF8FileBuffer<BUFFER_SIZE> &buffer,
@@ -235,12 +237,13 @@ namespace grail { namespace io {
         cfg::terminal_state find_symbol(
             UTF8FileBuffer<cfg::BUFFER_SIZE> &buffer,
             char *scratch,
-            const char * const scratch_end
+            const char * const scratch_end,
+            bool (*predicate)(const char *)
         ) throw() {
             const char *codepoint(0);
             for(;;) {
                 codepoint = buffer.read();
-                if(cfg::is_symbol_codepoint(codepoint)) {
+                if(predicate(codepoint)) {
                     strcpy(scratch, codepoint);
                     scratch += buffer.byte_length();
 
@@ -542,6 +545,29 @@ namespace grail { namespace io {
                 case '\n':
                     return cfg::T_NEW_LINE;
 
+                // auto-generated variable
+                case '$':
+                    scratch[0] = '\0';
+                    sym_state = cfg::find_symbol<LOOK_FOR_ERRORS>(
+                        buffer,
+                        scratch,
+                        scratch_end,
+                        cfg::is_numeric_codepoint
+                    );
+
+                    if(LOOK_FOR_ERRORS && '\0' == scratch[0]) {
+                        error(
+                            file_name, buffer.line(), buffer.column(),
+                            "I found a '$' and so was expecting a sequence "
+                            "of zero-or-more digits following the '$'. This "
+                            "type of symbol is used to represent auto-"
+                            "generated variable names by Grail+."
+                        );
+                        return cfg::T_ERROR;
+                    }
+
+                    return cfg::T_SYMBOL;
+
                 default:
 
                     if(isspace(ch)) {
@@ -559,7 +585,8 @@ namespace grail { namespace io {
                         sym_state = cfg::find_symbol<LOOK_FOR_ERRORS>(
                             buffer,
                             scratch + buffer.byte_length(),
-                            scratch_end
+                            scratch_end,
+                            cfg::is_symbol_codepoint
                         );
 
                         if(LOOK_FOR_ERRORS) {
@@ -705,21 +732,27 @@ namespace grail { namespace io {
 
         for(state = cfg::STATE_INITIAL; ;) {
             scratch[0] = '\0';
-            tt = cfg::get_token<true>(buffer, scratch, scratch_end, file_name);
+            tt = cfg::get_token<false>(buffer, scratch, scratch_end, file_name);
+            prev_state = state;
             state = cfg::next_state(state, tt);
 
             switch(state) {
+
+
             case cfg::STATE_CAT_SINGLE_LINE:
                 goto add_symbol;
 
-            case cfg::STATE_EXTEND_OR_CAT:
+            case cfg::STATE_EXTEND_OR_CAT_MULTILINE:
                 if(cfg::T_EXTEND_MULTILINE_RELATION != tt) {
                     goto add_symbol;
                 }
                 /* fall-through */
-            case cfg::STATE_INITIAL:
-                CFG.add_production(var, prod_buffer);
-                prod_buffer.clear();
+            case cfg::STATE_DONE_PRODUCTION:
+                if(cfg::STATE_CAT_SINGLE_LINE == prev_state
+                || cfg::STATE_EXTEND_OR_CAT_MULTILINE == prev_state) {
+                    CFG.add_production(var, prod_buffer);
+                    prod_buffer.clear();
+                }
                 break;
 
             case cfg::STATE_FINAL:
