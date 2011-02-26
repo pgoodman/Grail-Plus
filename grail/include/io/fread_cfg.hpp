@@ -496,39 +496,16 @@ namespace grail { namespace io {
                     // C-style comments
                     if('*' == ch) {
 
-                        for(;;) {
-                            codepoint = buffer.read();
-                            ch = *codepoint;
+                        const bool find_close(cfg::find_next<LOOK_FOR_ERRORS>(
+                            buffer, "*/"
+                        ));
 
-                        handle_comment_char:
-
-                            if(LOOK_FOR_ERRORS && '\0' == ch) {
-
-                                error(
-                                    file_name, buffer.line(), buffer.column(),
-                                    "Expected '*/' as a closing to match the "
-                                    "opening '/*' C-style comment block from "
-                                    "line %u, column %u.",
-                                    temp_line, temp_col
-                                );
-
-                            } else if('*' == ch) {
-                                codepoint = buffer.read();
-                                ch = *codepoint;
-                                if('/' == ch) {
-                                    goto read_first_char;
-                                } else {
-                                    goto handle_comment_char;
-                                }
-                            }
-                        }
-
-                        if(LOOK_FOR_ERRORS) {
+                        if(LOOK_FOR_ERRORS && !find_close) {
                             error(
                                 file_name, buffer.line(), buffer.column(),
-                                "Unexpected error occured when parsing "
-                                "C-style comment block starting at line %u, "
-                                "column %u.",
+                                "Expected '*/' as a closing to match the "
+                                "opening '/*' C-style comment block from "
+                                "line %u, column %u.",
                                 temp_line, temp_col
                             );
                             return cfg::T_ERROR;
