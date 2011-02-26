@@ -558,10 +558,11 @@ namespace grail { namespace io {
 
                 // auto-generated variable
                 case '$':
-                    scratch[0] = '\0';
+                    scratch[0] = '$';
+                    scratch[1] = '\0';
                     sym_state = cfg::find_symbol<LOOK_FOR_ERRORS>(
                         buffer,
-                        scratch,
+                        &(scratch[1]),
                         scratch_end,
                         cfg::is_numeric_codepoint
                     );

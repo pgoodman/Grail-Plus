@@ -287,7 +287,6 @@ namespace fltl { namespace lib {
             , variable_map()
             , named_variable_map()
             , unused_variables(0)
-            , auto_symbol_upper_bound(0)
             , num_productions_(0)
             , num_variables_(0)
             , first_production(0)
@@ -295,6 +294,10 @@ namespace fltl { namespace lib {
             , _()
             , __()
         {
+            static const char * const UB("$0");
+
+            auto_symbol_upper_bound = UB;
+
             terminal_map.reserve(256U);
             variable_map.reserve(256U);
 
@@ -636,22 +639,16 @@ namespace fltl { namespace lib {
                 return var->name;
             }
 
-            size_t len(2);
-            unsigned long prev_ub(0);
+            // figure out a name for this variable
+            size_t len(strlen(auto_symbol_upper_bound));
+            unsigned long prev_ub(strtoul(
+                &(auto_symbol_upper_bound[1]),
+                0,
+                10
+            ));
 
-            if(0 != auto_symbol_upper_bound) {
-
-                // figure out a name for this variable
-                len = strlen(auto_symbol_upper_bound);
-                prev_ub = strtoul(
-                    &(auto_symbol_upper_bound[1]),
-                    0,
-                    10
-                );
-
-                if('9' == auto_symbol_upper_bound[len - 1]) {
-                    ++len;
-                }
+            if('9' == auto_symbol_upper_bound[len - 1]) {
+                ++len;
             }
 
             // make the new name
