@@ -281,6 +281,7 @@ namespace grail { namespace io {
 
         read_first_char:
             for(;;) {
+
                 codepoint = buffer.read();
                 ch = *codepoint;
 
@@ -483,6 +484,12 @@ namespace grail { namespace io {
 
                 // possible comment
                 case '/':
+
+                    if(LOOK_FOR_ERRORS) {
+                        temp_line = buffer.line();
+                        temp_col = buffer.column();
+                    }
+
                     codepoint = buffer.read();
                     ch = *codepoint;
 
@@ -493,11 +500,38 @@ namespace grail { namespace io {
                             codepoint = buffer.read();
                             ch = *codepoint;
 
-                            if('\0' == ch) {
+                        handle_comment_char:
+
+                            if(LOOK_FOR_ERRORS && '\0' == ch) {
+
+                                error(
+                                    file_name, buffer.line(), buffer.column(),
+                                    "Expected '*/' as a closing to match the "
+                                    "opening '/*' C-style comment block from "
+                                    "line %u, column %u.",
+                                    temp_line, temp_col
+                                );
 
                             } else if('*' == ch) {
-
+                                codepoint = buffer.read();
+                                ch = *codepoint;
+                                if('/' == ch) {
+                                    goto read_first_char;
+                                } else {
+                                    goto handle_comment_char;
+                                }
                             }
+                        }
+
+                        if(LOOK_FOR_ERRORS) {
+                            error(
+                                file_name, buffer.line(), buffer.column(),
+                                "Unexpected error occured when parsing "
+                                "C-style comment block starting at line %u, "
+                                "column %u.",
+                                temp_line, temp_col
+                            );
+                            return cfg::T_ERROR;
                         }
 
                     // C++-style comments, ignore the rest of the line
@@ -731,6 +765,7 @@ namespace grail { namespace io {
         typename fltl::lib::CFG<AlphaT>::variable_type var;
 
         for(state = cfg::STATE_INITIAL; ;) {
+
             scratch[0] = '\0';
             tt = cfg::get_token<false>(buffer, scratch, scratch_end, file_name);
             prev_state = state;
