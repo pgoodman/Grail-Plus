@@ -11,7 +11,7 @@
 #ifndef FLTL_OPAQUEPRODUCTION_HPP_
 #define FLTL_OPAQUEPRODUCTION_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     /// the production type that is exposed to users
     template <typename AlphaT>
@@ -155,6 +155,6 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 
-}}}
+}}
 
 #endif /* FLTL_OPAQUEPRODUCTION_HPP_ */

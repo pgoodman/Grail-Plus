@@ -13,7 +13,7 @@
 
 #include <functional>
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     /// represents a non-terminal of a grammar
     template <typename AlphaT>
@@ -66,14 +66,14 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 
-}}}
+}}
 
 namespace std {
 
     template <typename AlphaT>
-    struct less<fltl::lib::cfg::VariableSymbol<AlphaT> > : binary_function <fltl::lib::cfg::VariableSymbol<AlphaT>,fltl::lib::cfg::VariableSymbol<AlphaT>,bool> {
+    struct less<fltl::cfg::VariableSymbol<AlphaT> > : binary_function <fltl::cfg::VariableSymbol<AlphaT>,fltl::cfg::VariableSymbol<AlphaT>,bool> {
     public:
-        bool operator() (const fltl::lib::cfg::VariableSymbol<AlphaT> &x, const fltl::lib::cfg::VariableSymbol<AlphaT> &y) const {
+        bool operator() (const fltl::cfg::VariableSymbol<AlphaT> &x, const fltl::cfg::VariableSymbol<AlphaT> &y) const {
             return x.value < y.value;
         }
     };

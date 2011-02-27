@@ -11,7 +11,7 @@
 #ifndef FLTL_FREAD_CFG_HPP_
 #define FLTL_FREAD_CFG_HPP_
 
-#include "fltl/lib/CFG.hpp"
+#include "fltl/include/CFG.hpp"
 
 #include "grail/include/io/error.hpp"
 #include "grail/include/io/fread.hpp"
@@ -649,7 +649,7 @@ namespace grail { namespace io {
     template <typename AlphaT>
     bool fread(
         FILE *ff,
-        fltl::lib::CFG<AlphaT> &CFG,
+        fltl::CFG<AlphaT> &CFG,
         const char * const file_name
     ) throw() {
 
@@ -668,7 +668,7 @@ namespace grail { namespace io {
         // to build up a map of all of the variables.
         uint8_t prev_state(cfg::STATE_INITIAL);
         uint8_t state(cfg::STATE_INITIAL);
-        typename fltl::lib::CFG<AlphaT>::alphabet_type terminal;
+        typename fltl::CFG<AlphaT>::alphabet_type terminal;
 
         for(;;) {
 
@@ -682,7 +682,7 @@ namespace grail { namespace io {
 
             // add in the terminals
             } else if(cfg::T_TERMINAL == tt) {
-                fltl::lib::CFG<AlphaT>::traits_type::unserialize(
+                fltl::CFG<AlphaT>::traits_type::unserialize(
                     scratch,
                     terminal
                 );
@@ -739,8 +739,8 @@ namespace grail { namespace io {
 
         // go back to the start of the file
         buffer.reset();
-        typename fltl::lib::CFG<AlphaT>::production_builder_type prod_buffer;
-        typename fltl::lib::CFG<AlphaT>::variable_type var;
+        typename fltl::CFG<AlphaT>::production_builder_type prod_buffer;
+        typename fltl::CFG<AlphaT>::variable_type var;
 
         for(state = cfg::STATE_INITIAL; ;) {
 
@@ -780,7 +780,7 @@ namespace grail { namespace io {
 
         add_symbol:
             if(cfg::T_TERMINAL == tt) {
-                fltl::lib::CFG<AlphaT>::traits_type::unserialize(
+                fltl::CFG<AlphaT>::traits_type::unserialize(
                     scratch,
                     terminal
                 );

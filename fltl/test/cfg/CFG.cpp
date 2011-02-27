@@ -12,7 +12,7 @@
 
 namespace fltl { namespace test { namespace cfg {
 
-    using fltl::lib::CFG;
+    using fltl::CFG;
 
     void test_equivalence_relations(void) throw() {
 

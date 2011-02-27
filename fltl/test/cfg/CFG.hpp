@@ -13,7 +13,7 @@
 
 
 #include "fltl/test/Test.hpp"
-#include "fltl/lib/CFG.hpp"
+#include "fltl/include/CFG.hpp"
 
 namespace fltl { namespace test { namespace cfg {
 

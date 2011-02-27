@@ -11,7 +11,7 @@
 #ifndef FLTL_CFGPRODUCTIONBUILDER_HPP_
 #define FLTL_CFGPRODUCTIONBUILDER_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     /// buffer for building productions
     template <typename AlphaT>
@@ -74,6 +74,6 @@ namespace fltl { namespace lib { namespace cfg {
             return buffer.get(i);
         }
     };
-}}}
+}}
 
 #endif /* FLTL_CFGPRODUCTIONBUILDER_HPP_ */

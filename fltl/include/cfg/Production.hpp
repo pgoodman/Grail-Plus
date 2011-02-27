@@ -11,7 +11,7 @@
 #ifndef FLTL_PRODUCTION_HPP_
 #define FLTL_PRODUCTION_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     // forward declarations
     template <typename, const unsigned short> class StaticProduction;
@@ -154,6 +154,6 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 
-}}}
+}}
 
 #endif /* FLTL_PRODUCTION_HPP_ */

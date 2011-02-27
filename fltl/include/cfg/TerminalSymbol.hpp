@@ -13,7 +13,7 @@
 
 #include <functional>
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     template <typename AlphaT>
     class TerminalSymbol : public Symbol<AlphaT> {
@@ -61,14 +61,14 @@ namespace fltl { namespace lib { namespace cfg {
             return this->value < that.value;
         }
     };
-}}}
+}}
 
 namespace std {
 
     template <typename AlphaT>
-    struct less<fltl::lib::cfg::TerminalSymbol<AlphaT> > : binary_function <fltl::lib::cfg::TerminalSymbol<AlphaT>,fltl::lib::cfg::TerminalSymbol<AlphaT>,bool> {
+    struct less<fltl::cfg::TerminalSymbol<AlphaT> > : binary_function <fltl::cfg::TerminalSymbol<AlphaT>,fltl::cfg::TerminalSymbol<AlphaT>,bool> {
     public:
-        bool operator() (const fltl::lib::cfg::TerminalSymbol<AlphaT> &x, const fltl::lib::cfg::TerminalSymbol<AlphaT> &y) const {
+        bool operator() (const fltl::cfg::TerminalSymbol<AlphaT> &x, const fltl::cfg::TerminalSymbol<AlphaT> &y) const {
             return x.value < y.value;
         }
     };

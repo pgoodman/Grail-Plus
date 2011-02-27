@@ -11,7 +11,7 @@
 #ifndef FLTL_SYMBOL_HPP_
 #define FLTL_SYMBOL_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     /// grammar symbol (non-terminal or terminal)
     template <typename AlphaT>
@@ -164,6 +164,6 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 
-}}}
+}}
 
 #endif /* FLTL_SYMBOL_HPP_ */

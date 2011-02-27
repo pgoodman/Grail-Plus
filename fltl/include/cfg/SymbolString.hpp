@@ -22,7 +22,7 @@
 #define FLTL_SYMBOL_STRING_INIT_FUNC(n, func) \
     , &detail::SymbolArray<AlphaT,n>::func
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     // forward declaration
     template <typename AlphaT>
@@ -639,6 +639,6 @@ namespace fltl { namespace lib { namespace cfg {
         )
     };
 
-}}}
+}}
 
 #endif /* FLTL_SYMBOLSTRING_HPP_ */

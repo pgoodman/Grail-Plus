@@ -14,7 +14,7 @@
 #include <cstdio>
 #include <map>
 
-#include "fltl/lib/CFG.hpp"
+#include "fltl/include/CFG.hpp"
 
 #include "grail/include/io/fprint.hpp"
 
@@ -23,22 +23,22 @@ namespace grail { namespace io {
     template <typename AlphaT>
     static void fprint_production(
         FILE *ff,
-        const fltl::lib::CFG<AlphaT> &cfg,
-        typename fltl::lib::CFG<AlphaT>::sym_str_t str,
+        const fltl::CFG<AlphaT> &cfg,
+        typename fltl::CFG<AlphaT>::sym_str_t str,
         const char *prefix
     ) throw() {
 
         fprintf(ff, "  %s", prefix);
-        typename fltl::lib::CFG<AlphaT>::sym_t s;
+        typename fltl::CFG<AlphaT>::sym_t s;
 
         for(unsigned i(0); i < str.length(); ++i) {
             s = str.at(i);
 
             if(s.is_variable()) {
-                typename fltl::lib::CFG<AlphaT>::var_t s_as_var(s);
+                typename fltl::CFG<AlphaT>::var_t s_as_var(s);
                 fprintf(ff, " %s", cfg.get_name(s_as_var));
             } else {
-                typename fltl::lib::CFG<AlphaT>::term_t s_as_term(s);
+                typename fltl::CFG<AlphaT>::term_t s_as_term(s);
                 if(!cfg.is_variable_terminal(s_as_term)) {
                     fprintf(ff, " \"");
                     fprint(ff, cfg.get_alpha(s_as_term));
@@ -54,9 +54,9 @@ namespace grail { namespace io {
 
     /// print out a context-free grammar
     template <typename AlphaT>
-    void fprint(FILE *ff, const fltl::lib::CFG<AlphaT> &cfg) throw() {
+    void fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg) throw() {
 
-        using fltl::lib::CFG;
+        using fltl::CFG;
 
         // nothing to print
         if(0 == cfg.num_productions()) {

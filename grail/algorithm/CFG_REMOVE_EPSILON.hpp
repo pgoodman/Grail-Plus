@@ -14,7 +14,7 @@
 #include <cassert>
 #include <set>
 
-#include "fltl/lib/CFG.hpp"
+#include "fltl/include/CFG.hpp"
 
 #include "grail/include/Algorithm.hpp"
 
@@ -27,7 +27,7 @@ namespace grail { namespace algorithm {
     public:
 
         // take off the templates!
-        typedef fltl::lib::CFG<AlphaT> CFG;
+        typedef fltl::CFG<AlphaT> CFG;
         typedef typename CFG::variable_type variable_type;
         typedef typename CFG::terminal_type terminal_type;
         typedef typename CFG::production_type production_type;

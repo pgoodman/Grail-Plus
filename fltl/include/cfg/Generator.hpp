@@ -11,7 +11,7 @@
 #ifndef FLTL_GENERATOR_HPP_
 #define FLTL_GENERATOR_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     namespace detail {
 
@@ -483,6 +483,6 @@ namespace fltl { namespace lib { namespace cfg {
             return binder_func(this);
         }
     };
-}}}
+}}
 
 #endif /* FLTL_GENERATOR_HPP_ */

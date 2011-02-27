@@ -57,7 +57,7 @@
     FLTL_CFG_PRODUCTION_PATTERN_EXTEND(_FLTL_CFG_UNBOUND(tag),unbound_ ## tag,state)
 
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     namespace detail {
 
@@ -1101,6 +1101,6 @@ namespace fltl { namespace lib { namespace cfg {
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbol<AlphaT>, any_symbol_tag, 0)
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbolString<AlphaT>, any_symbol_string_tag, 1)
     };
-}}}
+}}
 
 #endif /* FLTL_PATTERN_HPP_ */

@@ -11,7 +11,7 @@
 #ifndef FLTL_UNBOUNDSYMBOL_HPP_
 #define FLTL_UNBOUNDSYMBOL_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     template <typename AlphaT>
     class AnySymbol {
@@ -190,6 +190,6 @@ namespace fltl { namespace lib { namespace cfg {
             : string(_string)
         { }
     };
-}}}
+}}
 
 #endif /* FLTL_UNBOUNDSYMBOL_HPP_ */

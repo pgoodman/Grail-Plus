@@ -53,7 +53,7 @@ namespace grail { namespace cli {
 
         static int main(CommandLineOptions &options) throw() {
 
-            using fltl::lib::CFG;
+            using fltl::CFG;
 
             // run the tool
             option_type file(options[0U]);

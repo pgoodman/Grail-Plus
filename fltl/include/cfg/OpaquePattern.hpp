@@ -11,7 +11,7 @@
 #ifndef FLTL_OPAQUEPATTERN_HPP_
 #define FLTL_OPAQUEPATTERN_HPP_
 
-namespace fltl { namespace lib { namespace cfg {
+namespace fltl { namespace cfg {
 
     /// pattern type, nicely encapsulates a destructuring production
     /// pattern
@@ -159,6 +159,6 @@ namespace fltl { namespace lib { namespace cfg {
         }
     };
 
-}}}
+}}
 
 #endif /* FLTL_OPAQUEPATTERN_HPP_ */

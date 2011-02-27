@@ -20,19 +20,19 @@
 #include "fltl/test/cfg/CFG.hpp"
 
 template <typename A>
-void print_grammar(fltl::lib::CFG<A> &);
+void print_grammar(fltl::CFG<A> &);
 
 
 
 /// print a context-free grammar
 template <typename A>
-void print_grammar(fltl::lib::CFG<A> &cfg) throw() {
-    using fltl::lib::CFG;
-    typename fltl::lib::CFG<A>::production_type P;
-    typename fltl::lib::CFG<A>::variable_type S(cfg.get_start_variable());
+void print_grammar(fltl::CFG<A> &cfg) throw() {
+    using fltl::CFG;
+    typename fltl::CFG<A>::production_type P;
+    typename fltl::CFG<A>::variable_type S(cfg.get_start_variable());
 
-    typename fltl::lib::CFG<A>::generator_type prods(cfg.search(~P));
-    typename fltl::lib::CFG<A>::generator_type start_prods(cfg.search(
+    typename fltl::CFG<A>::generator_type prods(cfg.search(~P));
+    typename fltl::CFG<A>::generator_type start_prods(cfg.search(
         ~P,
         S --->* cfg.__
     ));
@@ -53,7 +53,7 @@ int main(void) {
 
     fltl::test::run_tests();
 
-    using fltl::lib::CFG;
+    using fltl::CFG;
 
     unsigned j(0);
 
