@@ -128,7 +128,7 @@ namespace grail { namespace io {
 
                         // character
                         } else if('c' == *str) {
-                            col += fprintf(fp, "%c", static_cast<char>(va_arg(args, char)));
+                            col += fprintf(fp, "%c", static_cast<char>(va_arg(args, int)));
                         }
                     }
                 } else if('\n' == *str) {
