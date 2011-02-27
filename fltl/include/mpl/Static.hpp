@@ -11,6 +11,8 @@
 #ifndef FLTL_STATIC_HPP_
 #define FLTL_STATIC_HPP_
 
+#include <new>
+
 namespace fltl { namespace mpl {
 
     namespace detail {
@@ -19,8 +21,21 @@ namespace fltl { namespace mpl {
         class StaticValue {
         public:
             inline static T default_value(void) throw() {
-                T val;
+                static T val;
+                static bool is_initialized(false);
+                if(!is_initialized) {
+                    is_initialized = true;
+                    new (&val) T;
+                }
                 return val;
+            }
+        };
+
+        template <typename T>
+        class StaticValue<T *> {
+        public:
+            inline static T *default_value(void) throw() {
+                return 0;
             }
         };
 
