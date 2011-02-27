@@ -12,6 +12,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
+#include <cctype>
 #include <map>
 #include <utility>
 #include <stdint.h>
