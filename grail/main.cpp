@@ -102,9 +102,9 @@ namespace {
     }; \
     static ToolAdder cli__ ## tpl (&(cli__ ## tpl ## __meta));
 
-#include "grail/tools.hpp"
-
 }
+
+#include "grail/tools.hpp"
 
 /// run the program
 int main(const int argc, const char **argv) throw() {

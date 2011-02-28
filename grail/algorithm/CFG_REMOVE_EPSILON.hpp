@@ -16,8 +16,6 @@
 
 #include "fltl/include/CFG.hpp"
 
-#include "grail/include/Algorithm.hpp"
-
 namespace grail { namespace algorithm {
 
     /// remove all epsilon productions from a context-free grammar, *except*

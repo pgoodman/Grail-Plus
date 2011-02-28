@@ -17,6 +17,7 @@
 namespace fltl { namespace trait {
 
     namespace detail {
+
         template <typename T>
         class AlphabetBase {
         public:

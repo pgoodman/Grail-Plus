@@ -40,6 +40,26 @@ namespace fltl { namespace pda {
         /// source and sink states, respectively.
         unsigned source_state;
         unsigned sink_state;
+
+        /// reference count
+        unsigned ref_count;
+
+        static void hold(self_type *trans) throw() {
+            assert(0 != trans);
+            ++(trans->ref_count);
+        }
+
+        static void release(self_type *trans) throw() {
+            assert(0 != trans);
+            if(0 == --(trans->ref_count)) {
+                PDA<AlphaT>::transition_allocator.deallocate(trans);
+            }
+        }
+
+        Transition(void) throw()
+            : next(0)
+            , ref_count(0)
+        { }
     };
 
 }}

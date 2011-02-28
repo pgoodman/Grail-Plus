@@ -44,6 +44,7 @@ namespace grail { namespace cli {
 
         static int main(CommandLineOptions &options) throw() {
             (void) options;
+            // TODO
             return 0;
         }
     };

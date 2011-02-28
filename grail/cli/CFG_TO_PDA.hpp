@@ -1,29 +1,28 @@
 /*
- * cfg_to_cnf.hpp
+ * CFG_TO_PDA.hpp
  *
- *  Created on: Feb 16, 2011
+ *  Created on: Feb 27, 2011
  *      Author: Peter Goodman
  *     Version: $Id$
  *
  * Copyright 2011 Peter Goodman, all rights reserved.
  */
 
-#ifndef FLTL_CLI_CFG_TO_CNF_HPP_
-#define FLTL_CLI_CFG_TO_CNF_HPP_
+#ifndef FLTL_CLI_CFG_TO_PDA_HPP_
+#define FLTL_CLI_CFG_TO_PDA_HPP_
 
 #include <cstdio>
 
 #include "grail/include/CommandLineOptions.hpp"
 
-#include "grail/algorithm/CFG_TO_CNF.hpp"
+#include "grail/algorithm/CFG_TO_PDA.hpp"
 
 #include "grail/include/io/fread_cfg.hpp"
-#include "grail/include/io/fprint_cfg.hpp"
 
 namespace grail { namespace cli {
 
     template <typename AlphaT>
-    class CFG_TO_CNF {
+    class CFG_TO_PDA {
     public:
 
         static const char * const TOOL_NAME;
@@ -39,9 +38,8 @@ namespace grail { namespace cli {
             //  "  | |                              |                                             |"
             printf(
                 "  %s:\n"
-                "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
-                "    CFG generates the empty string then the only epsilon production in the\n"
-                "    CFG will be that of the start variable.\n\n"
+                "    Converts a context-free grammar (CFG) into a Non-deterministic Pushdown\n"
+                "    Automaton (PDA).\n\n"
                 "  basic use options for %s:\n"
                 "    <file>                         read in a CFG from <file>. If \"stdin\"\n"
                 "                                   is given then input will be read from the\n"
@@ -54,6 +52,7 @@ namespace grail { namespace cli {
         static int main(CommandLineOptions &options) throw() {
 
             using fltl::CFG;
+            using fltl::PDA;
 
             // run the tool
             option_type file(options[0U]);
@@ -79,26 +78,11 @@ namespace grail { namespace cli {
             }
 
             CFG<AlphaT> cfg;
+            PDA<AlphaT> pda;
+
             io::fread(fp, cfg, file_name);
 
-            /*
-            printf("BEFORE:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-
-            algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
-
-            /*
-            printf("\nAFTER:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-            io::fprint(stdout, cfg);
+            algorithm::CFG_TO_PDA<AlphaT>::run(cfg, pda);
 
             fclose(fp);
 
@@ -107,7 +91,7 @@ namespace grail { namespace cli {
     };
 
     template <typename AlphaT>
-    const char * const CFG_TO_CNF<AlphaT>::TOOL_NAME("cfg-to-cnf");
+    const char * const CFG_TO_PDA<AlphaT>::TOOL_NAME("cfg-to-pda");
 }}
 
-#endif /* FLTL_CLI_CFG_TO_CNF_HPP_ */
+#endif /* FLTL_CLI_CFG_TO_PDA_HPP_ */

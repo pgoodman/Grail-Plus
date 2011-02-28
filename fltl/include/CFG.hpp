@@ -51,8 +51,7 @@
 namespace fltl {
 
     // forward declaration
-    template <typename AlphaT>
-    class CFG;
+    template <typename> class CFG;
 
     namespace cfg {
 
@@ -590,7 +589,7 @@ namespace fltl {
             if(terminal_map_inv.end() == pos) {
                 term_id = next_terminal_id;
                 --next_terminal_id;
-                AlphaT copy(traits_type::copy(term));
+                alphabet_type copy(traits_type::copy(term));
                 terminal_map.append(std::make_pair<AlphaT,const char *>(
                     copy, 0
                 ));
@@ -1143,43 +1142,6 @@ namespace fltl {
             return true;
         }
 
-    public:
-        /*
-        void debug(const production_type &prod) throw() {
-            if(!prod.is_valid()) {
-                printf("<empty production>\n");
-            } else {
-                printf(FLTL_F_YELLOW "%d" FLTL_F_DEF " -> ", prod.variable().value);
-                debug(prod.symbols());
-            }
-        }
-
-        void debug(const symbol_string_type &syms) throw() {
-            for(unsigned i(0); i < syms.length(); ++i) {
-                if(0 < syms[i].value) {
-                    printf(FLTL_F_YELLOW "%d ", syms[i].value);
-                } else {
-                    printf(FLTL_F_PINK "%c ", terminal_map.get(
-                        static_cast<unsigned>(-1 * syms[i].value)
-                    ));
-                }
-            }
-            printf(FLTL_F_DEF "\n");
-        }
-
-        void debug(const symbol_type &sym) throw() {
-            if(0 == sym.value) {
-                printf("\x27\n");
-            } else if(0 < sym.value) {
-                printf(FLTL_F_YELLOW "%d" FLTL_F_DEF "\n", sym.value);
-            } else {
-                printf(
-                    FLTL_F_PINK "%c" FLTL_F_DEF "\n",
-                    terminal_map.get(-1 * sym.value)
-                );
-            }
-        }
-        */
     };
 
     // initialize the static variables

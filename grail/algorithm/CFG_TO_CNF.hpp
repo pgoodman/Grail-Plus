@@ -18,8 +18,6 @@
 
 #include "fltl/include/CFG.hpp"
 
-#include "grail/include/Algorithm.hpp"
-
 #include "grail/algorithm/CFG_REMOVE_UNITS.hpp"
 #include "grail/algorithm/CFG_REMOVE_EPSILON.hpp"
 
