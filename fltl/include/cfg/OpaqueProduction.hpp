@@ -33,7 +33,7 @@ namespace fltl { namespace cfg {
         Production<AlphaT> *production;
 
         /// proper constructor for productions.
-        OpaqueProduction(Production<AlphaT> *prod) throw()
+        explicit OpaqueProduction(Production<AlphaT> *prod) throw()
             : production(prod)
         {
             if(0 != prod) {

@@ -82,11 +82,24 @@ namespace grail { namespace cli {
 
             io::fread(fp, cfg, file_name);
 
-            algorithm::CFG_TO_PDA<AlphaT>::run(cfg, pda);
+            int ret(0);
+
+            if(0 != cfg.num_variable_terminals()) {
+                options.error(
+                    "There is at least one variable terminal "
+                    "in the grammar file."
+                );
+                options.note("File specified here:", file);
+                ret = 1;
+            }
+
+            if(0 == ret) {
+                algorithm::CFG_TO_PDA<AlphaT>::run(cfg, pda);
+            }
 
             fclose(fp);
 
-            return 0;
+            return 1;
         }
     };
 

@@ -19,6 +19,7 @@ namespace fltl { namespace pda {
     private:
 
         friend class PDA<AlphaT>;
+        friend class SymbolBuffer<AlphaT>;
 
         typedef Symbol<AlphaT> self_type;
 
@@ -45,6 +46,14 @@ namespace fltl { namespace pda {
         self_type &operator=(const self_type &that) throw() {
             id = that.id;
             return *this;
+        }
+
+        bool operator==(const self_type &that) const throw() {
+            return id == that.id;
+        }
+
+        bool operator!=(const self_type &that) const throw() {
+            return id != that.id;
         }
     };
 

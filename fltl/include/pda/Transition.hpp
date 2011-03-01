@@ -19,8 +19,10 @@ namespace fltl { namespace pda {
 
         typedef Transition<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
+        typedef OpaqueState<AlphaT> state_type;
 
         friend class PDA<AlphaT>;
+        friend class OpaqueTransition<AlphaT>;
 
         /// the symbol read from input
         symbol_type sym_read;
@@ -36,10 +38,11 @@ namespace fltl { namespace pda {
 
         /// the next transition that shares the same source state.
         self_type *next;
+        self_type *prev;
 
         /// source and sink states, respectively.
-        unsigned source_state;
-        unsigned sink_state;
+        state_type source_state;
+        state_type sink_state;
 
         /// reference count
         unsigned ref_count;
@@ -56,8 +59,11 @@ namespace fltl { namespace pda {
             }
         }
 
+    public:
+
         Transition(void) throw()
             : next(0)
+            , prev(0)
             , ref_count(0)
         { }
     };

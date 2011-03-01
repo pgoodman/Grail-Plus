@@ -298,7 +298,7 @@ namespace fltl {
 
             auto_symbol_upper_bound = UB;
 
-            terminal_map.append(std::make_pair<AlphaT,const char *>(
+            terminal_map.append(std::make_pair<alphabet_type,const char *>(
                 mpl::Static<AlphaT>::VALUE,
                 0
             ));
@@ -317,10 +317,12 @@ namespace fltl {
 
             // free the terminals
             for(unsigned i(1U); i < terminal_map.size(); ++i) {
-                traits_type::destroy(terminal_map.get(i).first);
-                trait::Alphabet<const char *>::destroy(
-                    terminal_map.get(i).second
+                std::pair<alphabet_type,const char *> &pp(
+                    terminal_map.get(i)
                 );
+
+                traits_type::destroy(pp.first);
+                trait::Alphabet<const char *>::destroy(pp.second);
             }
 
             first_production = 0;
@@ -373,7 +375,7 @@ namespace fltl {
             --next_terminal_id;
             const char *name_copy(trait::Alphabet<const char *>::copy(name));
             terminal_map.append(std::make_pair(
-                mpl::Static<AlphaT>::VALUE,
+                mpl::Static<alphabet_type>::VALUE,
                 name_copy
             ));
             variable_terminal_map[name_copy] = term;
@@ -590,7 +592,7 @@ namespace fltl {
                 term_id = next_terminal_id;
                 --next_terminal_id;
                 alphabet_type copy(traits_type::copy(term));
-                terminal_map.append(std::make_pair<AlphaT,const char *>(
+                terminal_map.append(std::make_pair<alphabet_type,const char *>(
                     copy, 0
                 ));
                 terminal_map_inv[copy] = term_id;
@@ -637,21 +639,16 @@ namespace fltl {
             }
 
             // figure out a name for this variable
-            size_t len(strlen(auto_symbol_upper_bound));
             unsigned long prev_ub(strtoul(
                 &(auto_symbol_upper_bound[1]),
                 0,
                 10
             ));
 
-            if('9' == auto_symbol_upper_bound[len - 1]) {
-                ++len;
-            }
-
             // make the new name
-            char *name(new char[2 + len]);
-            name[0] = '$';
-            sprintf(&(name[1]), "%lu", prev_ub + 1);
+            char buffer[1024] = {'\0'};
+            sprintf(buffer, "$%lu", prev_ub + 1);
+            const char *name(trait::Alphabet<const char *>::copy(buffer));
 
             var->name = name;
             auto_symbol_upper_bound = name;

@@ -17,13 +17,14 @@ namespace fltl { namespace pda {
     class OpaqueState {
     private:
 
-        friend class PDA<AlphaT>;
-
         typedef OpaqueState<AlphaT> self_type;
+
+        friend class PDA<AlphaT>;
+        friend struct std::less<self_type>;
 
         unsigned id;
 
-        OpaqueState(const unsigned _id) throw()
+        explicit OpaqueState(const unsigned _id) throw()
             : id(_id)
         { }
 
@@ -45,8 +46,27 @@ namespace fltl { namespace pda {
             id = that.id;
             return *this;
         }
+
+        bool operator==(const self_type &that) const throw() {
+            return id == that.id;
+        }
+
+        bool operator!=(const self_type &that) const throw() {
+            return id != that.id;
+        }
     };
 
 }}
+
+namespace std {
+
+    template <typename AlphaT>
+    struct less<fltl::pda::OpaqueState<AlphaT> > : binary_function <fltl::pda::OpaqueState<AlphaT>,fltl::pda::OpaqueState<AlphaT>,bool> {
+    public:
+        bool operator() (const fltl::pda::OpaqueState<AlphaT> &x, const fltl::pda::OpaqueState<AlphaT> &y) const {
+            return x.id < y.id;
+        }
+    };
+}
 
 #endif /* FLTL_OPAQUESTATE_HPP_ */

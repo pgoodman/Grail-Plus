@@ -17,6 +17,11 @@
 #include "grail/include/io/fread.hpp"
 #include "grail/include/io/UTF8FileBuffer.hpp"
 
+#include "grail/include/io/detail/find_balanced.hpp"
+#include "grail/include/io/detail/find_next.hpp"
+#include "grail/include/io/detail/find_string.hpp"
+#include "grail/include/io/detail/find_symbol.hpp"
+
 namespace grail { namespace io {
 
     namespace cfg {
@@ -59,206 +64,7 @@ namespace grail { namespace io {
         bool is_symbol_codepoint(const char * const cp) throw();
         bool is_numeric_codepoint(const char * const cp) throw();
 
-        terminal_state find_symbol(
-            UTF8FileBuffer<BUFFER_SIZE> &buffer,
-            char *scratch,
-            const char * const scratch_end
-        ) throw();
-
         uint8_t next_state(uint8_t curr_state, token_type input) throw();
-
-        /// look for a string in the input stream; assumes what we're looking
-        /// for has at least one non-null character in it. this also assumes
-        /// that we're looking for ASCII, and so we can ignore the rest of
-        /// the codepoint
-        template <const bool LOOK_FOR_ERRORS>
-        static bool find_next(
-            UTF8FileBuffer<cfg::BUFFER_SIZE> &buffer,
-            const char *close
-        ) throw() {
-            char ch('\0');
-            const char *curr(close);
-
-            for(;;) {
-                ch = *(buffer.read());
-                if(LOOK_FOR_ERRORS && '\0' == ch) {
-                    return false;
-                } else if(*curr != ch) {
-                    curr = close;
-                } else {
-                    if('\0' == *++curr) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        /// try to find something that needs to be balanced; assumes non-null
-        /// ascii
-        template <const bool LOOK_FOR_ERRORS>
-        static bool find_balanced(
-            UTF8FileBuffer<cfg::BUFFER_SIZE> &buffer,
-            const char open,
-            const char close
-        ) throw() {
-            char ch('\0');
-            unsigned num(1); // called after we've already found the opening
-
-            for(;;) {
-                ch = *(buffer.read());
-                if(LOOK_FOR_ERRORS && '\0' == ch) {
-                    return false;
-                } else if(open == ch) {
-                    ++num;
-                } else if(close == ch) {
-                    // done
-                    if(0 == --num) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        /// fill up the buffer with a token
-        template <const bool LOOK_FOR_ERRORS>
-        static terminal_state find_terminal(
-            UTF8FileBuffer<cfg::BUFFER_SIZE> &buffer,
-            char *scratch,
-            const char * const scratch_end,
-            const char delim
-        ) throw() {
-
-            // we have already read in delim, go look for it and collect what we
-            // find into scratch
-            unsigned num_delims(1);
-            unsigned num_delims_seen(0);
-            const char *codepoint(0);
-            char *mark(0);
-            char ch('\0');
-
-            // try to figure out how many delimiter characters we are using
-            for(;;) {
-                codepoint = buffer.read();
-                ch = *codepoint;
-
-                if(delim == ch) {
-                    ++num_delims;
-                } else {
-                    goto handle_next_char;
-                }
-            }
-
-            for(;;) {
-            load_next_char:
-                codepoint = buffer.read();
-                ch = *codepoint;
-
-            handle_next_char:
-
-                if(LOOK_FOR_ERRORS && scratch >= scratch_end) {
-                    return cfg::S_TOO_LONG;
-                }
-
-                // looks like an escape sequence
-                if('\\' == ch) {
-                    codepoint = buffer.read();
-                    ch = *codepoint;
-
-                    if(LOOK_FOR_ERRORS && '\0' == ch) {
-                        return cfg::S_EOF;
-                    }
-
-                    switch(ch) {
-                    case 's': *scratch++ = ' '; break;
-                    case 't': *scratch++ = '\t'; break;
-                    case 'n': *scratch++ = '\n'; break;
-                    case 'r': *scratch++ = '\r'; break;
-                    case '\\': *scratch++ = '\\'; break;
-                    case '"': *scratch++ = '"'; break;
-                    case '\'': *scratch++ = '\''; break;
-
-                    default:
-                        if(LOOK_FOR_ERRORS) {
-                            return cfg::S_UNKNOWN_ESCAPE;
-                        }
-                    }
-
-                // found a delimiter, might be the end of the string, or might
-                // be an embedding of the delimiter in the string assuming
-                // num_delims > 1
-                } else if(delim == ch) {
-                    mark = scratch;
-                    *scratch++ = ch;
-                    num_delims_seen = 1;
-
-                    for(; num_delims_seen < num_delims; ) {
-                        codepoint = buffer.read();
-                        strcpy(scratch, codepoint);
-                        scratch += buffer.byte_length();
-
-                        if(LOOK_FOR_ERRORS) {
-                            if(scratch >= scratch_end) {
-                                return cfg::S_TOO_LONG;
-                            } else if('\0' == *codepoint) {
-                                return cfg::S_EOF;
-                            }
-                        }
-
-                        if(*codepoint == delim) {
-                            ++num_delims_seen;
-                        } else {
-                            goto load_next_char;
-                        }
-                    }
-
-                    mark[scratch - mark - num_delims] = '\0';
-                    return cfg::S_ACCEPT;
-
-                // error, we got to the end of the file before the end of the
-                // string
-                } else if(LOOK_FOR_ERRORS && '\0') {
-                    return cfg::S_EOF;
-
-                // copy the codepoint into scratch
-                } else {
-                    strcpy(scratch, codepoint);
-                    scratch += buffer.byte_length();
-                }
-            }
-
-            // shouldn't even get down here
-            return cfg::S_FAIL;
-        }
-
-        /// try to fill up scratch with a symbol
-        template <const bool LOOK_FOR_ERRORS>
-        cfg::terminal_state find_symbol(
-            UTF8FileBuffer<cfg::BUFFER_SIZE> &buffer,
-            char *scratch,
-            const char * const scratch_end,
-            bool (*predicate)(const char *)
-        ) throw() {
-            const char *codepoint(0);
-            for(;;) {
-                codepoint = buffer.read();
-                if(predicate(codepoint)) {
-                    strcpy(scratch, codepoint);
-                    scratch += buffer.byte_length();
-
-                    if(LOOK_FOR_ERRORS && scratch >= scratch_end) {
-                        return cfg::S_TOO_LONG;
-                    }
-                } else {
-                    buffer.unread();
-                    *scratch = '\0';
-                    return cfg::S_ACCEPT;
-                }
-            }
-
-            return cfg::S_FAIL;
-        }
 
         /// tokenize a file as if it contained
         template <const bool LOOK_FOR_ERRORS>
@@ -277,7 +83,8 @@ namespace grail { namespace io {
 
             unsigned temp_line(0);
             unsigned temp_col(0);
-            cfg::terminal_state sym_state(cfg::S_FAIL);
+            detail::symbol_state_type sym_state(detail::SYMBOL_FAIL);
+            detail::string_state_type str_state(detail::STRING_FAIL);
 
         read_first_char:
             for(;;) {
@@ -329,7 +136,10 @@ namespace grail { namespace io {
                         temp_col = buffer.column();
                     }
 
-                    sym_state = cfg::find_terminal<LOOK_FOR_ERRORS>(
+                    str_state = detail::find_string<
+                        cfg::BUFFER_SIZE,
+                        LOOK_FOR_ERRORS
+                    >(
                         buffer,
                         scratch,
                         scratch_end,
@@ -337,9 +147,9 @@ namespace grail { namespace io {
                     );
 
                     if(LOOK_FOR_ERRORS) {
-                        switch(sym_state) {
+                        switch(str_state) {
 
-                        case cfg::S_EOF:
+                        case detail::STRING_EARLY_EOF:
                             error(
                                 file_name, buffer.line(), buffer.column(),
                                 "File ended before terminal string ended. "
@@ -348,7 +158,7 @@ namespace grail { namespace io {
                             );
                             return cfg::T_ERROR;
 
-                        case cfg::S_UNKNOWN_ESCAPE:
+                        case detail::STRING_UNKNOWN_ESCAPE:
                             error(
                                 file_name, buffer.line(), buffer.column(),
                                 "Unrecognized escape sequence '\\%s' in "
@@ -357,7 +167,7 @@ namespace grail { namespace io {
                             );
                             return cfg::T_ERROR;
 
-                        case cfg::S_TOO_LONG:
+                        case detail::STRING_TOO_LONG:
                             error(
                                 file_name, temp_line, temp_col,
                                 "This terminal string is tool long. The maximum "
@@ -366,7 +176,7 @@ namespace grail { namespace io {
                             );
                             return cfg::T_ERROR;
 
-                        case cfg::S_FAIL:
+                        case detail::STRING_FAIL:
                             error(
                                 file_name, temp_line, temp_col,
                                 "An unknown failure occurred while parsing this "
@@ -376,7 +186,7 @@ namespace grail { namespace io {
                             );
                             return cfg::T_ERROR;
 
-                        case cfg::S_ACCEPT: break;
+                        case detail::STRING_ACCEPT: break;
                         }
                     }
                     return cfg::T_TERMINAL;
@@ -394,7 +204,10 @@ namespace grail { namespace io {
                     // java CUP-like code block
                     if(':' == ch) {
 
-                        const bool find_close(cfg::find_next<LOOK_FOR_ERRORS>(
+                        const bool find_close(detail::find_next<
+                            cfg::BUFFER_SIZE,
+                            LOOK_FOR_ERRORS
+                        >(
                             buffer, ":}"
                         ));
 
@@ -419,7 +232,10 @@ namespace grail { namespace io {
                     // code block following C-language conventions of balanced
                     // braces, chew braces until they balance!
                     } else {
-                        const bool find_close(cfg::find_balanced<LOOK_FOR_ERRORS>(
+                        const bool find_close(detail::find_balanced<
+                            cfg::BUFFER_SIZE,
+                            LOOK_FOR_ERRORS
+                        >(
                             buffer, '{', '}'
                         ));
 
@@ -433,6 +249,7 @@ namespace grail { namespace io {
                             return cfg::T_ERROR;
                         }
                     }
+                    break;
 
                 // yacc-like thing
                 case '%':
@@ -452,7 +269,10 @@ namespace grail { namespace io {
                     // yacc code block
                     } else if('{' == ch) {
 
-                        const bool find_close(cfg::find_next<LOOK_FOR_ERRORS>(
+                        const bool find_close(detail::find_next<
+                            cfg::BUFFER_SIZE,
+                            LOOK_FOR_ERRORS
+                        >(
                             buffer, "%}"
                         ));
 
@@ -496,7 +316,10 @@ namespace grail { namespace io {
                     // C-style comments
                     if('*' == ch) {
 
-                        const bool find_close(cfg::find_next<LOOK_FOR_ERRORS>(
+                        const bool find_close(detail::find_next<
+                            cfg::BUFFER_SIZE,
+                            LOOK_FOR_ERRORS
+                        >(
                             buffer, "*/"
                         ));
 
@@ -560,7 +383,10 @@ namespace grail { namespace io {
                 case '$':
                     scratch[0] = '$';
                     scratch[1] = '\0';
-                    sym_state = cfg::find_symbol<LOOK_FOR_ERRORS>(
+                    detail::find_symbol<
+                        cfg::BUFFER_SIZE,
+                        LOOK_FOR_ERRORS
+                    >(
                         buffer,
                         &(scratch[1]),
                         scratch_end,
@@ -594,7 +420,10 @@ namespace grail { namespace io {
                         }
 
                         strcpy(scratch, codepoint);
-                        sym_state = cfg::find_symbol<LOOK_FOR_ERRORS>(
+                        sym_state = detail::find_symbol<
+                            cfg::BUFFER_SIZE,
+                            LOOK_FOR_ERRORS
+                        >(
                             buffer,
                             scratch + buffer.byte_length(),
                             scratch_end,
@@ -604,7 +433,7 @@ namespace grail { namespace io {
                         if(LOOK_FOR_ERRORS) {
                             switch(sym_state) {
 
-                            case cfg::S_TOO_LONG:
+                            case detail::SYMBOL_TOO_LONG:
                                 error(
                                     file_name, temp_line, temp_col,
                                     "This symbol string is tool long. The maximum "
@@ -613,7 +442,7 @@ namespace grail { namespace io {
                                 );
                                 return cfg::T_ERROR;
 
-                            case cfg::S_FAIL:
+                            case detail::SYMBOL_FAIL:
                                 error(
                                     file_name, temp_line, temp_col,
                                     "An unknown failure occurred while parsing this "
