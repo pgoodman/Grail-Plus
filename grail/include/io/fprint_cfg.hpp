@@ -31,20 +31,26 @@ namespace grail { namespace io {
         fprintf(ff, "  %s", prefix);
         typename fltl::CFG<AlphaT>::sym_t s;
 
-        for(unsigned i(0); i < str.length(); ++i) {
-            s = str.at(i);
+        unsigned len(str.length());
 
-            if(s.is_variable()) {
-                typename fltl::CFG<AlphaT>::var_t s_as_var(s);
-                fprintf(ff, " %s", cfg.get_name(s_as_var));
-            } else {
-                typename fltl::CFG<AlphaT>::term_t s_as_term(s);
-                if(!cfg.is_variable_terminal(s_as_term)) {
-                    fprintf(ff, " \"");
-                    fprint(ff, cfg.get_alpha(s_as_term));
-                    fprintf(ff, "\"");
+        if(0 == len) {
+            fprintf(ff, " epsilon");
+        } else {
+            for(unsigned i(0); i < len; ++i) {
+                s = str.at(i);
+
+                if(s.is_variable()) {
+                    typename fltl::CFG<AlphaT>::var_t s_as_var(s);
+                    fprintf(ff, " %s", cfg.get_name(s_as_var));
                 } else {
-                    fprintf(ff," %s", cfg.get_name(s_as_term));
+                    typename fltl::CFG<AlphaT>::term_t s_as_term(s);
+                    if(!cfg.is_variable_terminal(s_as_term)) {
+                        fprintf(ff, " \"");
+                        fprint(ff, cfg.get_alpha(s_as_term));
+                        fprintf(ff, "\"");
+                    } else {
+                        fprintf(ff," %s", cfg.get_name(s_as_term));
+                    }
                 }
             }
         }

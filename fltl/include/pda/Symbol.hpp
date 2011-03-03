@@ -18,10 +18,12 @@ namespace fltl { namespace pda {
     class Symbol {
     private:
 
+        typedef Symbol<AlphaT> self_type;
+
         friend class PDA<AlphaT>;
         friend class SymbolBuffer<AlphaT>;
-
-        typedef Symbol<AlphaT> self_type;
+        friend class SymbolGenerator<AlphaT>;
+        friend struct std::less<self_type>;
 
         unsigned id;
 
@@ -55,8 +57,24 @@ namespace fltl { namespace pda {
         bool operator!=(const self_type &that) const throw() {
             return id != that.id;
         }
-    };
 
+        /// note: not const!
+        Unbound<AlphaT,symbol_tag> operator~(void) throw() {
+            return Unbound<AlphaT,symbol_tag>(this);
+        }
+    };
 }}
+
+
+namespace std {
+
+    template <typename AlphaT>
+    struct less<fltl::pda::Symbol<AlphaT> > : binary_function <fltl::pda::Symbol<AlphaT>,fltl::pda::Symbol<AlphaT>,bool> {
+    public:
+        bool operator() (const fltl::pda::Symbol<AlphaT> &x, const fltl::pda::Symbol<AlphaT> &y) const {
+            return x.id < y.id;
+        }
+    };
+}
 
 #endif /* FLTL_PDA_SYMBOL_HPP_ */

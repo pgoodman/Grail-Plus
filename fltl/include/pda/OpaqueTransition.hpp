@@ -19,6 +19,8 @@ namespace fltl { namespace pda {
     private:
 
         friend class PDA<AlphaT>;
+        friend class TransitionGenerator<AlphaT>;
+        friend class PatternGenerator<AlphaT>;
 
         typedef OpaqueTransition<AlphaT> self_type;
         typedef OpaqueState<AlphaT> state_type;
@@ -30,6 +32,20 @@ namespace fltl { namespace pda {
             : transition(trans)
         {
             Transition<AlphaT>::hold(trans);
+        }
+
+        void assign(Transition<AlphaT> *trans) throw() {
+            if(transition != trans) {
+                if(0 != transition) {
+                    Transition<AlphaT>::release(transition);
+                }
+
+                transition = trans;
+
+                if(0 != transition) {
+                    Transition<AlphaT>::hold(transition);
+                }
+            }
         }
 
     public:
@@ -54,17 +70,8 @@ namespace fltl { namespace pda {
         }
 
         self_type &operator=(const self_type &that) throw() {
-            if(transition != that.transition) {
-                if(0 != transition) {
-                    Transition<AlphaT>::release(transition);
-                }
-
-                transition = that.transition;
-
-                if(0 != transition) {
-                    Transition<AlphaT>::hold(transition);
-                }
-            }
+            assign(that.transition);
+            return *this;
         }
 
         const state_type source(void) const throw() {
@@ -90,6 +97,11 @@ namespace fltl { namespace pda {
         const symbol_type push(void) const throw() {
             assert(0 != transition);
             return transition->sym_push;
+        }
+
+        /// note: not const!
+        Unbound<AlphaT,transition_tag> operator~(void) throw() {
+            return Unbound<AlphaT,transition_tag>(this);
         }
     };
 

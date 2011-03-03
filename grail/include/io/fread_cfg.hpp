@@ -37,14 +37,6 @@ namespace grail { namespace io {
             T_ERROR = 8
         } token_type;
 
-        typedef enum {
-            S_EOF,
-            S_UNKNOWN_ESCAPE,
-            S_TOO_LONG,
-            S_ACCEPT,
-            S_FAIL
-        } terminal_state;
-
         enum {
             STATE_INITIAL = 0,
             STATE_FINAL = 3,
@@ -80,6 +72,7 @@ namespace grail { namespace io {
 
             const char *codepoint(0);
             char ch('\0');
+            char prev_ch('\0');
 
             unsigned temp_line(0);
             unsigned temp_col(0);
@@ -99,8 +92,12 @@ namespace grail { namespace io {
                 case ':': return cfg::T_BEGIN_MULTILINE_RELATION;
                 case '|': return cfg::T_EXTEND_MULTILINE_RELATION;
                 case ';': return cfg::T_END_RELATION;
+
+                // NLTK-style production
+                case '=':
                 case '-':
                     codepoint = buffer.read();
+                    prev_ch = ch;
                     ch = *codepoint;
 
                     if('>' == ch) {
@@ -108,10 +105,11 @@ namespace grail { namespace io {
                     } else if(LOOK_FOR_ERRORS && '\0' == ch) {
                         error(
                             file_name, buffer.line(), buffer.column(),
-                            "Expected '>' as part of a '->' for identifying "
+                            "Expected '>' as part of a '%c>' for identifying "
                             "the relation of a single-line production (in the "
                             "style of the Natural Language Toolkit) but instead "
-                            "the file abruptly ended!"
+                            "the file abruptly ended!",
+                            prev_ch
                         );
                         return cfg::T_ERROR;
                     } else if(LOOK_FOR_ERRORS) {
@@ -301,6 +299,7 @@ namespace grail { namespace io {
                     } else {
                         goto ignore_line;
                     }
+                    break;
 
                 // possible comment
                 case '/':
@@ -360,20 +359,13 @@ namespace grail { namespace io {
                         );
                         return cfg::T_ERROR;
                     }
+                    break;
 
                 // Python-style comments
                 case '#':
                 ignore_line:
-                    for(;;) {
-                        codepoint = buffer.read();
-                        ch = *codepoint;
-                        if('\0' == ch) {
-                            return cfg::T_END;
-                        } else if('\n' == ch) {
-                            goto read_first_char;
-                        }
-                    }
-                    break;
+                    detail::find_next<cfg::BUFFER_SIZE,LOOK_FOR_ERRORS>(buffer, "\n");
+                    return cfg::T_NEW_LINE;
 
                 // new line
                 case '\n':
@@ -499,7 +491,10 @@ namespace grail { namespace io {
         uint8_t state(cfg::STATE_INITIAL);
         typename fltl::CFG<AlphaT>::alphabet_type terminal;
 
-        for(;;) {
+        for(unsigned line(0), col(0);;) {
+
+            line = buffer.line();
+            col = buffer.column();
 
             scratch[0] = '\0';
             tt = cfg::get_token<true>(buffer, scratch, scratch_end, file_name);
@@ -560,6 +555,13 @@ namespace grail { namespace io {
 
             // record that a symbol is a variable
             case cfg::STATE_SEEN_PRODUCTION_VARIABLE:
+                if(0 == strcmp(scratch, "epsilon")) {
+                    error(
+                        file_name, line, col,
+                        "Cannot re-define meta-variable epsilon."
+                    );
+                    return false;
+                }
                 CFG.get_variable(scratch);
                 break;
             }
@@ -579,7 +581,6 @@ namespace grail { namespace io {
             state = cfg::next_state(state, tt);
 
             switch(state) {
-
 
             case cfg::STATE_CAT_SINGLE_LINE:
                 goto add_symbol;
@@ -615,7 +616,9 @@ namespace grail { namespace io {
                 );
                 prod_buffer.append(CFG.get_terminal(terminal));
             } else if(cfg::T_SYMBOL == tt) {
-                prod_buffer.append(CFG.get_variable_symbol(scratch));
+                if(0 != strcmp(scratch, "epsilon")) {
+                    prod_buffer.append(CFG.get_variable_symbol(scratch));
+                }
             }
         }
 

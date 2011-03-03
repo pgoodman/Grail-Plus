@@ -20,6 +20,8 @@ namespace fltl { namespace pda {
         typedef OpaqueState<AlphaT> self_type;
 
         friend class PDA<AlphaT>;
+        friend class StateGenerator<AlphaT>;
+        friend class TransitionGenerator<AlphaT>;
         friend struct std::less<self_type>;
 
         unsigned id;
@@ -53,6 +55,15 @@ namespace fltl { namespace pda {
 
         bool operator!=(const self_type &that) const throw() {
             return id != that.id;
+        }
+
+        /// note: not const!
+        Unbound<AlphaT,state_tag> operator~(void) throw() {
+            return Unbound<AlphaT,state_tag>(this);
+        }
+
+        unsigned number(void) const throw() {
+            return id;
         }
     };
 

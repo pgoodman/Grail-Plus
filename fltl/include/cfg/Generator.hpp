@@ -343,7 +343,6 @@ namespace fltl { namespace cfg {
 
         typedef void (reset_gen_type)(self_type *);
         typedef bool (bind_next_type)(self_type *);
-        typedef bool (pattern_func_type)(void *, const production_type &);
         typedef void (free_func_type)(self_type *);
 
         /// CFG from which we are generating stuff

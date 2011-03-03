@@ -14,16 +14,19 @@
 #include <map>
 #include <set>
 #include <cassert>
+#include <cstring>
 
 #include "fltl/include/helper/Array.hpp"
 #include "fltl/include/helper/BlockAllocator.hpp"
+#include "fltl/include/helper/UnsafeCast.hpp"
 
 #include "fltl/include/trait/Alphabet.hpp"
 #include "fltl/include/trait/Uncopyable.hpp"
 
 namespace fltl {
 
-    // forward delaration
+    // forward delarations
+
     template <typename> class PDA;
 
     namespace pda {
@@ -32,7 +35,28 @@ namespace fltl {
         template <typename> class Transition;
         template <typename> class OpaqueState;
         template <typename> class OpaqueTransition;
+        template <typename> class Generator;
+
+        template <typename> class StateGenerator;
+        template <typename> class SymbolGenerator;
+        template <typename> class TransitionGenerator;
+        template <typename> class PatternGenerator;
+
+        template <typename, typename> class Unbound { };
+
+        class symbol_tag { };
+        class unbound_symbol_tag { };
+
+        class state_tag { };
+        class unbound_state_tag { };
+
+        class transition_tag { };
+        class unbound_transition_tag { };
+
+        class final_state_tag { };
     }
+
+    const pda::final_state_tag PDA_ACCEPT_STATES;
 }
 
 #include "fltl/include/pda/Symbol.hpp"
@@ -40,6 +64,8 @@ namespace fltl {
 #include "fltl/include/pda/Transition.hpp"
 #include "fltl/include/pda/OpaqueState.hpp"
 #include "fltl/include/pda/OpaqueTransition.hpp"
+#include "fltl/include/pda/Unbound.hpp"
+#include "fltl/include/pda/Generator.hpp"
 
 namespace fltl {
 
@@ -49,6 +75,10 @@ namespace fltl {
     public:
 
         friend class pda::Transition<AlphaT>;
+        friend class pda::SymbolGenerator<AlphaT>;
+        friend class pda::StateGenerator<AlphaT>;
+        friend class pda::TransitionGenerator<AlphaT>;
+        friend class pda::PatternGenerator<AlphaT>;
 
         typedef trait::Alphabet<AlphaT> traits_type;
         typedef typename traits_type::alphabet_type alphabet_type;
@@ -58,12 +88,16 @@ namespace fltl {
         typedef pda::OpaqueTransition<AlphaT> transition_type;
         typedef pda::Symbol<AlphaT> symbol_type;
         typedef pda::SymbolBuffer<AlphaT> symbol_buffer_type;
+        typedef pda::Generator<AlphaT> generator_type;
 
         /// short forms
         typedef state_type state_t;
         typedef transition_type trans_t;
         typedef symbol_type sym_t;
         typedef symbol_buffer_type sym_buff_t;
+        typedef generator_type generator_t;
+
+        typedef PDA<AlphaT> self_type;
 
     private:
 
@@ -77,7 +111,9 @@ namespace fltl {
         /// symbols used to represent those alphabet elements.
         symbol_map_inv_type symbol_map_inv;
 
-        helper::Array<std::pair<alphabet_type, const char *> > symbol_map;
+        mutable helper::Array<
+            std::pair<alphabet_type, const char *>
+        > symbol_map;
 
         typedef std::map<
             const char *,
@@ -101,11 +137,17 @@ namespace fltl {
         /// the id of the next symbol to be assigned
         unsigned next_symbol_id;
 
+        /// the number of transitions
+        unsigned num_transitions_;
+
         /// the final states
         std::set<state_type> final_states;
 
         /// the upper bound for automatically created symbols
         mutable const char *auto_symbol_upper_bound;
+
+        /// the first transition of this PDA
+        pda::Transition<AlphaT> *first_transition;
 
         /// transition allocator
         static helper::BlockAllocator<
@@ -120,31 +162,41 @@ namespace fltl {
             , symbol_map(256U)
             , state_transitions(256U)
             , start_state()
-            , next_state_id(1U)
+            , next_state_id(0U)
             , next_symbol_id(1U)
+            , num_transitions_(0U)
             , final_states()
+            , first_transition(0)
         {
             static const char * const UB("$0");
+            static const char * const EPSILON("epsilon");
+
             auto_symbol_upper_bound = UB;
 
-            state_transitions.append(0);
             symbol_map.append(std::make_pair<alphabet_type, const char *>(
                 mpl::Static<alphabet_type>::VALUE,
-                0
+                EPSILON
             ));
 
             start_state = add_state();
         }
 
+        /// destructor
         ~PDA(void) throw() {
 
             // clean up transitions
-            for(unsigned i(1); i < next_state_id; ++i) {
+            for(unsigned i(0); i < next_state_id; ++i) {
                 pda::Transition<AlphaT> *&trans(state_transitions.get(i));
-                if(0 != trans) {
-                    pda::Transition<AlphaT>::release(trans);
-                    trans = 0;
+
+                for(pda::Transition<AlphaT> *curr(trans), *next(0);
+                    0 != curr;
+                    curr = next) {
+
+                    next = curr->next;
+                    pda::Transition<AlphaT>::release(curr);
                 }
+
+                trans = 0;
             }
 
             // clean up symbols
@@ -264,7 +316,6 @@ namespace fltl {
         /// start states to behave as a union of PDAs.
         void add_start_state(const state_type state) throw() {
 
-            assert(0U < state.id);
             assert(state.id < next_state_id);
 
             if(state == start_state) {
@@ -284,7 +335,7 @@ namespace fltl {
         }
 
         /// get the start state
-        const state_type get_start_state(void) throw() {
+        const state_type get_start_state(void) const throw() {
             return start_state;
         }
 
@@ -293,7 +344,10 @@ namespace fltl {
             return mpl::Static<symbol_type>::VALUE;
         }
 
-        /// add a transition
+        /// add a transition. note: transitions are ordered according to their
+        /// input symbol and so this effectively performs an insertion sort.
+        /// also note: a separate ordering from the input alphabet ordering
+        /// is imposed on symbols.
         const transition_type add_transition(
             state_type source,
             symbol_type read,
@@ -302,8 +356,6 @@ namespace fltl {
             state_type sink
         ) throw() {
 
-            assert(0U != source.id);
-            assert(0U != sink.id);
             assert(source.id < next_state_id);
             assert(sink.id < next_state_id);
 
@@ -311,7 +363,7 @@ namespace fltl {
             assert(push.id < next_symbol_id);
             assert(pop.id < next_symbol_id);
 
-            assert(is_in_input_alphabet(read));
+            assert(0U == read.id || is_in_input_alphabet(read));
 
             pda::Transition<AlphaT> *trans(make_transition(source, read));
             trans->sink_state = sink;
@@ -319,6 +371,8 @@ namespace fltl {
             trans->sym_push = push;
 
             pda::Transition<AlphaT>::hold(trans);
+
+            ++num_transitions_;
 
             return transition_type(trans);
         }
@@ -332,7 +386,7 @@ namespace fltl {
             state_type sink
         ) throw() {
 
-            assert(is_in_input_alphabet(read));
+            assert(0U == read.id || is_in_input_alphabet(read));
 
             unsigned num_syms(push_symbols.size());
 
@@ -349,8 +403,6 @@ namespace fltl {
                 return;
             }
 
-            assert(0U != source.id);
-            assert(0U != sink.id);
             assert(source.id < next_state_id);
             assert(sink.id < next_state_id);
 
@@ -359,14 +411,17 @@ namespace fltl {
 
             for(; 0 != num_syms; --num_syms) {
 
+                const state_type curr_sink(1 == num_syms ? sink : add_state());
+
                 add_transition(
                     source,
                     read,
                     pop,
                     push_symbols.symbol_at(num_syms - 1),
-                    0 == num_syms ? sink : add_state()
+                    curr_sink
                 );
 
+                source = curr_sink;
                 read = epsilon();
                 pop = epsilon();
             }
@@ -383,14 +438,96 @@ namespace fltl {
         }
 
         /// is a state an accepting state
-        bool is_accept_state(state_type state) throw() {
+        bool is_accept_state(state_type state) const throw() {
             return 0 != final_states.count(state);
         }
 
         /// check whether a symbol is part of the input alphabet
-        bool is_in_input_alphabet(symbol_type sym) throw() {
+        bool is_in_input_alphabet(symbol_type sym) const throw() {
             assert(sym.id < next_symbol_id);
             return 0 == symbol_map.get(sym.id).second;
+        }
+
+        /// get the alphabetic representation of an input symbol
+        alphabet_type get_alpha(symbol_type sym) const throw() {
+            assert(0U != sym.id);
+            assert(is_in_input_alphabet(sym));
+            return symbol_map.get(sym.id).first;
+        }
+
+        /// get the name of a stack symbol
+        const char *get_name(symbol_type sym) const throw() {
+            assert(!is_in_input_alphabet(sym));
+            return symbol_map.get(sym.id).second;
+        }
+
+        unsigned num_states(void) const throw() {
+            return state_transitions.size();
+        }
+
+        unsigned num_accept_states(void) const throw() {
+            return final_states.size();
+        }
+
+        unsigned num_symbols(void) const throw() {
+            return symbol_map.size() - 1;
+        }
+
+        unsigned num_transitions(void) const throw() {
+            return num_transitions_;
+        }
+
+        /// generate all symbols
+        inline generator_type
+        search(pda::Unbound<AlphaT,pda::symbol_tag> sym) const throw() {
+            return pda::Generator<AlphaT>(
+                reinterpret_cast<void *>(sym.symbol),
+                &(pda::SymbolGenerator<AlphaT>::gen_next),
+                &(pda::SymbolGenerator<AlphaT>::gen_reset),
+                &(pda::SymbolGenerator<AlphaT>::gen_free),
+                const_cast<self_type *>(this)
+            );
+        }
+
+        /// generate all states
+        inline generator_type
+        search(
+            pda::Unbound<AlphaT,pda::state_tag> state
+        ) const throw() {
+            return pda::Generator<AlphaT>(
+                reinterpret_cast<void *>(state.state),
+                &(pda::StateGenerator<AlphaT>::gen_next),
+                &(pda::StateGenerator<AlphaT>::gen_reset),
+                &(pda::StateGenerator<AlphaT>::gen_free),
+                const_cast<self_type *>(this)
+            );
+        }
+
+        /// generate only accepting states
+        inline generator_type
+        search(
+            pda::Unbound<AlphaT,pda::state_tag> state,
+            pda::final_state_tag
+        ) const throw() {
+            return pda::Generator<AlphaT>(
+                reinterpret_cast<void *>(state.state),
+                &(pda::StateGenerator<AlphaT>::gen_next),
+                &(pda::StateGenerator<AlphaT>::gen_reset),
+                &(pda::StateGenerator<AlphaT>::gen_free),
+                const_cast<self_type *>(this)
+            );
+        }
+
+        /// generate all transitions
+        inline generator_type
+        search(pda::Unbound<AlphaT,pda::transition_tag> trans) const throw() {
+            return pda::Generator<AlphaT>(
+                reinterpret_cast<void *>(trans.transition),
+                &(pda::TransitionGenerator<AlphaT>::gen_next),
+                &(pda::TransitionGenerator<AlphaT>::gen_reset),
+                &(pda::TransitionGenerator<AlphaT>::gen_free),
+                const_cast<self_type *>(this)
+            );
         }
 
     private:
@@ -413,28 +550,53 @@ namespace fltl {
             // no transitions on this state yet
             if(0 == curr) {
                 state_transitions.get(source_state.id) = trans;
+
+                if(0 == first_transition
+                || source_state.id < first_transition->source_state.id) {
+                    first_transition = trans;
+                }
+
                 return trans;
             }
 
             // add in the transition using insertion sort
-            for(pda::Transition<AlphaT> *prev(0);
+            pda::Transition<AlphaT> *prev(0);
+            for(;
                 0 != curr;
                 prev = curr, curr = curr->next) {
 
-                if(trans->sym_read.id <= curr->sym_read.id) {
-
-                    trans->next = curr;
-                    trans->prev = curr->prev;
-                    curr->prev = trans;
-
-                    if(0 != prev) {
-                        prev->next = trans;
-                    }
-
-                    break;
+                // go as far as until we need to add something in
+                if(trans->sym_read.id > curr->sym_read.id) {
+                    continue;
                 }
+
+                trans->next = curr;
+                trans->prev = prev;
+
+                curr->prev = trans;
+
+                if(0 != prev) {
+                    prev->next = trans;
+                } else {
+
+                    state_transitions.get(source_state.id) = trans;
+
+                    if(first_transition == curr) {
+                        first_transition = trans;
+                    }
+                }
+
+                goto done;
             }
 
+            // put this transition at the end of the list
+
+            assert(0 != prev);
+
+            prev->next = trans;
+            trans->prev = prev;
+
+        done:
             return trans;
         }
 

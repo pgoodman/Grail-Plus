@@ -18,6 +18,7 @@
 #include "grail/algorithm/CFG_TO_PDA.hpp"
 
 #include "grail/include/io/fread_cfg.hpp"
+#include "grail/include/io/fprint_pda.hpp"
 
 namespace grail { namespace cli {
 
@@ -98,6 +99,8 @@ namespace grail { namespace cli {
             }
 
             fclose(fp);
+
+            io::fprint(stdout, pda);
 
             return 1;
         }

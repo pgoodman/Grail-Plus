@@ -23,6 +23,7 @@ namespace fltl { namespace pda {
 
         friend class PDA<AlphaT>;
         friend class OpaqueTransition<AlphaT>;
+        friend class TransitionGenerator<AlphaT>;
 
         /// the symbol read from input
         symbol_type sym_read;
@@ -47,6 +48,9 @@ namespace fltl { namespace pda {
         /// reference count
         unsigned ref_count;
 
+        /// was this transition deleted?
+        bool is_deleted;
+
         static void hold(self_type *trans) throw() {
             assert(0 != trans);
             ++(trans->ref_count);
@@ -65,6 +69,7 @@ namespace fltl { namespace pda {
             : next(0)
             , prev(0)
             , ref_count(0)
+            , is_deleted(false)
         { }
     };
 
