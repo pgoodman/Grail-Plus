@@ -65,7 +65,8 @@ namespace fltl { namespace pda {
         friend class PDA<AlphaT>;
 
         static bool next(Generator<AlphaT> *gen) throw() {
-            const unsigned offset(++(gen->cursor.symbol_offset));
+            const unsigned offset(gen->cursor.symbol_offset);
+            ++(gen->cursor.symbol_offset);
 
             Symbol<AlphaT> *binder(helper::unsafe_cast<
                 Symbol<AlphaT> *
@@ -144,10 +145,20 @@ namespace fltl { namespace pda {
             >(gen->binder));
 
             Transition<AlphaT> *old_trans(gen->cursor.transition);
+            Transition<AlphaT> *orig_trans(old_trans);
 
-        assign_trans:
+            if(0 == orig_trans) {
+                return false;
+            }
+
+            if(old_trans->is_deleted) {
+                old_trans = find_next_transition(
+                    gen->pda,
+                    old_trans
+                );
+            }
+
             binder->assign(old_trans);
-
             if(0 == old_trans) {
                 return false;
             }
@@ -163,13 +174,7 @@ namespace fltl { namespace pda {
                 Transition<AlphaT>::hold(gen->cursor.transition);
             }
 
-            if(old_trans->is_deleted) {
-                Transition<AlphaT>::release(old_trans);
-                old_trans = gen->cursor.transition;
-                goto assign_trans;
-            } else {
-                Transition<AlphaT>::release(old_trans);
-            }
+            Transition<AlphaT>::release(orig_trans);
 
             return true;
         }
@@ -213,9 +218,15 @@ namespace fltl { namespace pda {
             FLTL_FORCE_INLINE static void reset(
                 Generator<AlphaT> *gen
             ) throw() {
+                TransitionGenerator<AlphaT>::free(gen);
+
                 gen->cursor.transition = gen->pda->state_transitions.get(
                     gen->pattern->source->id
                 );
+
+                if(0 != gen->cursor.transition) {
+                    Transition<AlphaT>::hold(gen->cursor.transition);
+                }
 
                 if(0 != gen->binder) {
                     helper::unsafe_cast<
@@ -312,7 +323,7 @@ namespace fltl { namespace pda {
                     trans = trans->next;
                 }
                 if(0 != trans) {
-                    if(pattern->read->id < trans->sym_read->id) {
+                    if(pattern->read->id < trans->sym_read.id) {
                         return 0;
                     }
                 }
@@ -346,6 +357,25 @@ namespace fltl { namespace pda {
             if(0 == orig) {
                 return false;
             }
+#if 0
+            bool check(
+                pattern->source->number() == 12 &&
+                pattern->sink->number() == 12 &&
+                pattern->push->number() == 0
+            );
+
+            if(check) {
+                printf("\nPatternGenerator::next\n");
+                printf(
+                    "    CHECK: source=%u read=%u pop=%u push=%u sink=%u\n",
+                    pattern->source->number(),
+                    pattern->read->number(),
+                    pattern->pop->number(),
+                    pattern->push->number(),
+                    pattern->sink->number()
+                );
+            }
+#endif
 
         check_pattern:
 
@@ -362,13 +392,24 @@ namespace fltl { namespace pda {
                 pattern::Bind<AlphaT,PushT>::bind(trans->sym_push, pattern->push) &&
                 pattern::Bind<AlphaT,SinkT>::bind(trans->sink_state, pattern->sink)
             );
+#if 0
+            if(check) {
+                printf(
+                    "    TRANS: source=%u read=%u pop=%u push=%u sink=%u\n",
+                    trans->source_state.number(),
+                    trans->sym_read.number(),
+                    trans->sym_pop.number(),
+                    trans->sym_push.number(),
+                    trans->sink_state.number()
+                );
+            }
+#endif
 
             if(!bind) {
 
                 trans = detail::FindNextTransition<
                     AlphaT,SourceT,ReadT
                 >::next(gen->pda, trans, gen->pattern);
-
                 goto check_pattern;
             }
 
@@ -405,6 +446,12 @@ namespace fltl { namespace pda {
         friend class SymbolGenerator<AlphaT>;
         friend class StateGenerator<AlphaT>;
         friend class TransitionGenerator<AlphaT>;
+
+        template <typename, typename>
+        friend class detail::ResetPatternGenerator;
+
+        template <typename, typename, typename>
+        friend class detail::FindNextTransition;
 
         template <
             typename, typename,

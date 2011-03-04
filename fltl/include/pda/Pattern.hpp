@@ -68,10 +68,10 @@ namespace fltl { namespace pda {
         class Bind<AlphaT,symbol_tag> {
         public:
             FLTL_FORCE_INLINE static bool bind(
-                Symbol<AlphaT>source,
+                Symbol<AlphaT> source,
                 Symbol<AlphaT> *dest
             ) throw() {
-                return source == *dest;
+                return 0 == dest || source == *dest;
             }
         };
 
@@ -82,7 +82,9 @@ namespace fltl { namespace pda {
                 Symbol<AlphaT> source,
                 Symbol<AlphaT> *dest
             ) throw() {
-                *dest = source;
+                if(0 != dest) {
+                    *dest = source;
+                }
                 return true;
             }
         };
@@ -94,7 +96,7 @@ namespace fltl { namespace pda {
                 OpaqueState<AlphaT> source,
                 OpaqueState<AlphaT> *dest
             ) throw() {
-                return source == *dest;
+                return 0 == dest || source == *dest;
             }
         };
 
@@ -105,7 +107,9 @@ namespace fltl { namespace pda {
                 OpaqueState<AlphaT> source,
                 OpaqueState<AlphaT> *dest
             ) throw() {
-                *dest = source;
+                if(0 != dest) {
+                    *dest = source;
+                }
                 return true;
             }
         };
@@ -146,6 +150,9 @@ namespace fltl { namespace pda {
 
         template <typename, typename>
         friend class detail::ResetPatternGenerator;
+
+        template <typename, typename, typename>
+        friend class detail::FindNextTransition;
 
         OpaqueState<AlphaT> *source;
         OpaqueState<AlphaT> *sink;

@@ -20,12 +20,20 @@ namespace fltl { namespace pda {
 
         friend class PDA<AlphaT>;
         friend class TransitionGenerator<AlphaT>;
+
         template <
             typename, typename,
             typename, typename,
             typename, typename
         > friend class PatternGenerator;
+
         friend class Pattern<AlphaT>;
+
+        template <typename, typename>
+        friend class detail::ResetPatternGenerator;
+
+        template <typename, typename, typename>
+        friend class detail::FindNextTransition;
 
         typedef OpaqueTransition<AlphaT> self_type;
         typedef OpaqueState<AlphaT> state_type;

@@ -367,6 +367,7 @@ namespace fltl {
             ++next_state_id;
 
             state_transitions.reserve(id + 1U, true);
+            state_transitions.set_size(id + 1U);
             state_transitions.get(id) = 0;
             return state_type(id);
         }
@@ -394,6 +395,12 @@ namespace fltl {
 
             trans->sink_state = state;
             pda::Transition<AlphaT>::hold(trans);
+        }
+
+        /// change the start state
+        void set_start_state(const state_type state) throw() {
+            assert(state.id < next_state_id);
+            start_state = state;
         }
 
         /// get the start state
@@ -490,7 +497,7 @@ namespace fltl {
         }
 
         /// delete a transition
-        void delete_transition(transition_type trans_) throw() {
+        void remove_transition(transition_type trans_) throw() {
             assert(0 != trans_.transition);
             assert(!trans_.transition->is_deleted);
 
@@ -680,10 +687,10 @@ namespace fltl {
             // initialize the pattern
             pda::Pattern<AlphaT> *pattern(pattern_allocator->allocate());
             pda::pattern::Init<AlphaT>::init(&source_state, &(pattern->source));
-            pda::pattern::Init<AlphaT>::init(&sink_state, &(pattern->sink));
             pda::pattern::Init<AlphaT>::init(&read_symbol, &(pattern->read));
             pda::pattern::Init<AlphaT>::init(&pop_symbol, &(pattern->pop));
             pda::pattern::Init<AlphaT>::init(&push_symbol, &(pattern->push));
+            pda::pattern::Init<AlphaT>::init(&sink_state, &(pattern->sink));
 
             // pattern gen type
             typedef pda::PatternGenerator<
@@ -802,14 +809,14 @@ namespace fltl {
                 if(0 != prev) {
                     prev->next = trans;
                 } else {
-
                     state_transitions.get(source_state.id) = trans;
+                }
 
-                    // compare on source states as a deleted transition
-                    // might be sitting at the front of this list
-                    if(first_transition->source_state.id == source_state.id) {
-                        first_transition = trans;
-                    }
+                // compare on source states as a deleted transition
+                // might be sitting at the front of this list
+                if(first_transition->source_state.id == source_state.id
+                && first_transition->sym_read.id >= read.id) {
+                    first_transition = trans;
                 }
 
                 goto done;

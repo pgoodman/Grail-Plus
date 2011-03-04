@@ -35,6 +35,9 @@ namespace fltl { namespace pda {
         template <typename, typename, typename>
         friend class pda::detail::FindNextTransition;
 
+        template <typename, typename>
+        friend class detail::ResetPatternGenerator;
+
         /// the symbol read from input
         symbol_type sym_read;
 

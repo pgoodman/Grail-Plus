@@ -18,7 +18,6 @@
 #include "grail/algorithm/PDA_TO_CFG.hpp"
 
 #include "grail/include/io/fread_pda.hpp"
-#include "grail/include/io/fprint_pda.hpp"
 #include "grail/include/io/fprint_cfg.hpp"
 
 namespace grail { namespace cli {
@@ -30,9 +29,14 @@ namespace grail { namespace cli {
         static const char * const TOOL_NAME;
 
         static void declare(CommandLineOptions &opt, bool in_help) throw() {
+            option_type in(opt.declare("stdin", opt::OPTIONAL, opt::NO_VAL));
             if(!in_help) {
-                opt.declare_min_num_positional(1);
-                opt.declare_max_num_positional(1);
+                if(in.is_valid()) {
+                    opt.declare_max_num_positional(0);
+                } else {
+                    opt.declare_min_num_positional(1);
+                    opt.declare_max_num_positional(1);
+                }
             }
         }
 
@@ -43,10 +47,10 @@ namespace grail { namespace cli {
                 "    Converts a non-deterministic pushdown automaton (PDA) into a context-free\n"
                 "    grammar (CFG).\n\n"
                 "  basic use options for %s:\n"
-                "    <file>                         read in a CFG from <file>. If \"stdin\"\n"
-                "                                   is given then input will be read from the\n"
-                "                                   terminal. Typing a new line, followed by\n"
-                "                                   Control-D (^D) will close stdin.\n\n",
+                "    --stdin                        Read a PDA from stdin. Typing a new,\n"
+                "                                   line followed by Control-D (^D) will\n"
+                "                                   close stdin.\n"
+                "    <file>                         read in a PDA from <file>.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
         }
@@ -57,14 +61,18 @@ namespace grail { namespace cli {
             using fltl::PDA;
 
             // run the tool
-            option_type file(options[0U]);
-            const char *file_name(file.value());
+            option_type file;
+            const char *file_name(0);
 
             FILE *fp(0);
 
-            if(0 == strncmp("stdin", file_name, 6)) {
+            if(options["stdin"].is_valid()) {
+                file = options["stdin"];
                 fp = stdin;
+                file_name = "<stdin>";
             } else {
+                file = options[0U];
+                file_name = file.value();
                 fp = fopen(file_name, "r");
             }
 
@@ -90,8 +98,7 @@ namespace grail { namespace cli {
 
             fclose(fp);
 
-            //io::fprint(stdout, cfg);
-            io::fprint(stdout, pda);
+            io::fprint(stdout, cfg);
 
             return 1;
         }

@@ -24,11 +24,15 @@ namespace fltl { namespace pda {
         friend class SymbolBuffer<AlphaT>;
         friend class SymbolGenerator<AlphaT>;
         friend struct std::less<self_type>;
+
         template <
             typename, typename,
             typename, typename,
             typename, typename
         > friend class PatternGenerator;
+
+        template <typename, typename, typename>
+        friend class detail::FindNextTransition;
 
         unsigned id;
 
@@ -68,6 +72,10 @@ namespace fltl { namespace pda {
         /// note: not const!
         Unbound<AlphaT,symbol_tag> operator~(void) throw() {
             return Unbound<AlphaT,symbol_tag>(this);
+        }
+
+        unsigned number(void) const throw() {
+            return id;
         }
     };
 }}

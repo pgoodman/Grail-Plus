@@ -29,9 +29,14 @@ namespace grail { namespace cli {
         static const char * const TOOL_NAME;
 
         static void declare(CommandLineOptions &opt, bool in_help) throw() {
+            option_type in(opt.declare("stdin", opt::OPTIONAL, opt::NO_VAL));
             if(!in_help) {
-                opt.declare_min_num_positional(1);
-                opt.declare_max_num_positional(1);
+                if(in.is_valid()) {
+                    opt.declare_max_num_positional(0);
+                } else {
+                    opt.declare_min_num_positional(1);
+                    opt.declare_max_num_positional(1);
+                }
             }
         }
 
@@ -42,10 +47,10 @@ namespace grail { namespace cli {
                 "    Converts a context-free grammar (CFG) into a Non-deterministic Pushdown\n"
                 "    Automaton (PDA).\n\n"
                 "  basic use options for %s:\n"
-                "    <file>                         read in a CFG from <file>. If \"stdin\"\n"
-                "                                   is given then input will be read from the\n"
-                "                                   terminal. Typing a new line, followed by\n"
-                "                                   Control-D (^D) will close stdin.\n\n",
+                "    --stdin                        Read a CFG from stdin. Typing a new,\n"
+                "                                   line followed by Control-D (^D) will\n"
+                "                                   close stdin.\n"
+                "    <file>                         read in a CFG from <file>.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
         }
@@ -56,14 +61,18 @@ namespace grail { namespace cli {
             using fltl::PDA;
 
             // run the tool
-            option_type file(options[0U]);
-            const char *file_name(file.value());
+            option_type file;
+            const char *file_name(0);
 
             FILE *fp(0);
 
-            if(0 == strncmp("stdin", file_name, 6)) {
+            if(options["stdin"].is_valid()) {
+                file = options["stdin"];
                 fp = stdin;
+                file_name = "<stdin>";
             } else {
+                file = options[0U];
+                file_name = file.value();
                 fp = fopen(file_name, "r");
             }
 
