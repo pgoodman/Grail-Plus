@@ -89,7 +89,6 @@ namespace grail { namespace io {
             detail::symbol_state_type sym_state(detail::SYMBOL_FAIL);
             detail::string_state_type str_state(detail::STRING_FAIL);
 
-        read_first_char:
             for(;;) {
                 codepoint = buffer.read();
                 ch = *codepoint;
@@ -411,6 +410,9 @@ namespace grail { namespace io {
         char scratch[pda::SCRATCH_SIZE + 20] = {'\0'};
         char *scratch_end(&(scratch[pda::SCRATCH_SIZE - 1]));
 
+        unsigned num_start_states(0);
+        unsigned long start_state_val(0);
+
         uint8_t state(pda::STATE_START);
         uint8_t prev_state(pda::STATE_SINK);
 
@@ -423,6 +425,13 @@ namespace grail { namespace io {
 
             prev_state = state;
             state = pda::next_state(state, tt);
+
+            // looking at the start state
+            if(pda::T_STATE == tt && pda::STATE_SEEN_START_SET == prev_state) {
+                if(1 == ++num_start_states) {
+                    start_state_val = strtoul(scratch, 0, 10);
+                }
+            }
 
             switch(state) {
             case pda::STATE_FINAL:
@@ -474,6 +483,11 @@ namespace grail { namespace io {
             unsigned long,
             typename fltl::PDA<AlphaT>::state_type
         > state_map;
+
+        // special case so we don't add in needless epsilon transitions
+        if(1 == num_start_states) {
+            state_map[start_state_val] = PDA.get_start_state();
+        }
 
         buffer.reset();
         state = pda::STATE_START;
