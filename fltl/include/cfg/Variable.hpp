@@ -61,56 +61,12 @@ namespace fltl { namespace cfg {
             make_null_production();
         }
 
-        /// add a production to this variable
-        /*void add_production(cfg::Production<AlphaT> *prod) throw() {
-
-            if(null_production != first_production) {
-                prod->prev = 0; //first_production->prev;
-
-                if(0 != first_production) {
-                    first_production->prev = prod;
-                }
-
-                prod->next = first_production;
-            } else {
-                prod->prev = 0;
-                prod->next = null_production->next;
-
-                if(0 != null_production->next) {
-                    null_production->next->prev = prod;
-                }
-
-                Production<AlphaT>::release(null_production);
-                null_production = 0;
-            }
-
-            first_production = prod;
-        }*/
-
         void make_null_production(void) {
             null_production = CFG<AlphaT>::production_allocator->allocate();
             null_production->var = this;
             first_production = null_production;
             Production<AlphaT>::hold(null_production);
         }
-
-        /*
-        inline void remove_production(cfg::Production<AlphaT> *prod) throw() {
-
-            if(0 == prod->prev) {
-                first_production = prod->next;
-            } else {
-                prod->prev->next = prod->next;
-            }
-
-            if(0 != prod->next) {
-                prod->next->prev = prod->prev;
-            }
-
-            if(0 == first_production) {
-                make_null_production();
-            }
-        }*/
 
     public:
 
@@ -140,7 +96,11 @@ namespace fltl { namespace cfg {
                 prod = next_prod) {
 
                 next_prod = prod->next;
-                cfg::Production<AlphaT>::release(prod);
+                prod->var = 0;
+
+                if(!prod->is_deleted) {
+                    cfg::Production<AlphaT>::release(prod);
+                }
             }
 
             if(0 != name) {

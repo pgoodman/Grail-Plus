@@ -20,7 +20,12 @@ namespace fltl { namespace pda {
 
         friend class PDA<AlphaT>;
         friend class TransitionGenerator<AlphaT>;
-        friend class PatternGenerator<AlphaT>;
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > friend class PatternGenerator;
+        friend class Pattern<AlphaT>;
 
         typedef OpaqueTransition<AlphaT> self_type;
         typedef OpaqueState<AlphaT> state_type;
@@ -50,6 +55,8 @@ namespace fltl { namespace pda {
 
     public:
 
+        typedef transition_tag tag_type;
+
         OpaqueTransition(void) throw()
             : transition(0)
         { }
@@ -74,27 +81,27 @@ namespace fltl { namespace pda {
             return *this;
         }
 
-        const state_type source(void) const throw() {
+        const state_type &source(void) const throw() {
             assert(0 != transition);
             return transition->source_state;
         }
 
-        const state_type sink(void) const throw() {
+        const state_type &sink(void) const throw() {
             assert(0 != transition);
             return transition->sink_state;
         }
 
-        const symbol_type read(void) const throw() {
+        const symbol_type &read(void) const throw() {
             assert(0 != transition);
             return transition->sym_read;
         }
 
-        const symbol_type pop(void) const throw() {
+        const symbol_type &pop(void) const throw() {
             assert(0 != transition);
             return transition->sym_pop;
         }
 
-        const symbol_type push(void) const throw() {
+        const symbol_type &push(void) const throw() {
             assert(0 != transition);
             return transition->sym_push;
         }

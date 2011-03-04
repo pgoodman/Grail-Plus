@@ -11,6 +11,8 @@
 #ifndef FLTL_FREAD_CFG_HPP_
 #define FLTL_FREAD_CFG_HPP_
 
+#include <cstring>
+
 #include "fltl/include/CFG.hpp"
 
 #include "grail/include/io/error.hpp"
@@ -79,7 +81,6 @@ namespace grail { namespace io {
             detail::symbol_state_type sym_state(detail::SYMBOL_FAIL);
             detail::string_state_type str_state(detail::STRING_FAIL);
 
-        read_first_char:
             for(;;) {
 
                 codepoint = buffer.read();
@@ -520,26 +521,22 @@ namespace grail { namespace io {
 
                 switch(tt) {
                 case cfg::T_BEGIN_SINGLE_LINE_RELATION:
-                    scratch[0] = '-'; scratch[1] = '>';
-                    scratch[2] = '\0';
+                    strcpy(scratch, "->");
                     break;
                 case cfg::T_BEGIN_MULTILINE_RELATION:
-                    scratch[0] = ':'; scratch[1] = '\0';
+                    strcpy(scratch, ":");
                     break;
                 case cfg::T_EXTEND_MULTILINE_RELATION:
-                    scratch[0] = '|'; scratch[1] = '\0';
+                    strcpy(scratch, "|");
                     break;
                 case cfg::T_END_RELATION:
-                    scratch[0] = ';'; scratch[1] = '\0';
+                    strcpy(scratch, ";");
                     break;
                 case cfg::T_NEW_LINE:
-                    scratch[0] = '\\'; scratch[1] = 'n';
-                    scratch[2] = '\0';
+                    strcpy(scratch, "\\n");
                     break;
                 case cfg::T_END:
-                    scratch[0] = '<'; scratch[1] = 'E';
-                    scratch[2] = 'O'; scratch[3] = 'F';
-                    scratch[4] = '>'; scratch[5] = '\0';
+                    strcpy(scratch, "<EOF>");
                     break;
                 default: break;
                 }

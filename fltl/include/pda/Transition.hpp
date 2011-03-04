@@ -24,6 +24,16 @@ namespace fltl { namespace pda {
         friend class PDA<AlphaT>;
         friend class OpaqueTransition<AlphaT>;
         friend class TransitionGenerator<AlphaT>;
+        friend class Pattern<AlphaT>;
+
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > friend class PatternGenerator;
+
+        template <typename, typename, typename>
+        friend class pda::detail::FindNextTransition;
 
         /// the symbol read from input
         symbol_type sym_read;
@@ -51,6 +61,9 @@ namespace fltl { namespace pda {
         /// was this transition deleted?
         bool is_deleted;
 
+        /// the PDA of this producton
+        PDA<AlphaT> *pda;
+
         static void hold(self_type *trans) throw() {
             assert(0 != trans);
             ++(trans->ref_count);
@@ -59,7 +72,23 @@ namespace fltl { namespace pda {
         static void release(self_type *trans) throw() {
             assert(0 != trans);
             if(0 == --(trans->ref_count)) {
-                PDA<AlphaT>::transition_allocator.deallocate(trans);
+
+                if(0 != trans->pda) {
+
+                    if(0 != trans->next) {
+                        trans->next->prev = trans->prev;
+                    }
+
+                    if(0 != trans->prev) {
+                        trans->prev->next = trans->next;
+                    } else {
+                        trans->pda->state_transitions.get(
+                            trans->source_state.id
+                        ) = trans->next;
+                    }
+                }
+
+                PDA<AlphaT>::transition_allocator->deallocate(trans);
             }
         }
 
@@ -70,7 +99,14 @@ namespace fltl { namespace pda {
             , prev(0)
             , ref_count(0)
             , is_deleted(false)
+            , pda(0)
         { }
+
+        ~Transition(void) throw() {
+            pda = 0;
+            next = 0;
+            prev = 0;
+        }
     };
 
 }}

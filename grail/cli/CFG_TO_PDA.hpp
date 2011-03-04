@@ -81,7 +81,9 @@ namespace grail { namespace cli {
             CFG<AlphaT> cfg;
             PDA<AlphaT> pda;
 
-            io::fread(fp, cfg, file_name);
+            if(!io::fread(fp, cfg, file_name)) {
+                return 1;
+            }
 
             int ret(0);
 

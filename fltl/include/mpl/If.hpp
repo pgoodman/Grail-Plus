@@ -69,6 +69,30 @@ namespace fltl { namespace mpl {
         };
     };
 
+    template <typename T0, typename T1>
+    class IfTypesEqual<const T0, const T1> {
+    public:
+        enum {
+            RESULT = IfTypesEqual<T0,T1>::RESULT
+        };
+    };
+
+    template <typename T0, typename T1>
+    class IfTypesEqual<const T0, T1> {
+    public:
+        enum {
+            RESULT = IfTypesEqual<T0,T1>::RESULT
+        };
+    };
+
+    template <typename T0, typename T1>
+    class IfTypesEqual<T0, const T1> {
+    public:
+        enum {
+            RESULT = IfTypesEqual<T0,T1>::RESULT
+        };
+    };
+
     template <typename T0>
     class IfTypesEqual<T0,T0> {
     public:

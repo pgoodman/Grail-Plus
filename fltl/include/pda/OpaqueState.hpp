@@ -22,7 +22,20 @@ namespace fltl { namespace pda {
         friend class PDA<AlphaT>;
         friend class StateGenerator<AlphaT>;
         friend class TransitionGenerator<AlphaT>;
+        friend class Transition<AlphaT>;
         friend struct std::less<self_type>;
+
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > friend class PatternGenerator;
+
+        template <typename, typename>
+        friend class detail::ResetPatternGenerator;
+
+        template <typename, typename, typename>
+        friend class detail::FindNextTransition;
 
         unsigned id;
 
@@ -31,6 +44,8 @@ namespace fltl { namespace pda {
         { }
 
     public:
+
+        typedef state_tag tag_type;
 
         OpaqueState(void) throw()
             : id(0)

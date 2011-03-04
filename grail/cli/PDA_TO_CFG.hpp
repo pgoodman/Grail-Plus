@@ -1,29 +1,30 @@
 /*
- * cfg_to_cnf.hpp
+ * PDA_TO_CFG.hpp
  *
- *  Created on: Feb 16, 2011
+ *  Created on: Mar 3, 2011
  *      Author: Peter Goodman
  *     Version: $Id$
  *
  * Copyright 2011 Peter Goodman, all rights reserved.
  */
 
-#ifndef FLTL_CLI_CFG_TO_CNF_HPP_
-#define FLTL_CLI_CFG_TO_CNF_HPP_
+#ifndef FLTL_CLI_PDA_TO_CFG_HPP_
+#define FLTL_CLI_PDA_TO_CFG_HPP_
 
 #include <cstdio>
 
 #include "grail/include/CommandLineOptions.hpp"
 
-#include "grail/algorithm/CFG_TO_CNF.hpp"
+#include "grail/algorithm/PDA_TO_CFG.hpp"
 
-#include "grail/include/io/fread_cfg.hpp"
+#include "grail/include/io/fread_pda.hpp"
+#include "grail/include/io/fprint_pda.hpp"
 #include "grail/include/io/fprint_cfg.hpp"
 
 namespace grail { namespace cli {
 
     template <typename AlphaT>
-    class CFG_TO_CNF {
+    class PDA_TO_CFG {
     public:
 
         static const char * const TOOL_NAME;
@@ -39,9 +40,8 @@ namespace grail { namespace cli {
             //  "  | |                              |                                             |"
             printf(
                 "  %s:\n"
-                "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
-                "    CFG generates the empty string then the only epsilon production in the\n"
-                "    CFG will be that of the start variable.\n\n"
+                "    Converts a non-deterministic pushdown automaton (PDA) into a context-free\n"
+                "    grammar (CFG).\n\n"
                 "  basic use options for %s:\n"
                 "    <file>                         read in a CFG from <file>. If \"stdin\"\n"
                 "                                   is given then input will be read from the\n"
@@ -54,6 +54,7 @@ namespace grail { namespace cli {
         static int main(CommandLineOptions &options) throw() {
 
             using fltl::CFG;
+            using fltl::PDA;
 
             // run the tool
             option_type file(options[0U]);
@@ -70,8 +71,8 @@ namespace grail { namespace cli {
             if(0 == fp) {
 
                 options.error(
-                    "Unable to open file containing context-free "
-                    "grammar for reading."
+                    "Unable to open file containing pushdown-automaton "
+                    "for reading."
                 );
                 options.note("File specified here:", file);
 
@@ -79,38 +80,25 @@ namespace grail { namespace cli {
             }
 
             CFG<AlphaT> cfg;
+            PDA<AlphaT> pda;
 
-            if(!io::fread(fp, cfg, file_name)) {
+            if(!io::fread(fp, pda, file_name)) {
                 return 1;
             }
 
-            /*
-            printf("BEFORE:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-
-            algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
-
-            /*
-            printf("\nAFTER:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-            io::fprint(stdout, cfg);
+            algorithm::PDA_TO_CFG<AlphaT>::run(pda, cfg);
 
             fclose(fp);
 
-            return 0;
+            //io::fprint(stdout, cfg);
+            io::fprint(stdout, pda);
+
+            return 1;
         }
     };
 
     template <typename AlphaT>
-    const char * const CFG_TO_CNF<AlphaT>::TOOL_NAME("cfg-to-cnf");
+    const char * const PDA_TO_CFG<AlphaT>::TOOL_NAME("pda-to-cfg");
 }}
 
-#endif /* FLTL_CLI_CFG_TO_CNF_HPP_ */
+#endif /* FLTL_CLI_PDA_TO_CFG_HPP_ */

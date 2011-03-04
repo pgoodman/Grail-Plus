@@ -24,6 +24,11 @@ namespace fltl { namespace pda {
         friend class SymbolBuffer<AlphaT>;
         friend class SymbolGenerator<AlphaT>;
         friend struct std::less<self_type>;
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > friend class PatternGenerator;
 
         unsigned id;
 
@@ -32,6 +37,8 @@ namespace fltl { namespace pda {
         { }
 
     public:
+
+        typedef symbol_tag tag_type;
 
         Symbol(void) throw()
             : id(0)

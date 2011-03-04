@@ -18,10 +18,17 @@
 
 #include "fltl/include/helper/Array.hpp"
 #include "fltl/include/helper/BlockAllocator.hpp"
+#include "fltl/include/helper/StorageChain.hpp"
 #include "fltl/include/helper/UnsafeCast.hpp"
 
 #include "fltl/include/trait/Alphabet.hpp"
 #include "fltl/include/trait/Uncopyable.hpp"
+
+#include "fltl/include/mpl/Static.hpp"
+#include "fltl/include/mpl/If.hpp"
+#include "fltl/include/mpl/Or.hpp"
+
+#include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
 namespace fltl {
 
@@ -40,9 +47,24 @@ namespace fltl {
         template <typename> class StateGenerator;
         template <typename> class SymbolGenerator;
         template <typename> class TransitionGenerator;
-        template <typename> class PatternGenerator;
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > class PatternGenerator;
+        template <typename> class Pattern;
 
         template <typename, typename> class Unbound { };
+
+        namespace pattern {
+            template <typename, typename> class Bind;
+            template <typename> class Init;
+        }
+
+        namespace detail {
+            template <typename, typename> class ResetPatternGenerator;
+            template <typename, typename, typename> class FindNextTransition;
+        }
 
         class symbol_tag { };
         class unbound_symbol_tag { };
@@ -53,10 +75,12 @@ namespace fltl {
         class transition_tag { };
         class unbound_transition_tag { };
 
-        class final_state_tag { };
+        /// represents any state or symbol.
+        class any_state_or_symbol_tag {
+        public:
+            typedef any_state_or_symbol_tag tag_type;
+        };
     }
-
-    const pda::final_state_tag PDA_ACCEPT_STATES;
 }
 
 #include "fltl/include/pda/Symbol.hpp"
@@ -66,6 +90,7 @@ namespace fltl {
 #include "fltl/include/pda/OpaqueTransition.hpp"
 #include "fltl/include/pda/Unbound.hpp"
 #include "fltl/include/pda/Generator.hpp"
+#include "fltl/include/pda/Pattern.hpp"
 
 namespace fltl {
 
@@ -78,7 +103,19 @@ namespace fltl {
         friend class pda::SymbolGenerator<AlphaT>;
         friend class pda::StateGenerator<AlphaT>;
         friend class pda::TransitionGenerator<AlphaT>;
-        friend class pda::PatternGenerator<AlphaT>;
+        friend class pda::Pattern<AlphaT>;
+
+        template <
+            typename, typename,
+            typename, typename,
+            typename, typename
+        > friend class pda::PatternGenerator;
+
+        template <typename, typename>
+        friend class pda::detail::ResetPatternGenerator;
+
+        template <typename, typename, typename>
+        friend class pda::detail::FindNextTransition;
 
         typedef trait::Alphabet<AlphaT> traits_type;
         typedef typename traits_type::alphabet_type alphabet_type;
@@ -100,6 +137,16 @@ namespace fltl {
         typedef PDA<AlphaT> self_type;
 
     private:
+
+        /// forward declaration of pattern checker
+        template <
+            typename SourceT,
+            typename ReadT,
+            typename PopT,
+            typename PushT,
+            typename SinkT
+        >
+        class PatternIsValid;
 
         typedef std::map<
             alphabet_type,
@@ -150,11 +197,19 @@ namespace fltl {
         pda::Transition<AlphaT> *first_transition;
 
         /// transition allocator
-        static helper::BlockAllocator<
+        static helper::StorageChain<helper::BlockAllocator<
             pda::Transition<AlphaT>
-        > transition_allocator;
+        > > transition_allocator;
+
+        /// pattern allocator
+        static helper::StorageChain<helper::BlockAllocator<
+            pda::Pattern<AlphaT>
+        > > pattern_allocator;
 
     public:
+
+        /// represents any state or symbol
+        const pda::any_state_or_symbol_tag _;
 
         /// constructor
         PDA(void) throw()
@@ -167,6 +222,7 @@ namespace fltl {
             , num_transitions_(0U)
             , final_states()
             , first_transition(0)
+            , _()
         {
             static const char * const UB("$0");
             static const char * const EPSILON("epsilon");
@@ -193,7 +249,13 @@ namespace fltl {
                     curr = next) {
 
                     next = curr->next;
-                    pda::Transition<AlphaT>::release(curr);
+
+                    // !!! could be some memory issues if a transition
+                    //     manages to live longer than its PDA
+                    curr->pda = 0;
+                    if(!curr->is_deleted) {
+                        pda::Transition<AlphaT>::release(curr);
+                    }
                 }
 
                 trans = 0;
@@ -335,12 +397,12 @@ namespace fltl {
         }
 
         /// get the start state
-        const state_type get_start_state(void) const throw() {
+        const state_type &get_start_state(void) const throw() {
             return start_state;
         }
 
         /// return the epsilon symbol
-        const symbol_type epsilon(void) const throw() {
+        const symbol_type &epsilon(void) const throw() {
             return mpl::Static<symbol_type>::VALUE;
         }
 
@@ -427,6 +489,26 @@ namespace fltl {
             }
         }
 
+        /// delete a transition
+        void delete_transition(transition_type trans_) throw() {
+            assert(0 != trans_.transition);
+            assert(!trans_.transition->is_deleted);
+
+            pda::Transition<AlphaT> *trans(trans_.transition);
+            trans->is_deleted = true;
+
+            // go find the next transition
+            if(first_transition == trans) {
+                first_transition = pda::TransitionGenerator<
+                    AlphaT
+                >::find_next_transition(this, trans);
+            }
+
+            --num_transitions_;
+
+            pda::Transition<AlphaT>::release(trans);
+        }
+
         /// add an accepting state
         void add_accept_state(state_type state) throw() {
             final_states.insert(state);
@@ -482,10 +564,11 @@ namespace fltl {
         search(pda::Unbound<AlphaT,pda::symbol_tag> sym) const throw() {
             return pda::Generator<AlphaT>(
                 reinterpret_cast<void *>(sym.symbol),
-                &(pda::SymbolGenerator<AlphaT>::gen_next),
-                &(pda::SymbolGenerator<AlphaT>::gen_reset),
-                &(pda::SymbolGenerator<AlphaT>::gen_free),
-                const_cast<self_type *>(this)
+                &(pda::SymbolGenerator<AlphaT>::next),
+                &(pda::SymbolGenerator<AlphaT>::reset),
+                &(pda::SymbolGenerator<AlphaT>::free),
+                const_cast<self_type *>(this),
+                0
             );
         }
 
@@ -496,25 +579,11 @@ namespace fltl {
         ) const throw() {
             return pda::Generator<AlphaT>(
                 reinterpret_cast<void *>(state.state),
-                &(pda::StateGenerator<AlphaT>::gen_next),
-                &(pda::StateGenerator<AlphaT>::gen_reset),
-                &(pda::StateGenerator<AlphaT>::gen_free),
-                const_cast<self_type *>(this)
-            );
-        }
-
-        /// generate only accepting states
-        inline generator_type
-        search(
-            pda::Unbound<AlphaT,pda::state_tag> state,
-            pda::final_state_tag
-        ) const throw() {
-            return pda::Generator<AlphaT>(
-                reinterpret_cast<void *>(state.state),
-                &(pda::StateGenerator<AlphaT>::gen_next),
-                &(pda::StateGenerator<AlphaT>::gen_reset),
-                &(pda::StateGenerator<AlphaT>::gen_free),
-                const_cast<self_type *>(this)
+                &(pda::StateGenerator<AlphaT>::next),
+                &(pda::StateGenerator<AlphaT>::reset),
+                &(pda::StateGenerator<AlphaT>::free),
+                const_cast<self_type *>(this),
+                0
             );
         }
 
@@ -523,14 +592,168 @@ namespace fltl {
         search(pda::Unbound<AlphaT,pda::transition_tag> trans) const throw() {
             return pda::Generator<AlphaT>(
                 reinterpret_cast<void *>(trans.transition),
-                &(pda::TransitionGenerator<AlphaT>::gen_next),
-                &(pda::TransitionGenerator<AlphaT>::gen_reset),
-                &(pda::TransitionGenerator<AlphaT>::gen_free),
-                const_cast<self_type *>(this)
+                &(pda::TransitionGenerator<AlphaT>::next),
+                &(pda::TransitionGenerator<AlphaT>::reset),
+                &(pda::TransitionGenerator<AlphaT>::free),
+                const_cast<self_type *>(this),
+                0
+            );
+        }
+
+        /// search for a transition
+        template <
+            typename SourceT,
+            typename ReadT,
+            typename PopT,
+            typename PushT,
+            typename SinkT
+        >
+        inline generator_type
+        search(
+            const SourceT &source_state,
+            const ReadT &read_symbol,
+            const PopT &pop_symbol,
+            const PushT &push_symbol,
+            const SinkT &sink_state
+        ) const throw() {
+            return make_search(
+                source_state,
+                read_symbol,
+                pop_symbol,
+                push_symbol,
+                sink_state,
+                0
+            );
+        }
+
+        /// search for a transition
+        template <
+            typename SourceT,
+            typename ReadT,
+            typename PopT,
+            typename PushT,
+            typename SinkT
+        >
+        inline generator_type
+        search(
+            const SourceT &source_state,
+            const ReadT &read_symbol,
+            const PopT &pop_symbol,
+            const PushT &push_symbol,
+            const SinkT &sink_state,
+            pda::Unbound<AlphaT,pda::transition_tag> trans
+        ) const throw() {
+            return make_search(
+                source_state,
+                read_symbol,
+                pop_symbol,
+                push_symbol,
+                sink_state,
+                trans.transition
             );
         }
 
     private:
+
+        /// construct the generator needed for a transition pattern search
+        template <
+            typename SourceT,
+            typename ReadT,
+            typename PopT,
+            typename PushT,
+            typename SinkT
+        >
+        inline generator_type
+        make_search(
+            const SourceT &source_state,
+            const ReadT &read_symbol,
+            const PopT &pop_symbol,
+            const PushT &push_symbol,
+            const SinkT &sink_state,
+            transition_type *trans
+        ) const throw() {
+
+            (void) sizeof(char[
+                PatternIsValid<SourceT,ReadT,PopT,PushT,SinkT>::RESULT
+            ]);
+
+            // initialize the pattern
+            pda::Pattern<AlphaT> *pattern(pattern_allocator->allocate());
+            pda::pattern::Init<AlphaT>::init(&source_state, &(pattern->source));
+            pda::pattern::Init<AlphaT>::init(&sink_state, &(pattern->sink));
+            pda::pattern::Init<AlphaT>::init(&read_symbol, &(pattern->read));
+            pda::pattern::Init<AlphaT>::init(&pop_symbol, &(pattern->pop));
+            pda::pattern::Init<AlphaT>::init(&push_symbol, &(pattern->push));
+
+            // pattern gen type
+            typedef pda::PatternGenerator<
+                AlphaT,
+                typename SourceT::tag_type,
+                typename ReadT::tag_type,
+                typename PopT::tag_type,
+                typename PushT::tag_type,
+                typename SinkT::tag_type
+            > pattern_generator_type;
+
+            // return the generator
+            return generator_type(
+                reinterpret_cast<void *>(trans), // binder
+                &(pattern_generator_type::next),
+                &(pattern_generator_type::reset),
+                &(pattern_generator_type::free),
+                const_cast<self_type *>(this),
+                pattern
+            );
+        }
+
+        /// template class for checking the validity of the types of the
+        /// parameters passed to a pattern search
+        template <
+            typename SourceT,
+            typename ReadT,
+            typename PopT,
+            typename PushT,
+            typename SinkT
+        >
+        class PatternIsValid {
+        public:
+            enum {
+                SOURCE_VALID = mpl::Or<
+                    mpl::IfTypesEqual<SourceT,pda::Unbound<AlphaT,pda::state_tag> >,
+                    mpl::IfTypesEqual<SourceT,state_type>,
+                    mpl::IfTypesEqual<SourceT,pda::any_state_or_symbol_tag>
+                >::RESULT,
+
+                READ_VALID = mpl::Or<
+                    mpl::IfTypesEqual<ReadT,pda::Unbound<AlphaT,pda::symbol_tag> >,
+                    mpl::IfTypesEqual<ReadT,symbol_type>,
+                    mpl::IfTypesEqual<ReadT,pda::any_state_or_symbol_tag>
+                >::RESULT,
+
+                POP_VALID = mpl::Or<
+                    mpl::IfTypesEqual<PopT,pda::Unbound<AlphaT,pda::symbol_tag> >,
+                    mpl::IfTypesEqual<PopT,symbol_type>,
+                    mpl::IfTypesEqual<PopT,pda::any_state_or_symbol_tag>
+                >::RESULT,
+
+                PUSH_VALID = mpl::Or<
+                    mpl::IfTypesEqual<PushT,pda::Unbound<AlphaT,pda::symbol_tag> >,
+                    mpl::IfTypesEqual<PushT,symbol_type>,
+                    mpl::IfTypesEqual<PushT,pda::any_state_or_symbol_tag>
+                >::RESULT,
+
+                SINK_VALID = mpl::Or<
+                    mpl::IfTypesEqual<SinkT,pda::Unbound<AlphaT,pda::state_tag> >,
+                    mpl::IfTypesEqual<SinkT,state_type>,
+                    mpl::IfTypesEqual<SinkT,pda::any_state_or_symbol_tag>
+                >::RESULT,
+
+                RESULT = 5 == (
+                    SOURCE_VALID + READ_VALID +
+                    POP_VALID + PUSH_VALID + SINK_VALID
+                ) ? 1 : 0
+            };
+        };
 
         /// allocate a transition and link it in to the adjacency list
         pda::Transition<AlphaT> *make_transition(
@@ -538,10 +761,11 @@ namespace fltl {
             symbol_type read
         ) throw() {
 
-            pda::Transition<AlphaT> *trans(transition_allocator.allocate());
+            pda::Transition<AlphaT> *trans(transition_allocator->allocate());
 
             trans->source_state = source_state;
             trans->sym_read = read;
+            trans->pda = this;
 
             pda::Transition<AlphaT> *curr(state_transitions.get(
                 source_state.id
@@ -581,7 +805,9 @@ namespace fltl {
 
                     state_transitions.get(source_state.id) = trans;
 
-                    if(first_transition == curr) {
+                    // compare on source states as a deleted transition
+                    // might be sitting at the front of this list
+                    if(first_transition->source_state.id == source_state.id) {
                         first_transition = trans;
                     }
                 }
@@ -604,9 +830,14 @@ namespace fltl {
 
     // static initialize
     template <typename AlphaT>
-    helper::BlockAllocator<
+    helper::StorageChain<helper::BlockAllocator<
+        pda::Pattern<AlphaT>
+    > > PDA<AlphaT>::pattern_allocator;
+
+    template <typename AlphaT>
+    helper::StorageChain<helper::BlockAllocator<
         pda::Transition<AlphaT>
-    > PDA<AlphaT>::transition_allocator;
+    > > PDA<AlphaT>::transition_allocator(pattern_allocator);
 }
 
 #endif /* FLTL_PDA_HPP_ */

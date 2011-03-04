@@ -29,6 +29,10 @@ namespace fltl { namespace pda {
         Unbound(void) throw() {
             symbol = 0;
         }
+
+    public:
+
+        typedef unbound_symbol_tag tag_type;
     };
 
     template <typename AlphaT>
@@ -47,6 +51,10 @@ namespace fltl { namespace pda {
         Unbound(void) throw() {
             state = 0;
         }
+
+    public:
+
+        typedef unbound_state_tag tag_type;
     };
 
     template <typename AlphaT>
@@ -65,6 +73,10 @@ namespace fltl { namespace pda {
         Unbound(void) throw() {
             transition = 0;
         }
+
+    public:
+
+        typedef unbound_transition_tag tag_type;
     };
 }}
 
