@@ -26,7 +26,10 @@ namespace grail { namespace io {
         typename fltl::PDA<AlphaT>::symbol_type sym
     ) throw() {
         if(pda.is_in_input_alphabet(sym)) {
-            fprintf(ff, "\"%s\"", pda.get_alpha(sym));
+
+            fprintf(ff, "\"");
+            io::fprint(ff, pda.get_alpha(sym));
+            fprintf(ff, "\"");
         } else {
             fprintf(ff, "%s", pda.get_name(sym));
         }

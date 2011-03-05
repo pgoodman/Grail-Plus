@@ -19,6 +19,8 @@
 namespace grail { namespace algorithm {
 
     /// convert a context-free grammar into a pushdown automaton
+    /// follows algorithm of Introduction to the Theory of Computation,
+    /// Sipser, p. 117
     template <typename AlphaT>
     class CFG_TO_PDA {
     public:
