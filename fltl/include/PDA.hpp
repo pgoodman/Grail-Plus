@@ -447,7 +447,7 @@ namespace fltl {
         }
 
         /// add a transition that pushes multiple symbols onto the stack
-        const void add_transition(
+        void add_transition(
             state_type source,
             symbol_type read,
             symbol_type pop,
