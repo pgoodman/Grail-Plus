@@ -19,10 +19,6 @@
 #include "grail/include/CommandLineOptions.hpp"
 #include "grail/include/CStringMap.hpp"
 
-#include "grail/cli/CFG_TO_CNF.hpp"
-#include "grail/cli/CFG_REMOVE_UNITS.hpp"
-#include "grail/cli/CFG_REMOVE_EPSILON.hpp"
-
 namespace {
 
     enum {
