@@ -21,6 +21,7 @@
 #include "grail/algorithm/CFG_REMOVE_LR.hpp"
 #include "grail/algorithm/CFG_REMOVE_EPSILON.hpp"
 #include "grail/algorithm/CFG_TO_CNF.hpp"
+#include "grail/algorithm/CFG_TO_2CFG.hpp"
 
 namespace grail { namespace algorithm {
 
@@ -41,6 +42,7 @@ namespace grail { namespace algorithm {
 
             CFG_TO_CNF<AlphaT>::run(cfg);
             CFG_REMOVE_LR<AlphaT>::run(cfg);
+            CFG_TO_2CFG<AlphaT>::run(cfg);
             CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
 
             variable_type A;
