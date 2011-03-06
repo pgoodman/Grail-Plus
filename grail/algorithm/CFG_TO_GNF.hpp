@@ -80,51 +80,6 @@ namespace grail { namespace algorithm {
                     }
                 }
             }
-
-            /*
-            return;
-
-            variable_type A;
-            variable_type X;
-            symbol_string_type alpha;
-            symbol_string_type beta;
-            production_type X_prod;
-
-            generator_type X_productions(cfg.search(
-                ~X_prod,
-                (~X) --->* ~A + ~alpha
-            ));
-
-            generator_type A_productions(cfg.search(A --->* ~beta));
-
-            //io::fprint(stdout, cfg);
-            //printf("\n-----------------------------\n");
-
-            bool changed(true);
-            for(; changed; X_productions.rewind()) {
-
-                io::fprint(stdout, cfg);
-                printf("\n-----------------------------\n");
-
-                changed = false;
-                for(; X_productions.match_next(); A_productions.rewind()) {
-
-                    printf("expanding %s on %s's right hand side\n", cfg.get_name(A), cfg.get_name(X));
-                    cfg.remove_production(X_prod);
-                    for(; A_productions.match_next(); ) {
-                        cfg.add_production(X, beta + alpha);
-                    }
-
-                    changed = true;
-                    //return;
-                }
-
-                //break;
-            }
-
-            //CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
-
-            */
         }
 
     };
