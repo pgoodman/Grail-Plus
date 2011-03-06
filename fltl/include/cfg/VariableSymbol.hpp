@@ -64,6 +64,18 @@ namespace fltl { namespace cfg {
         bool operator<(const self_type &that) const throw() {
             return this->value < that.value;
         }
+
+        bool operator<=(const self_type &that) const throw() {
+            return this->value <= that.value;
+        }
+
+        bool operator>(const self_type &that) const throw() {
+            return this->value > that.value;
+        }
+
+        bool operator>=(const self_type &that) const throw() {
+            return this->value >= that.value;
+        }
     };
 
 }}

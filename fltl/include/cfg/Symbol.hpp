@@ -126,17 +126,17 @@ namespace fltl { namespace cfg {
             }
 
             ret.symbols = symbol_string_type::allocate(total_len);
-            ret.symbols[symbol_string_type::FIRST_SYMBOL].value = value;
+            ret.symbols[str::FIRST_SYMBOL].value = value;
             ret.symbols[
-                symbol_string_type::FIRST_SYMBOL + this_len
+                str::FIRST_SYMBOL + this_len
             ].value = that.value;
 
             if(0 == this_len) {
-                ret.symbols[symbol_string_type::HASH].value = that.hash();
+                ret.symbols[str::HASH].value = that.hash();
             } else if(0 == that_len) {
-                ret.symbols[symbol_string_type::HASH].value = hash();
+                ret.symbols[str::HASH].value = hash();
             } else {
-                ret.symbols[symbol_string_type::HASH].value = (
+                ret.symbols[str::HASH].value = (
                     symbol_string_type::hash(
                         hash(),
                         that.hash()

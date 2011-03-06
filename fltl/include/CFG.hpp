@@ -121,6 +121,16 @@ namespace fltl {
             template <typename, typename, typename>
             class DestructuringBind;
         }
+
+        /// offsets into CFG symbol strings
+        namespace str {
+            enum {
+                REF_COUNT = 0,
+                HASH = 1,
+                LENGTH = 2,
+                FIRST_SYMBOL = 3
+            };
+        }
     }
 
 }
@@ -386,6 +396,30 @@ namespace fltl {
                     auto_symbol_upper_bound = name_copy;
                 }
             }
+
+            return term;
+        }
+
+        /// add in a new variable terminal with an automatically generated
+        /// name
+        const terminal_type add_variable_terminal(void) throw() {
+            const unsigned long prev_ub(strtoul(
+                &(auto_symbol_upper_bound[1]), 0, 10
+            ));
+
+            char buffer[1024] = {'\0'};
+            sprintf(buffer, "$%lu", prev_ub + 1);
+
+            terminal_type term(next_terminal_id);
+            --next_terminal_id;
+
+            const char *name(trait::Alphabet<const char *>::copy(buffer));
+            terminal_map.append(std::make_pair(
+                mpl::Static<alphabet_type>::VALUE,
+                name
+            ));
+
+            auto_symbol_upper_bound = name;
 
             return term;
         }

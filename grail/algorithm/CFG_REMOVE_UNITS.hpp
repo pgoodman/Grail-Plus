@@ -35,6 +35,59 @@ namespace grail { namespace algorithm {
 
         static void run(CFG &cfg) throw() {
 
+            std::pair<variable_type,variable_type> elim_key;
+            std::set<std::pair<variable_type,variable_type> > eliminated;
+
+            production_type unit_production;
+            variable_type A;
+            variable_type B;
+            generator_type unit_productions(cfg.search(
+                ~unit_production,
+                (~A) --->* ~B
+            ));
+
+            symbol_string_type gen_string;
+            generator_type related_productions(cfg.search(
+                B --->* ~gen_string
+            ));
+
+            bool updated(true);
+
+            for(; updated; ) {
+                updated = false;
+
+                for(unit_productions.rewind();
+                    unit_productions.match_next(); ) {
+
+                    cfg.remove_production(unit_production);
+
+                    if(A == B) {
+                        continue;
+                    }
+
+                    elim_key = std::make_pair(A,B);
+                    if(0 != eliminated.count(elim_key)) {
+                        continue;
+                    }
+
+                    eliminated.insert(elim_key);
+                    updated = true;
+
+                    for(related_productions.rewind();
+                        related_productions.match_next(); ) {
+
+                        // don't introduce self-loops
+                        if(1 == gen_string.length()
+                        && A == gen_string.at(0)) {
+                            continue;
+                        }
+
+                        cfg.add_production(A, gen_string);
+                    }
+                }
+            }
+
+#if 0
             const variable_type start_var(cfg.get_start_variable());
             symbol_string_type str;
             variable_type A;
@@ -70,11 +123,11 @@ namespace grail { namespace algorithm {
                 for(unit_rules.rewind(); unit_rules.match_next(); ) {
 
                     eliminated.insert(std::make_pair(A, B));
-                    cfg.remove_production(unit_production);
 
                     // don't follow into self-loops!
                     if(A == B) {
                         found_self_loops = true;
+                        cfg.remove_production(unit_production);
                         continue;
                     }
 
@@ -105,6 +158,8 @@ namespace grail { namespace algorithm {
                             cfg.add_production(A, str);
                         }
                     }
+
+                    cfg.remove_production(unit_production);
                 }
             }
 
@@ -140,6 +195,7 @@ namespace grail { namespace algorithm {
                     }*/
                 }
             }
+#endif
         }
     };
 }}

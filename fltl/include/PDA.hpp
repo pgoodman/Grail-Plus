@@ -643,12 +643,12 @@ namespace fltl {
         >
         inline generator_type
         search(
+            pda::Unbound<AlphaT,pda::transition_tag> trans,
             const SourceT &source_state,
             const ReadT &read_symbol,
             const PopT &pop_symbol,
             const PushT &push_symbol,
-            const SinkT &sink_state,
-            pda::Unbound<AlphaT,pda::transition_tag> trans
+            const SinkT &sink_state
         ) const throw() {
             return make_search(
                 source_state,

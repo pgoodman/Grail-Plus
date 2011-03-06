@@ -20,6 +20,7 @@
 
 #include "grail/algorithm/CFG_REMOVE_UNITS.hpp"
 #include "grail/algorithm/CFG_REMOVE_EPSILON.hpp"
+#include "grail/algorithm/CFG_TO_2CFG.hpp"
 
 namespace grail { namespace algorithm {
 
@@ -37,39 +38,6 @@ namespace grail { namespace algorithm {
         typedef typename CFG::production_builder_type production_builder_type;
 
     private:
-
-        /// go look for all productions with three or more symbols on their RHS
-        /// and break them into pairs of productions
-        inline static void remove_long_productions(CFG &cfg) throw() {
-
-            variable_type A;
-            symbol_string_type str;
-            production_type P;
-
-            generator_type long_rules(cfg.search(
-                ~P,
-                (~A) --->* cfg._ + cfg._ + cfg._ + cfg.__
-            ));
-
-            for(; long_rules.match_next(); ) {
-
-                cfg.remove_production(P);
-
-                str = P.symbols();
-
-                unsigned i(str.length() - 2);
-                variable_type prev_new_var(cfg.add_variable());
-                cfg.add_production(prev_new_var, str.substring(i, 2));
-
-                for(--i; i > 0; --i) {
-                    variable_type new_var(cfg.add_variable());
-                    cfg.add_production(new_var, str.at(i) + prev_new_var);
-                    prev_new_var = new_var;
-                }
-
-                cfg.add_production(A, str.at(0) + prev_new_var);
-            }
-        }
 
         // go look for productions with two symbols, if either of the symbols
         // are terminals, then replace them with variables
@@ -155,9 +123,10 @@ namespace grail { namespace algorithm {
             cfg.set_start_variable(new_start_var);
             cfg.add_production(new_start_var, old_start_var);
 
-            remove_long_productions(cfg);
+            CFG_TO_2CFG<AlphaT>::run(cfg);
 
             CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
+
             CFG_REMOVE_UNITS<AlphaT>::run(cfg);
 
             // keep track of those productions that only generate a terminal

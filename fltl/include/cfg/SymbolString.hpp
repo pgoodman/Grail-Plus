@@ -40,7 +40,7 @@ namespace fltl { namespace cfg {
             // should be captured by the +3 that accounts for the ref count,
             // hash, and string lengths.
             enum {
-                LEN = num_symbols + 3,
+                LEN = num_symbols + str::FIRST_SYMBOL,
                 NUM_SLOTS = (
                     ((LEN * sizeof(unsigned)) < sizeof(self_type *))
                         ? (sizeof(self_type *) / sizeof(unsigned))
@@ -51,7 +51,6 @@ namespace fltl { namespace cfg {
             Symbol<AlphaT> symbols[NUM_SLOTS];
 
             static Symbol<AlphaT> *allocate(const unsigned) throw() {
-
                 return SymbolStringAllocator<
                     AlphaT,num_symbols
                 >::allocator->allocate()->symbols;
@@ -98,7 +97,7 @@ namespace fltl { namespace cfg {
 
             static Symbol<AlphaT> *
             allocate(const unsigned num_symbols) throw() {
-                return new Symbol<AlphaT>[num_symbols];
+                return new Symbol<AlphaT>[num_symbols + str::FIRST_SYMBOL];
             }
 
             static void deallocate(Symbol<AlphaT> *ptr) throw() {
@@ -144,13 +143,6 @@ namespace fltl { namespace cfg {
         typedef SymbolString<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
 
-        enum {
-            REF_COUNT = 0,
-            HASH = 1,
-            LENGTH = 2,
-            FIRST_SYMBOL = 3
-        };
-
         typedef symbol_type *(allocator_func_type)(const unsigned);
         typedef void (deallocator_func_type)(symbol_type *);
 
@@ -176,13 +168,20 @@ namespace fltl { namespace cfg {
             }
 
             // allocate
-            symbol_type *syms(allocators[
-                num_symbols % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
-            ](num_symbols));
+
+            symbol_type *syms(0);
+
+            if(num_symbols > FLTL_SYMBOL_STRING_NUM_ALLOCATORS) {
+                syms = allocators[0](num_symbols);
+            } else {
+                syms = allocators[
+                    num_symbols % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
+                ](num_symbols);
+            }
 
             // initialize
-            syms[REF_COUNT].value = 1;
-            syms[LENGTH].value = static_cast<internal_sym_type>(
+            syms[str::REF_COUNT].value = 1;
+            syms[str::LENGTH].value = static_cast<internal_sym_type>(
                 num_symbols
             );
 
@@ -192,7 +191,7 @@ namespace fltl { namespace cfg {
         /// increase the reference count on a symbol array
         static void incref(symbol_type *syms) throw() {
             if(0 != syms) {
-                ++(syms[REF_COUNT].value);
+                ++(syms[str::REF_COUNT].value);
             }
         }
 
@@ -204,14 +203,19 @@ namespace fltl { namespace cfg {
             }
 
             // don't need to free, symbols being referenced elsewhere.
-            if(0 < --(syms[REF_COUNT].value)) {
+            if(0 < --(syms[str::REF_COUNT].value)) {
                 return;
             }
 
             // free
-            deallocators[
-                syms[LENGTH].value % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
-            ](syms);
+            const unsigned len(static_cast<unsigned>(syms[str::LENGTH].value));
+            if(len > FLTL_SYMBOL_STRING_NUM_ALLOCATORS) {
+                deallocators[0](syms);
+            } else {
+                deallocators[
+                    len % (FLTL_SYMBOL_STRING_NUM_ALLOCATORS + 1)
+                ](syms);
+            }
         }
 
         /// append a symbol onto the end of this string
@@ -224,21 +228,21 @@ namespace fltl { namespace cfg {
 
             self_type ret;
             ret.symbols = allocate(len + 1U);
-            ret.symbols[FIRST_SYMBOL + len] = *sym;
+            ret.symbols[str::FIRST_SYMBOL + len] = *sym;
 
             if(0 != len) {
                 memcpy(
-                    &(ret.symbols[FIRST_SYMBOL]),
-                    &(symbols[FIRST_SYMBOL]),
+                    &(ret.symbols[str::FIRST_SYMBOL]),
+                    &(symbols[str::FIRST_SYMBOL]),
                     sizeof(symbol_type) * len
                 );
 
-                ret.symbols[HASH].value = hash(
-                    symbols[HASH].value,
+                ret.symbols[str::HASH].value = hash(
+                    symbols[str::HASH].value,
                     sym->hash()
                 );
             } else {
-                ret.symbols[HASH].value = sym->hash();
+                ret.symbols[str::HASH].value = sym->hash();
             }
 
             return ret;
@@ -254,21 +258,21 @@ namespace fltl { namespace cfg {
 
             self_type ret;
             ret.symbols = allocate(len + 1U);
-            ret.symbols[FIRST_SYMBOL] = *sym;
+            ret.symbols[str::FIRST_SYMBOL] = *sym;
 
             if(0 != len) {
                 memcpy(
-                    &(ret.symbols[FIRST_SYMBOL + 1U]),
-                    &(symbols[FIRST_SYMBOL]),
+                    &(ret.symbols[str::FIRST_SYMBOL + 1U]),
+                    &(symbols[str::FIRST_SYMBOL]),
                     sizeof(symbol_type) * len
                 );
 
-                ret.symbols[HASH].value = hash(
-                    symbols[HASH].value,
+                ret.symbols[str::HASH].value = hash(
+                    symbols[str::HASH].value,
                     sym->hash()
                 );
             } else {
-                ret.symbols[HASH].value = sym->hash();
+                ret.symbols[str::HASH].value = sym->hash();
             }
 
             return ret;
@@ -293,7 +297,7 @@ namespace fltl { namespace cfg {
             if(0 == symbols) {
                 return EPSILON_HASH;
             }
-            return symbols[HASH].value;
+            return symbols[str::HASH].value;
         }
 
         /// hash an array
@@ -332,11 +336,11 @@ namespace fltl { namespace cfg {
             if(0 < num_syms) {
                 symbols = allocate(num_syms);
                 memcpy(
-                    &(symbols[FIRST_SYMBOL]),
+                    &(symbols[str::FIRST_SYMBOL]),
                     arr,
                     sizeof(symbol_type) * num_syms
                 );
-                symbols[HASH].value = hash_array(arr, num_syms);
+                symbols[str::HASH].value = hash_array(arr, num_syms);
             }
         }
 
@@ -352,8 +356,8 @@ namespace fltl { namespace cfg {
         {
             if(0 != sym.value) {
                 symbols = allocate(1U);
-                symbols[FIRST_SYMBOL] = sym;
-                symbols[HASH].value = sym.hash();
+                symbols[str::FIRST_SYMBOL] = sym;
+                symbols[str::HASH].value = sym.hash();
             }
         }
 
@@ -409,14 +413,14 @@ namespace fltl { namespace cfg {
             } else if(symbols != that.symbols) {
 
                 const unsigned str_length(static_cast<unsigned>(
-                    that.symbols[LENGTH].value
+                    that.symbols[str::LENGTH].value
                 ));
 
                 symbols = allocate(str_length);
-                symbols[HASH] = that.symbols[HASH];
+                symbols[str::HASH] = that.symbols[str::HASH];
                 memcpy(
-                    &(symbols[FIRST_SYMBOL]),
-                    &(that.symbols[FIRST_SYMBOL]),
+                    &(symbols[str::FIRST_SYMBOL]),
+                    &(that.symbols[str::FIRST_SYMBOL]),
                     str_length * sizeof(symbol_type)
                 );
             }
@@ -428,7 +432,7 @@ namespace fltl { namespace cfg {
                 return 0U;
             }
             return static_cast<unsigned>(
-                symbols[LENGTH].value
+                symbols[str::LENGTH].value
             );
         }
 
@@ -448,23 +452,23 @@ namespace fltl { namespace cfg {
 
                 if(0 != len) {
                     memcpy(
-                        &(ret.symbols[FIRST_SYMBOL]),
-                        &(symbols[FIRST_SYMBOL]),
+                        &(ret.symbols[str::FIRST_SYMBOL]),
+                        &(symbols[str::FIRST_SYMBOL]),
                         sizeof(symbol_type) * len
                     );
-                    lhash = symbols[HASH].value;
+                    lhash = symbols[str::HASH].value;
                 }
 
                 if(0 != other_len) {
                     memcpy(
-                        &(ret.symbols[FIRST_SYMBOL + len]),
-                        &(that.symbols[FIRST_SYMBOL]),
+                        &(ret.symbols[str::FIRST_SYMBOL + len]),
+                        &(that.symbols[str::FIRST_SYMBOL]),
                         sizeof(symbol_type) * other_len
                     );
-                    rhash = that.symbols[HASH].value;
+                    rhash = that.symbols[str::HASH].value;
                 }
 
-                ret.symbols[HASH].value = hash(lhash, rhash);
+                ret.symbols[str::HASH].value = hash(lhash, rhash);
             }
 
             return ret;
@@ -504,14 +508,14 @@ namespace fltl { namespace cfg {
 
             ret.symbols = allocate(stride);
             memcpy(
-                &(ret.symbols[FIRST_SYMBOL]),
-                &(symbols[FIRST_SYMBOL + start]),
+                &(ret.symbols[str::FIRST_SYMBOL]),
+                &(symbols[str::FIRST_SYMBOL + start]),
                 stride * sizeof(symbol_type)
             );
 
             // hash the substring
-            ret.symbols[HASH].value = hash_array(
-                &(ret.symbols[FIRST_SYMBOL]),
+            ret.symbols[str::HASH].value = hash_array(
+                &(ret.symbols[str::FIRST_SYMBOL]),
                 stride
             );
 
@@ -536,20 +540,21 @@ namespace fltl { namespace cfg {
             const symbol_type *this_syms(symbols);
             const symbol_type *that_syms(that.symbols);
 
-            if(symbols[HASH].value != that_syms[HASH].value) {
+            if(symbols[str::HASH].value != that_syms[str::HASH].value) {
                 return false;
             }
 
             if(symbol_memcmp(
-                &(this_syms[FIRST_SYMBOL]),
-                &(that_syms[FIRST_SYMBOL]),
+                &(this_syms[str::FIRST_SYMBOL]),
+                &(that_syms[str::FIRST_SYMBOL]),
 
                 // make sure to compute the address of the last symbol without
                 // actually accessing it
-                &(this_syms[LENGTH + this_len])
+                &(this_syms[str::LENGTH + this_len])
             )) {
                 // TODO: this might be overkill
-                if(this_syms[REF_COUNT].value < that_syms[REF_COUNT].value) {
+                if(this_syms[str::REF_COUNT].value
+                 < that_syms[str::REF_COUNT].value) {
                     decref(const_cast<symbol_type *>(this_syms));
                     symbols = const_cast<symbol_type *>(that_syms);
                     incref(const_cast<symbol_type *>(that_syms));
@@ -589,11 +594,11 @@ namespace fltl { namespace cfg {
             );
 
             assert(
-                offset < static_cast<unsigned>(symbols[LENGTH].value) &&
+                offset < static_cast<unsigned>(symbols[str::LENGTH].value) &&
                 "Symbol string index out of bounds."
             );
 
-            return symbols[FIRST_SYMBOL + offset];
+            return symbols[str::FIRST_SYMBOL + offset];
         }
 
         FLTL_FORCE_INLINE const symbol_type &

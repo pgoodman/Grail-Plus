@@ -69,6 +69,22 @@ namespace fltl { namespace pda {
             return id != that.id;
         }
 
+        bool operator<(const self_type &that) const throw() {
+            return id < that.id;
+        }
+
+        bool operator<=(const self_type &that) const throw() {
+            return id <= that.id;
+        }
+
+        bool operator>(const self_type &that) const throw() {
+            return id > that.id;
+        }
+
+        bool operator>=(const self_type &that) const throw() {
+            return id >= that.id;
+        }
+
         /// note: not const!
         Unbound<AlphaT,symbol_tag> operator~(void) throw() {
             return Unbound<AlphaT,symbol_tag>(this);
