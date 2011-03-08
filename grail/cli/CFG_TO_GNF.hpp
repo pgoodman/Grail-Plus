@@ -88,17 +88,18 @@ namespace grail { namespace cli {
             }
 
             CFG<AlphaT> cfg;
+            int ret(0);
 
-            if(!io::fread(fp, cfg, file_name)) {
-                return 1;
+            if(io::fread(fp, cfg, file_name)) {
+                algorithm::CFG_TO_GNF<AlphaT>::run(cfg);
+                io::fprint(stdout, cfg);
+            } else {
+                ret = 1;
             }
 
-            algorithm::CFG_TO_GNF<AlphaT>::run(cfg);
             fclose(fp);
 
-            io::fprint(stdout, cfg);
-
-            return 0;
+            return ret;
         }
     };
 

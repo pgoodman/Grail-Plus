@@ -1,21 +1,21 @@
 /*
- * PDA_TO_CFG.hpp
+ * PDA_INTERSECT_NFA.hpp
  *
- *  Created on: Mar 3, 2011
+ *  Created on: Mar 8, 2011
  *      Author: Peter Goodman
  *     Version: $Id$
  *
  * Copyright 2011 Peter Goodman, all rights reserved.
  */
 
-#ifndef FLTL_CLI_PDA_TO_CFG_HPP_
-#define FLTL_CLI_PDA_TO_CFG_HPP_
+#ifndef FLTL_CLI_PDA_INTERSECT_NFA_HPP_
+#define FLTL_CLI_PDA_INTERSECT_NFA_HPP_
 
 #include <cstdio>
 
 #include "grail/include/CommandLineOptions.hpp"
 
-#include "grail/algorithm/PDA_TO_CFG.hpp"
+#include "grail/algorithm/PDA_INTERSECT_NFA.hpp"
 
 #include "grail/include/io/fread_pda.hpp"
 #include "grail/include/io/fprint_cfg.hpp"
@@ -23,7 +23,7 @@
 namespace grail { namespace cli {
 
     template <typename AlphaT>
-    class PDA_TO_CFG {
+    class PDA_INTERSECT_NFA {
     public:
 
         static const char * const TOOL_NAME;
@@ -44,20 +44,19 @@ namespace grail { namespace cli {
             //  "  | |                              |                                             |"
             printf(
                 "  %s:\n"
-                "    Converts a non-deterministic pushdown automaton (PDA) into a context-free\n"
-                "    grammar (CFG).\n\n"
+                "    Construct a pushdown automaton (PDA) that accepts the intersection\n"
+                "    of the languages accepted by an input PDA and an input non-deterministic\n"
+                "    finite automaton (NFA).\n\n"
                 "  basic use options for %s:\n"
-                "    --stdin                        Read a PDA from stdin. Typing a new,\n"
-                "                                   line followed by Control-D (^D) will\n"
-                "                                   close stdin.\n"
-                "    <file>                         read in a PDA from <file>.\n\n",
+                "    <file0>                        read in a PDA from <file0>.\n"
+                "    <file1>                        read in an NFA from <file1>.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
         }
 
         static int main(CommandLineOptions &options) throw() {
 
-            using fltl::CFG;
+            using fltl::NFA;
             using fltl::PDA;
 
             // run the tool
@@ -87,13 +86,14 @@ namespace grail { namespace cli {
                 return 1;
             }
 
-            CFG<AlphaT> cfg;
             PDA<AlphaT> pda;
+            NFA<AlphaT> nfa;
+            PDA<AlphaT> out;
             int ret(0);
 
             if(io::fread(fp, pda, file_name)) {
-                algorithm::PDA_TO_CFG<AlphaT>::run(pda, cfg);
-                io::fprint(stdout, cfg);
+                algorithm::PDA_INTERSECT_NFA<AlphaT>::run(pda, nfa, out);
+
             } else {
                 ret = 1;
             }
@@ -105,7 +105,7 @@ namespace grail { namespace cli {
     };
 
     template <typename AlphaT>
-    const char * const PDA_TO_CFG<AlphaT>::TOOL_NAME("pda-to-cfg");
+    const char * const PDA_INTERSECT_NFA<AlphaT>::TOOL_NAME("pda-intersect-nfa");
 }}
 
-#endif /* FLTL_CLI_PDA_TO_CFG_HPP_ */
+#endif /* FLTL_CLI_PDA_INTERSECT_NFA_HPP_ */

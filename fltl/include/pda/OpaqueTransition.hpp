@@ -16,7 +16,7 @@ namespace fltl { namespace pda {
     /// represents a transition of the PDA
     template <typename AlphaT>
     class OpaqueTransition {
-    private:
+    protected:
 
         friend class PDA<AlphaT>;
         friend class TransitionGenerator<AlphaT>;

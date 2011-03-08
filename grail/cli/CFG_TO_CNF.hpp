@@ -88,33 +88,18 @@ namespace grail { namespace cli {
             }
 
             CFG<AlphaT> cfg;
+            int ret(0);
 
-            if(!io::fread(fp, cfg, file_name)) {
-                return 1;
+            if(io::fread(fp, cfg, file_name)) {
+                algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
+                io::fprint(stdout, cfg);
+            } else {
+                ret = 1;
             }
-
-            /*
-            printf("BEFORE:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-
-            algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
-
-            /*
-            printf("\nAFTER:\n");
-            printf("num variables = %u\n", cfg.num_variables());
-            printf("num terminals = %u\n", cfg.num_terminals());
-            printf("num productions = %u\n", cfg.num_productions());
-            printf("num variable terminals = %u\n", cfg.num_variable_terminals());
-            */
-            io::fprint(stdout, cfg);
 
             fclose(fp);
 
-            return 0;
+            return ret;
         }
     };
 

@@ -19,6 +19,8 @@ namespace fltl { namespace pda {
 
         friend class Symbol<AlphaT>;
         friend class PDA<AlphaT>;
+        friend class pattern::Init<AlphaT>;
+        template <typename,typename> friend class pattern::Bind;
 
         Symbol<AlphaT> *symbol;
 
@@ -41,6 +43,8 @@ namespace fltl { namespace pda {
 
         friend class OpaqueState<AlphaT>;
         friend class PDA<AlphaT>;
+        friend class pattern::Init<AlphaT>;
+        template <typename,typename> friend class pattern::Bind;
 
         OpaqueState<AlphaT> *state;
 
@@ -63,6 +67,8 @@ namespace fltl { namespace pda {
 
         friend class OpaqueTransition<AlphaT>;
         friend class PDA<AlphaT>;
+        friend class pattern::Init<AlphaT>;
+        template <typename,typename> friend class pattern::Bind;
 
         OpaqueTransition<AlphaT> *transition;
 

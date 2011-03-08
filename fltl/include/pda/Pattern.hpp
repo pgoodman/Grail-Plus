@@ -26,7 +26,7 @@ namespace fltl { namespace pda {
             }
 
             FLTL_FORCE_INLINE static void init(
-                const Unbound<Symbol<AlphaT>,symbol_tag> *source,
+                const Unbound<AlphaT,symbol_tag> *source,
                 Symbol<AlphaT> **dest
             ) throw() {
                 *dest = const_cast<Symbol<AlphaT> *>(source->symbol);
@@ -40,7 +40,7 @@ namespace fltl { namespace pda {
             }
 
             FLTL_FORCE_INLINE static void init(
-                const Unbound<OpaqueState<AlphaT>,state_tag> *source,
+                const Unbound<AlphaT,state_tag> *source,
                 OpaqueState<AlphaT> **dest
             ) throw() {
                 *dest = const_cast<OpaqueState<AlphaT> *>(source->state);

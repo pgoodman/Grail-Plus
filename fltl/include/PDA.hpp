@@ -276,7 +276,7 @@ namespace fltl {
             typename symbol_map_inv_type::iterator pos(
                 symbol_map_inv.find(alpha)
             );
-            unsigned alpha_id;
+            unsigned alpha_id(0);
 
             // add in the terminal
             if(symbol_map_inv.end() == pos) {
@@ -390,10 +390,12 @@ namespace fltl {
 
             pda::Transition<AlphaT> *trans(make_transition(
                 start_state,
-                epsilon()
+                epsilon(),
+                epsilon(),
+                epsilon(),
+                state
             ));
 
-            trans->sink_state = state;
             pda::Transition<AlphaT>::hold(trans);
         }
 
@@ -434,10 +436,13 @@ namespace fltl {
 
             assert(0U == read.id || is_in_input_alphabet(read));
 
-            pda::Transition<AlphaT> *trans(make_transition(source, read));
-            trans->sink_state = sink;
-            trans->sym_pop = pop;
-            trans->sym_push = push;
+            pda::Transition<AlphaT> *trans(make_transition(
+                source,
+                read,
+                pop,
+                push,
+                sink
+            ));
 
             pda::Transition<AlphaT>::hold(trans);
 
@@ -765,15 +770,22 @@ namespace fltl {
         /// allocate a transition and link it in to the adjacency list
         pda::Transition<AlphaT> *make_transition(
             state_type source_state,
-            symbol_type read
+            symbol_type read,
+            symbol_type pop,
+            symbol_type push,
+            state_type sink_state
         ) throw() {
 
             pda::Transition<AlphaT> *trans(transition_allocator->allocate());
 
             trans->source_state = source_state;
             trans->sym_read = read;
+            trans->sym_pop = pop;
+            trans->sym_push = push;
+            trans->sink_state = sink_state;
             trans->pda = this;
 
+            pda::Transition<AlphaT> *prev(0);
             pda::Transition<AlphaT> *curr(state_transitions.get(
                 source_state.id
             ));
@@ -781,24 +793,36 @@ namespace fltl {
             // no transitions on this state yet
             if(0 == curr) {
                 state_transitions.get(source_state.id) = trans;
-
-                if(0 == first_transition
-                || source_state.id < first_transition->source_state.id) {
-                    first_transition = trans;
-                }
-
-                return trans;
+                goto done;
             }
 
             // add in the transition using insertion sort
-            pda::Transition<AlphaT> *prev(0);
             for(;
                 0 != curr;
                 prev = curr, curr = curr->next) {
 
                 // go as far as until we need to add something in
-                if(trans->sym_read.id > curr->sym_read.id) {
+                if(read > curr->sym_read) {
                     continue;
+                } else if(pop > curr->sym_pop) {
+                    continue;
+                } else if(push > curr->sym_push) {
+                    continue;
+                } else if(sink_state > curr->sink_state) {
+                    continue;
+                }
+
+                if(*trans == *curr) {
+
+                    // undelete
+                    if(curr->is_deleted) {
+                        curr->is_deleted = false;
+                    }
+
+                    transition_allocator->deallocate(trans);
+                    trans = curr;
+
+                    goto done;
                 }
 
                 trans->next = curr;
@@ -812,13 +836,6 @@ namespace fltl {
                     state_transitions.get(source_state.id) = trans;
                 }
 
-                // compare on source states as a deleted transition
-                // might be sitting at the front of this list
-                if(first_transition->source_state.id == source_state.id
-                && first_transition->sym_read.id >= read.id) {
-                    first_transition = trans;
-                }
-
                 goto done;
             }
 
@@ -830,6 +847,13 @@ namespace fltl {
             trans->prev = prev;
 
         done:
+
+            if(0 == first_transition) {
+                first_transition = trans;
+            } else if(*trans < *first_transition) {
+                first_transition = trans;
+            }
+
             return trans;
         }
 

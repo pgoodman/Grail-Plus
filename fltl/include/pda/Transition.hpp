@@ -95,6 +95,46 @@ namespace fltl { namespace pda {
             }
         }
 
+        bool operator==(const self_type &that) const throw() {
+            return source_state == that.source_state
+                && sink_state == that.sink_state
+                && sym_read == that.sym_read
+                && sym_pop == that.sym_pop
+                && sym_push == that.sym_push;
+        }
+
+        bool operator<(const self_type &that) const throw() {
+            if(source_state < that.source_state) {
+                return true;
+            } else if(source_state > that.source_state) {
+                return false;
+            }
+
+            if(sym_read < that.sym_read) {
+                return true;
+            } else if(sym_read > that.sym_read) {
+                return false;
+            }
+
+            if(sym_pop < that.sym_pop) {
+                return true;
+            } else if(sym_pop > that.sym_pop) {
+                return false;
+            }
+
+            if(sym_push < that.sym_push) {
+                return true;
+            } else if(sym_push > that.sym_push) {
+                return false;
+            }
+
+            if(sink_state < that.sink_state) {
+                return true;
+            }
+
+            return false;
+        }
+
     public:
 
         Transition(void) throw()
