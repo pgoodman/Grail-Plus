@@ -18,7 +18,8 @@
 #include "grail/algorithm/PDA_INTERSECT_NFA.hpp"
 
 #include "grail/include/io/fread_pda.hpp"
-#include "grail/include/io/fprint_cfg.hpp"
+#include "grail/include/io/fread_nfa.hpp"
+#include "grail/include/io/fprint_pda.hpp"
 
 namespace grail { namespace cli {
 
@@ -29,14 +30,9 @@ namespace grail { namespace cli {
         static const char * const TOOL_NAME;
 
         static void declare(CommandLineOptions &opt, bool in_help) throw() {
-            option_type in(opt.declare("stdin", opt::OPTIONAL, opt::NO_VAL));
             if(!in_help) {
-                if(in.is_valid()) {
-                    opt.declare_max_num_positional(0);
-                } else {
-                    opt.declare_min_num_positional(1);
-                    opt.declare_max_num_positional(1);
-                }
+                opt.declare_min_num_positional(2);
+                opt.declare_max_num_positional(2);
             }
         }
 
@@ -60,28 +56,42 @@ namespace grail { namespace cli {
             using fltl::PDA;
 
             // run the tool
-            option_type file;
-            const char *file_name(0);
+            option_type file[2];
+            const char *file_name[2] = {0};
+            FILE *fp[2] = {0};
 
-            FILE *fp(0);
+            file[0] = options[0U];
+            file[1] = options[1U];
 
-            if(options["stdin"].is_valid()) {
-                file = options["stdin"];
-                fp = stdin;
-                file_name = "<stdin>";
-            } else {
-                file = options[0U];
-                file_name = file.value();
-                fp = fopen(file_name, "r");
-            }
+            file_name[0] = file[0].value();
+            file_name[1] = file[1].value();
 
-            if(0 == fp) {
+            fp[0] = fopen(file_name[0], "r");
+            fp[1] = fopen(file_name[1], "r");
 
+            if(0 == fp[0]) {
                 options.error(
                     "Unable to open file containing pushdown-automaton "
                     "for reading."
                 );
-                options.note("File specified here:", file);
+                options.note("File specified here:", file[0]);
+
+                if(0 != fp[1]) {
+                    fclose(fp[1]);
+                }
+
+                return 1;
+
+            } else if(0 == fp[1]) {
+                options.error(
+                    "Unable to open file containing non-deterministic finite "
+                    "automaton for reading."
+                );
+                options.note("File specified here:", file[1]);
+
+                if(0 != fp[0]) {
+                    fclose(fp[0]);
+                }
 
                 return 1;
             }
@@ -91,14 +101,18 @@ namespace grail { namespace cli {
             PDA<AlphaT> out;
             int ret(0);
 
-            if(io::fread(fp, pda, file_name)) {
+            if(io::fread(fp[0], pda, file_name[0])
+            && io::fread(fp[1], nfa, file_name[1])) {
+
                 algorithm::PDA_INTERSECT_NFA<AlphaT>::run(pda, nfa, out);
+                io::fprint(stdout, out);
 
             } else {
                 ret = 1;
             }
 
-            fclose(fp);
+            fclose(fp[0]);
+            fclose(fp[1]);
 
             return ret;
         }

@@ -21,52 +21,55 @@
 namespace grail { namespace io {
 
     template <typename AlphaT>
-    static void fprint_production(
+    static int fprint_production(
         FILE *ff,
         const fltl::CFG<AlphaT> &cfg,
         typename fltl::CFG<AlphaT>::sym_str_t str,
         const char *prefix
     ) throw() {
+        int num(0);
 
-        fprintf(ff, "  %s", prefix);
+        num += fprintf(ff, "  %s", prefix);
         typename fltl::CFG<AlphaT>::sym_t s;
 
         unsigned len(str.length());
 
         if(0 == len) {
-            fprintf(ff, " epsilon");
+            num += fprintf(ff, " epsilon");
         } else {
             for(unsigned i(0); i < len; ++i) {
                 s = str.at(i);
 
                 if(s.is_variable()) {
                     typename fltl::CFG<AlphaT>::var_t s_as_var(s);
-                    fprintf(ff, " %s", cfg.get_name(s_as_var));
+                    num += fprintf(ff, " %s", cfg.get_name(s_as_var));
                 } else {
                     typename fltl::CFG<AlphaT>::term_t s_as_term(s);
                     if(!cfg.is_variable_terminal(s_as_term)) {
-                        fprintf(ff, " \"");
-                        fprint(ff, cfg.get_alpha(s_as_term));
-                        fprintf(ff, "\"");
+                        num += fprintf(ff, " \"");
+                        num += fprint(ff, cfg.get_alpha(s_as_term));
+                        num += fprintf(ff, "\"");
                     } else {
-                        fprintf(ff," %s", cfg.get_name(s_as_term));
+                        num += fprintf(ff," %s", cfg.get_name(s_as_term));
                     }
                 }
             }
         }
 
-        fprintf(ff, "\n");
+        num += fprintf(ff, "\n");
+        return num;
     }
 
     /// print out a context-free grammar
     template <typename AlphaT>
-    void fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg) throw() {
+    int fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg) throw() {
+        int num(0);
 
         using fltl::CFG;
 
         // nothing to print
         if(0 == cfg.num_productions()) {
-            return;
+            return num;
         }
 
         typename CFG<AlphaT>::var_t SV(cfg.get_start_variable());
@@ -76,7 +79,7 @@ namespace grail { namespace io {
 
         // the grammar generates the empty language
         if(cfg.has_default_production(SV)) {
-            return;
+            return num;
         }
 
         // print the start variable first
@@ -86,16 +89,16 @@ namespace grail { namespace io {
 
         const char sep[] = {':', '\0', '|', '\0'};
 
-        fprintf(ff, "%s\n", cfg.get_name(SV));
+        num += fprintf(ff, "%s\n", cfg.get_name(SV));
         for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
-            fprint_production(
+            num += fprint_production(
                 ff,
                 cfg,
                 S,
                 &(sep[sep_offset])
             );
         }
-        fprintf(ff, "  ;\n");
+        num += fprintf(ff, "  ;\n");
 
         // print the start variable first
         typename CFG<AlphaT>::generator_t all_vars(cfg.search(~V));
@@ -105,19 +108,21 @@ namespace grail { namespace io {
                 continue;
             }
 
-            fprintf(ff, "%s\n", cfg.get_name(V));
+            num += fprintf(ff, "%s\n", cfg.get_name(V));
             productions.rewind();
             for(unsigned sep_offset(0); productions.match_next(); sep_offset = 2) {
-                fprint_production(
+                num += fprint_production(
                     ff,
                     cfg,
                     S,
                     &(sep[sep_offset])
                 );
             }
-            fprintf(ff, "  ;\n");
+            num += fprintf(ff, "  ;\n");
         }
-        fprintf(ff, "\n");
+        num += fprintf(ff, "\n");
+
+        return num;
     }
 }}
 

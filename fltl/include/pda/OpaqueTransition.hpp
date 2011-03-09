@@ -44,10 +44,13 @@ namespace fltl { namespace pda {
         explicit OpaqueTransition(Transition<AlphaT> *trans) throw()
             : transition(trans)
         {
-            Transition<AlphaT>::hold(trans);
+            if(0 != trans) {
+                Transition<AlphaT>::hold(trans);
+            }
         }
 
         void assign(Transition<AlphaT> *trans) throw() {
+
             if(transition != trans) {
                 if(0 != transition) {
                     Transition<AlphaT>::release(transition);

@@ -15,17 +15,17 @@
 
 namespace grail { namespace io {
 
-    void fprint(FILE *ff, char obj) throw();
-    void fprint(FILE *ff, unsigned char obj) throw();
-    void fprint(FILE *ff, short obj) throw();
-    void fprint(FILE *ff, unsigned short obj) throw();
-    void fprint(FILE *ff, int obj) throw();
-    void fprint(FILE *ff, unsigned obj) throw();
-    void fprint(FILE *ff, long obj) throw();
-    void fprint(FILE *ff, unsigned long obj) throw();
-    void fprint(FILE *ff, float obj) throw();
-    void fprint(FILE *ff, double obj) throw();
-    void fprint(FILE *ff, const char *obj) throw();
+    int fprint(FILE *ff, char obj) throw();
+    int fprint(FILE *ff, unsigned char obj) throw();
+    int fprint(FILE *ff, short obj) throw();
+    int fprint(FILE *ff, unsigned short obj) throw();
+    int fprint(FILE *ff, int obj) throw();
+    int fprint(FILE *ff, unsigned obj) throw();
+    int fprint(FILE *ff, long obj) throw();
+    int fprint(FILE *ff, unsigned long obj) throw();
+    int fprint(FILE *ff, float obj) throw();
+    int fprint(FILE *ff, double obj) throw();
+    int fprint(FILE *ff, const char *obj) throw();
 
 }}
 

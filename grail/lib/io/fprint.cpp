@@ -15,39 +15,39 @@
 
 namespace grail { namespace io {
 
-    void fprint(FILE *ff, char obj) throw() {
-        fprintf(ff, "%c", obj);
+    int fprint(FILE *ff, char obj) throw() {
+        return fprintf(ff, "%c", obj);
     }
-    void fprint(FILE *ff, unsigned char obj) throw() {
-        fprintf(ff, "%u", static_cast<unsigned>(obj));
+    int fprint(FILE *ff, unsigned char obj) throw() {
+        return fprintf(ff, "%u", static_cast<unsigned>(obj));
     }
-    void fprint(FILE *ff, short obj) throw() {
-        fprintf(ff, "%d", static_cast<int>(obj));
+    int fprint(FILE *ff, short obj) throw() {
+        return fprintf(ff, "%d", static_cast<int>(obj));
     }
-    void fprint(FILE *ff, unsigned short obj) throw() {
-        fprintf(ff, "%u", static_cast<unsigned>(obj));
+    int fprint(FILE *ff, unsigned short obj) throw() {
+        return fprintf(ff, "%u", static_cast<unsigned>(obj));
     }
-    void fprint(FILE *ff, int obj) throw() {
-        fprintf(ff, "%d", obj);
+    int fprint(FILE *ff, int obj) throw() {
+        return fprintf(ff, "%d", obj);
     }
-    void fprint(FILE *ff, unsigned obj) throw() {
-        fprintf(ff, "%u", obj);
+    int fprint(FILE *ff, unsigned obj) throw() {
+        return fprintf(ff, "%u", obj);
     }
-    void fprint(FILE *ff, long obj) throw() {
-        fprintf(ff, "%ld", obj);
+    int fprint(FILE *ff, long obj) throw() {
+        return fprintf(ff, "%ld", obj);
     }
-    void fprint(FILE *ff, unsigned long obj) throw() {
-        fprintf(ff, "%lu", obj);
+    int fprint(FILE *ff, unsigned long obj) throw() {
+        return fprintf(ff, "%lu", obj);
     }
-    void fprint(FILE *ff, float obj) throw() {
-        fprintf(ff, "%f", obj);
+    int fprint(FILE *ff, float obj) throw() {
+        return fprintf(ff, "%f", obj);
     }
-    void fprint(FILE *ff, double obj) throw() {
-        fprintf(ff, "%f", obj);
+    int fprint(FILE *ff, double obj) throw() {
+        return fprintf(ff, "%f", obj);
     }
 
-    void fprint(FILE *ff, const char *obj) throw() {
-        fprintf(ff, "%s", obj);
+    int fprint(FILE *ff, const char *obj) throw() {
+        return fprintf(ff, "%s", obj);
     }
 }}
 

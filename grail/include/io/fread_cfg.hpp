@@ -12,6 +12,7 @@
 #define FLTL_FREAD_CFG_HPP_
 
 #include <cstring>
+#include <stdint.h>
 
 #include "fltl/include/CFG.hpp"
 

@@ -388,15 +388,13 @@ namespace fltl {
             // add in an epsilon transition from the start state to the
             // current state
 
-            pda::Transition<AlphaT> *trans(make_transition(
+            make_transition(
                 start_state,
                 epsilon(),
                 epsilon(),
                 epsilon(),
                 state
-            ));
-
-            pda::Transition<AlphaT>::hold(trans);
+            );
         }
 
         /// change the start state
@@ -443,8 +441,6 @@ namespace fltl {
                 push,
                 sink
             ));
-
-            pda::Transition<AlphaT>::hold(trans);
 
             ++num_transitions_;
 
@@ -776,6 +772,7 @@ namespace fltl {
             state_type sink_state
         ) throw() {
 
+            bool added(true);
             pda::Transition<AlphaT> *trans(transition_allocator->allocate());
 
             trans->source_state = source_state;
@@ -821,6 +818,7 @@ namespace fltl {
 
                     transition_allocator->deallocate(trans);
                     trans = curr;
+                    added = false;
 
                     goto done;
                 }
@@ -852,6 +850,10 @@ namespace fltl {
                 first_transition = trans;
             } else if(*trans < *first_transition) {
                 first_transition = trans;
+            }
+
+            if(added) {
+                pda::Transition<AlphaT>::hold(trans);
             }
 
             return trans;

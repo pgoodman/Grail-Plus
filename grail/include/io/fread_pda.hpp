@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <map>
+#include <stdint.h>
 
 #include "fltl/include/PDA.hpp"
 

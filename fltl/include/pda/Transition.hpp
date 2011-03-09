@@ -38,6 +38,9 @@ namespace fltl { namespace pda {
         template <typename, typename>
         friend class detail::ResetPatternGenerator;
 
+        /// reference count
+        unsigned ref_count;
+
         /// the symbol read from input
         symbol_type sym_read;
 
@@ -58,13 +61,10 @@ namespace fltl { namespace pda {
         state_type source_state;
         state_type sink_state;
 
-        /// reference count
-        unsigned ref_count;
-
         /// was this transition deleted?
         bool is_deleted;
 
-        /// the PDA of this producton
+        /// the PDA of this production
         PDA<AlphaT> *pda;
 
         static void hold(self_type *trans) throw() {
@@ -85,9 +85,12 @@ namespace fltl { namespace pda {
                     if(0 != trans->prev) {
                         trans->prev->next = trans->next;
                     } else {
-                        trans->pda->state_transitions.get(
-                            trans->source_state.id
-                        ) = trans->next;
+
+                        //assert(false);
+                        trans->pda->state_transitions.set(
+                            trans->source_state.id,
+                            trans->next
+                        );
                     }
                 }
 
@@ -138,9 +141,9 @@ namespace fltl { namespace pda {
     public:
 
         Transition(void) throw()
-            : next(0)
+            : ref_count(0)
+            , next(0)
             , prev(0)
-            , ref_count(0)
             , is_deleted(false)
             , pda(0)
         { }

@@ -36,6 +36,9 @@ namespace fltl {
     class NFA : protected PDA<AlphaT> {
     public:
 
+        typedef typename PDA<AlphaT>::traits_type traits_type;
+        typedef typename PDA<AlphaT>::alphabet_type alphabet_type;
+
         typedef typename PDA<AlphaT>::state_t state_t;
         typedef typename PDA<AlphaT>::state_type state_type;
 
@@ -87,9 +90,9 @@ namespace fltl {
         }
 
         void remove_transition(transition_type trans) throw() {
-            return PDA<AlphaT>::remove_transition(helper::unsafe_cast<
-                typename PDA<AlphaT>::transition_type
-            >(trans));
+            return PDA<AlphaT>::remove_transition(*helper::unsafe_cast<
+                typename PDA<AlphaT>::transition_type *
+            >(&trans));
         }
 
         //using PDA<AlphaT>::remove_transition;
