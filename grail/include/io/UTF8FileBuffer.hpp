@@ -160,7 +160,7 @@ namespace grail { namespace io {
 
                     // done reading from the file
                     if(desired_amount > amount) {
-                        done_reading = true;
+                        done_reading = (0 != feof(fp));
                         memset(
                             end_offset,
                             0,

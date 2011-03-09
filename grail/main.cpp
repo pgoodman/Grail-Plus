@@ -196,8 +196,6 @@ int main(const int argc, const char **argv) throw() {
                 return tool_meta->tool_func(options);
             }
         }
-
-        return 0;
     }
 
     return 1;

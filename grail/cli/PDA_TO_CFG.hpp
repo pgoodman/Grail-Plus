@@ -48,7 +48,7 @@ namespace grail { namespace cli {
                 "    grammar (CFG).\n\n"
                 "  basic use options for %s:\n"
                 "    --stdin                        Read a PDA from stdin. Typing a new,\n"
-                "                                   line followed by Control-D (^D) will\n"
+                "                                   line followed by Ctrl-D or Ctrl-Z will\n"
                 "                                   close stdin.\n"
                 "    <file>                         read in a PDA from <file>.\n\n",
                 TOOL_NAME, TOOL_NAME
