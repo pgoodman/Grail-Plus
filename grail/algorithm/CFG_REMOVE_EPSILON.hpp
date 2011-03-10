@@ -18,6 +18,7 @@
 #include "fltl/include/CFG.hpp"
 
 #include "grail/algorithm/CFG_REMOVE_DIRECT_LOOPS.hpp"
+#include "grail/algorithm/CFG_REMOVE_USELESS.hpp"
 
 #include "grail/include/io/fprint_cfg.hpp"
 
@@ -186,20 +187,7 @@ namespace grail { namespace algorithm {
                 }
             }
 
-            generator_type non_null_productions(cfg.search(
-                A --->* cfg._ + cfg.__
-            ));
-
-            // clean up any left over productions that only have
-            for(; null_productions.match_next(); ) {
-                if(A == S) {
-                    continue;
-                }
-
-                non_null_productions.rewind();
-                assert(!non_null_productions.match_next());
-                cfg.remove_variable(A);
-            }
+            CFG_REMOVE_USELESS<AlphaT>::run(cfg);
         }
     };
 }}

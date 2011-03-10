@@ -533,6 +533,8 @@ namespace fltl { namespace cfg {
 
             if(this_len != that_len) {
                 return false;
+
+            // both are the empty string
             } else if(0 == this_len) {
                 return true;
             }

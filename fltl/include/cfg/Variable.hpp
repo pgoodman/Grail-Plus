@@ -31,62 +31,29 @@ namespace fltl { namespace cfg {
 
         /// the next variable of this grammar
         Variable<AlphaT> *next;
+        Variable<AlphaT> *prev;
 
         /// the first production related to this variable
         Production<AlphaT> *first_production;
 
-        /// the default empty production for this variable
-        Production<AlphaT> *null_production;
+        /// the number of productions
+        unsigned num_productions;
 
         /// the name associated with this variable. if the name is 0 then
         /// an automatic name is generated when the CFG is printed. note:
         /// the name is *owned* by the variable
         const char *name;
 
-        /// initialize the variable
-        void init(
-            const cfg::internal_sym_type _id,
-            Variable<AlphaT> *prev,
-            const char *_name
-        ) throw() {
-            id = _id;
-            name = _name;
-            if(0 != prev) {
-                next = prev->next;
-                prev->next = this;
-            } else {
-                next = 0;
-            }
-
-            make_null_production();
-        }
-
-        void make_null_production(void) {
-            null_production = CFG<AlphaT>::production_allocator->allocate();
-            null_production->var = this;
-            first_production = null_production;
-            Production<AlphaT>::hold(null_production);
-        }
-
     public:
 
         Variable(void) throw()
             : id(0)
             , next(0)
+            , prev(0)
             , first_production(0)
-            , null_production(0)
+            , num_productions(0)
             , name(0)
         { }
-
-        Variable(const Variable<AlphaT> &) throw()
-            : id(0)
-            , next(0)
-            , first_production(0)
-            , null_production(0)
-            , name(0)
-        {
-            assert(false);
-        }
 
         ~Variable(void) throw() {
 
@@ -97,6 +64,8 @@ namespace fltl { namespace cfg {
 
                 next_prod = prod->next;
                 prod->var = 0;
+                prod->prev = 0;
+                prod->next = 0;
 
                 if(!prod->is_deleted) {
                     cfg::Production<AlphaT>::release(prod);
@@ -107,13 +76,8 @@ namespace fltl { namespace cfg {
                 delete [] name;
             }
 
-            null_production = 0;
             name = 0;
-        }
-
-        Variable<AlphaT> &operator=(const Variable<AlphaT> &) throw() {
-            assert(false);
-            return *this;
+            num_productions = 0;
         }
     };
 

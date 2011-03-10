@@ -40,7 +40,24 @@ namespace fltl { namespace cfg {
             }
 
             static Production<AlphaT> *
-            find_next_production(Production<AlphaT> *prod) throw() {
+            find_current_production(
+                CFG<AlphaT> *cfg,
+                Production<AlphaT> *prod
+            ) throw() {
+                if(0 == prod) {
+                    return 0;
+                } else if(0 == prod->var || prod->is_deleted) {
+                    return find_next_production(cfg, prod);
+                } else {
+                    return prod;
+                }
+            }
+
+            static Production<AlphaT> *
+            find_next_production(
+                CFG<AlphaT> *cfg,
+                Production<AlphaT> *prod
+            ) throw() {
 
                 if(0 == prod) {
                     return 0;
@@ -50,21 +67,49 @@ namespace fltl { namespace cfg {
                 Production<AlphaT> *next_prod(prod->next);
                 Variable<AlphaT> *curr_var(prod->var);
 
-                for(;;) {
-                    if(0 != next_prod && !next_prod->is_deleted) {
-                        goto found_next_prod;
-                    }
-                    curr_var = curr_var->next;
+                // the variable of this current production was removed from
+                // under us and so we need to recover
+                if(0 == curr_var) {
 
-                    if(0 == curr_var) {
-                        next_prod = 0;
-                        goto found_next_prod;
-                    }
+                    // these will fail if the CFG has been destroyed
+                    assert(0 == prod->next);
+                    assert(0 != prod->prev);
 
-                    next_prod = curr_var->first_production;
+                    next_prod = 0;
+                    curr_var = helper::unsafe_cast<
+                        Variable<AlphaT> *
+                    >(prod->prev);
+
+                    // start by looking back at the same variable just in
+                    // case the variable was re-added after being deleted
+                    for(unsigned i(static_cast<unsigned>(curr_var->id)),
+                        max(static_cast<unsigned>(cfg->next_variable_id));
+                        i < max;
+                        ++i) {
+
+                        curr_var = cfg->variable_map.get(i);
+                        if(0 != curr_var) {
+                            next_prod = curr_var->first_production;
+                            break;
+                        }
+                    }
                 }
 
-            found_next_prod:
+                // keep going
+                while(0 != curr_var) {
+                    if(0 == next_prod) {
+                        curr_var = curr_var->next;
+                        if(0 == curr_var) {
+                            return 0;
+                        }
+                        next_prod = curr_var->first_production;
+                    } else if(next_prod->is_deleted) {
+                        next_prod = next_prod->next;
+                    } else {
+                        break;
+                    }
+                }
+
                 return next_prod;
             }
 
@@ -80,39 +125,37 @@ namespace fltl { namespace cfg {
                 );
 
                 // update or clear the binding
-                Production<AlphaT> *curr_prod(state->cursor.production);
-                Production<AlphaT> *prev(0);
+                Production<AlphaT> *orig_prod(state->cursor.production);
+                Production<AlphaT> *curr_prod(find_current_production(
+                    state->cfg,
+                    orig_prod
+                ));
+
                 OpaqueProduction<AlphaT> opaque_prod;
 
                 // are we looking at the right production? we might need
                 // to move forward if the production that was meant to be
                 // the cursor was deleted
                 if(0 == curr_prod) {
-                    *binder = opaque_prod;
-                    return false;
-                } else {
 
-                    while(curr_prod->is_deleted) {
-
-                        prev = curr_prod;
-                        curr_prod = find_next_production(prev);
-                        Production<AlphaT>::release(prev);
-
-                        if(0 != curr_prod) {
-                            Production<AlphaT>::hold(curr_prod);
-                        } else {
-                            *binder = opaque_prod;
-                            state->cursor.production = 0;
-                            return false;
-                        }
+                    if(0 != orig_prod) {
+                        Production<AlphaT>::release(orig_prod);
                     }
+
+                    *binder = opaque_prod;
+                    state->cursor.production = 0;
+                    return false;
                 }
 
                 opaque_prod.assign(curr_prod);
-                Production<AlphaT>::release(curr_prod);
+                Production<AlphaT>::release(orig_prod);
+                orig_prod = 0;
                 *binder = opaque_prod;
 
-                state->cursor.production = find_next_production(curr_prod);
+                state->cursor.production = find_next_production(
+                    state->cfg,
+                    curr_prod
+                );
 
                 if(0 != state->cursor.production) {
                     Production<AlphaT>::hold(state->cursor.production);
@@ -160,8 +203,8 @@ namespace fltl { namespace cfg {
 
                 var = state->cfg->variable_map.get(offset);
 
-                // bad variable or variable is deleted
-                if(0 == var || 0 == var->first_production) {
+                // deleted variable
+                if(0 == var) {
                     ++offset;
                     goto check_var_offset;
                 }
@@ -209,101 +252,64 @@ namespace fltl { namespace cfg {
 
             static bool bind_next_pattern(Generator<AlphaT> *state) throw() {
 
-                Production<AlphaT> *curr_prod(state->cursor.production);
-                Production<AlphaT> *next_prod(0);
-                Production<AlphaT> *prev(0);
+                // remember the production that the generator is holding
+                Production<AlphaT> *orig_prod(state->cursor.production);
+                OpaqueProduction<AlphaT> opaque_prod;
+                Production<AlphaT> *curr_prod(SimpleGenerator<
+                    AlphaT
+                >::find_current_production(state->cfg, orig_prod));
+
+                OpaqueProduction<AlphaT> *binder(
+                    helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
+                        state->binder
+                    )
+                );
 
                 if(0 == curr_prod) {
-                    return false;
-                } else {
 
-                    while(curr_prod->is_deleted) {
-
-                        prev = curr_prod;
-                        curr_prod = SimpleGenerator<AlphaT>::find_next_production(
-                            prev
-                        );
-
-                        Production<AlphaT>::release(prev);
-
-                        if(0 != curr_prod) {
-                            Production<AlphaT>::hold(curr_prod);
-                        } else {
-                            state->cursor.production = 0;
-                            return false;
-                        }
+                    if(0 != orig_prod) {
+                        Production<AlphaT>::release(orig_prod);
                     }
+
+                    if(0 != binder) {
+                        *binder = opaque_prod;
+                    }
+
+                    state->cursor.production = 0;
+                    return false;
                 }
 
-                OpaqueProduction<AlphaT> opaque_prod;
+                opaque_prod.assign(curr_prod);
+                Production<AlphaT>::release(orig_prod);
+                orig_prod = 0;
 
-                do {
-                next_iteration:
-                    opaque_prod.assign(curr_prod);
-                    Production<AlphaT>::release(curr_prod);
-
-                    // go find the next production to bind
-                    next_prod = SimpleGenerator<AlphaT>::find_next_production(
+                while(!PatternBuilderT::static_match(state->pattern, opaque_prod)) {
+                    curr_prod = SimpleGenerator<AlphaT>::find_next_production(
+                        state->cfg,
                         curr_prod
                     );
+                    opaque_prod.assign(curr_prod);
 
-                    // match and bind the pattern
-                    if(PatternBuilderT::static_match(state->pattern, opaque_prod)) {
-
-                        // we can't go futher than here
-                        if(1 == PatternBuilderT::IS_BOUND_TO_VAR
-                        && (0 == curr_prod->next || curr_prod->next->is_deleted)) {
-                            next_prod = 0;
-                        }
-
-                        break;
-
-                    } else {
-
-                        opaque_prod.assign(0);
-
-                        // we're at the end of some variable's list of
-                        // productions
-                        if(1 == PatternBuilderT::IS_BOUND_TO_VAR
-                        && (0 == curr_prod->next || curr_prod->next->is_deleted)) {
-                            curr_prod = 0;
-                            next_prod = 0;
-                            break;
-
-                        // go try the next one
-                        } else {
-                            curr_prod = next_prod;
-                            next_prod = 0;
-
-                            if(0 != curr_prod) {
-                                Production<AlphaT>::hold(curr_prod);
-                                goto next_iteration;
-                            }
-                        }
+                    // can't match
+                    if(0 == curr_prod) {
+                        state->cursor.production = 0;
+                        return false;
                     }
-
-                } while(0 != curr_prod);
-
-                state->cursor.production = next_prod;
-
-                if(0 == curr_prod) {
-                    return false;
-                }
-
-                if(0 != next_prod) {
-                    Production<AlphaT>::hold(next_prod);
                 }
 
                 // bind the production
-                if(0 != state->binder) {
-
-                    OpaqueProduction<AlphaT> *binder(
-                        helper::unsafe_cast<OpaqueProduction<AlphaT> *>(
-                            state->binder
-                        )
-                    );
-
+                if(0 != binder) {
                     *binder = opaque_prod;
+                }
+
+                // go find the next production
+                state->cursor.production = SimpleGenerator<AlphaT>::find_next_production(
+                    state->cfg,
+                    curr_prod
+                );
+
+                if(0 != state->cursor.production) {
+                    Production<AlphaT>::hold(state->cursor.production);
                 }
 
                 return true;
@@ -312,11 +318,18 @@ namespace fltl { namespace cfg {
             static void reset_next_pattern(Generator<AlphaT> *state) throw() {
                 state->free_func(state);
                 if(1 == PatternBuilderT::IS_BOUND_TO_VAR) {
-                    state->cursor.production = state->cfg->variable_map.get(
+                    Variable<AlphaT> *var(state->cfg->variable_map.get(
                         static_cast<unsigned>(
                             state->pattern->var->value
                         )
-                    )->first_production;
+                    ));
+
+                    if(0 == var) {
+                        state->cursor.production = 0;
+                    } else {
+                        state->cursor.production = var->first_production;
+                    }
+
                 } else {
                     state->cursor.production = state->cfg->first_production;
                 }

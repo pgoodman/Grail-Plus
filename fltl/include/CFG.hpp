@@ -438,7 +438,11 @@ namespace fltl {
             // no variable with this name
             if(named_variable_map.end() == loc) {
                 variable_type var(add_variable());
-                const char *name_copy(trait::Alphabet<const char *>::copy(name));
+
+                const char *name_copy(trait::Alphabet<
+                    const char *
+                >::copy(name));
+
                 get_variable(var)->name = name_copy;
                 named_variable_map[name_copy] = var;
 
@@ -461,56 +465,42 @@ namespace fltl {
             // get an allocated variable
             cfg::Variable<AlphaT> *var(unused_variables);
             cfg::Variable<AlphaT> *prev(0);
+            cfg::Variable<AlphaT> *next(0);
             cfg::internal_sym_type var_id(1);
 
             if(0 == var) {
                 var = variable_allocator->allocate();
                 prev = variable_map.back();
-                var->init(next_variable_id, prev, 0);
+                var->name = 0;
                 var_id = next_variable_id;
                 ++next_variable_id;
                 variable_map.append(var);
             } else {
-                unused_variables = helper::unsafe_cast<
-                    cfg::Variable<AlphaT> *
-                >(var->null_production);
-
-                //var->make_null_production();
-
-                cfg::Variable<AlphaT> *curr(0);
-
-
-                // go link in the previous variable
-                for(unsigned i(static_cast<unsigned>(var->id) - 1);
-                    i > 0;
-                    --i) {
-                    curr = variable_map.get(i);
-                    if(0 != curr->first_production) {
-                        prev = curr;
-                        break;
-                    }
-                }
-
-                // link in the previous an next variables
-                curr = 0 == prev ? 0 : prev->next;
-                var->init(var->id, prev, 0);
-                var->next = curr;
+                unused_variables = var->next;
+                var_id = var->id;
+                prev = find_variable(var_id, -1);
+                next = find_variable(var_id, 1);
+                variable_map.set(static_cast<unsigned>(var_id), var);
             }
+
+            // initialize
+            var->prev = prev;
+            var->next = next;
+            var->id = var_id;
+            var->num_productions = 0;
 
             if(0 != prev) {
                 prev->next = var;
+            }
+
+            if(0 != next) {
+                next->prev = var;
             }
 
             if(0 == start_variable) {
                 start_variable = var;
             }
 
-            if(0 == first_production) {
-                first_production = var->first_production;
-            }
-
-            // because each variable starts with an epsilon production
-            ++num_productions_;
             ++num_variables_;
 
             variable_type ret(var_id);
@@ -520,56 +510,62 @@ namespace fltl {
         /// remove a variable from a grammar. this marks all of the variables
         /// productions as deleted. this, however, does NOT ensure that the
         /// variable is used anywhere else in the grammar.
+        ///
+        /// !!! this modifies any living productions so that generators
+        ///     pointing at productions of this variable can recover.
         void unsafe_remove_variable(const variable_type _var) throw() {
             cfg::Variable<AlphaT> *var(get_variable(_var));
+
+            // update the first production
+            if(0 != first_production && first_production->var == var) {
+                set_next_production(var->id + 1);
+            }
 
             // release the productions
             cfg::Production<AlphaT> *prod(var->first_production);
             cfg::Production<AlphaT> *next_prod(0);
 
-            // update the first production
-            if(first_production == prod) {
-                if(0 != var->next) {
-                    first_production = var->next->first_production;
-                } else {
-                    first_production = 0;
-                }
-            }
-
             // mark the related productions as deleted
-            for(; 0 != prod && !prod->is_deleted; prod = next_prod) {
+            for(; 0 != prod; prod = next_prod) {
+
                 next_prod = prod->next;
+                prod->var = 0;
+                prod->next = 0;
+
+                // !!! this is to allow generators to recover from variable
+                //     deletions
+                prod->prev = helper::unsafe_cast<
+                    cfg::Production<AlphaT> *
+                >(var);
+
+                if(prod->is_deleted) {
+                    continue;
+                }
+
                 prod->is_deleted = true;
                 
+
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
             }
 
             // highlights that this variable is deleted
             var->first_production = 0;
+            var->num_productions = 0;
 
-            cfg::Variable<AlphaT> *prev(0);
-
-            // go link in the previous variable
-            for(unsigned i(static_cast<unsigned>(var->id) - 1);
-                i > 0;
-                --i) {
-
-                prev = variable_map.get(i);
-                if(0 != prev->first_production) {
-                    prev->next = var->next;
-                    break;
-                }
+            if(0 != var->prev) {
+                var->prev->next = var->next;
             }
 
-            --num_variables_;
+            if(0 != var->next) {
+                var->next->prev = var->prev;
+            }
 
-            // link it in to the unused variables
-            *helper::unsafe_cast<cfg::Variable<AlphaT> **>(
-                &(var->null_production)
-            ) = unused_variables;
+            var->prev = 0;
+            var->next = unused_variables;
             unused_variables = var;
-            var = 0;
+
+            variable_map.set(static_cast<unsigned>(var->id), 0);
         }
 
         /// remove a variable and all productions in the grammar that
@@ -580,9 +576,6 @@ namespace fltl {
 
             production_type P;
             variable_type V;
-            symbol_string_type str;
-            production_builder_type buffer;
-            unsigned str_len;
 
             generator_type prods_using_var(
                 search(~P, (~V) --->* __ + _var + __)
@@ -590,27 +583,14 @@ namespace fltl {
 
             for(; prods_using_var.match_next(); ) {
 
-                const unsigned num_prods(num_productions_);
                 remove_production(P);
 
                 // this variable only generates the variable we are deleting;
                 // remove the variable
-                if(num_prods == num_productions_) {
+                if(0 == num_productions(V)) {
                     remove_variable(V);
                     continue;
                 }
-
-                str = P.symbols();
-                str_len = str.length();
-
-                buffer.clear();
-                for(unsigned i(0); i < str_len; ++i) {
-                    if(str.at(i) != _var) {
-                        buffer << str.at(i);
-                    }
-                }
-
-                add_production(V, buffer);
             }
         }
 
@@ -637,6 +617,10 @@ namespace fltl {
             }
 
             return terminal_type(term_id);
+        }
+
+        inline bool has_start_variable(void) const throw() {
+            return 0 != start_variable;
         }
 
         inline bool is_variable_terminal(const terminal_type term) const throw() {
@@ -702,105 +686,81 @@ namespace fltl {
             prod->var = var;
             prod->symbols.assign(str);
 
-            const bool update_first_production(
-                var->first_production == first_production
-            );
+            ++num_productions_;
+            ++(var->num_productions);
 
-            // if we have a null production then replace it; we don't
-            // increment the number of productions as we're effectively
-            // removing one and adding another
-            if(var->first_production == var->null_production) {
+            // if we have a no productions then add this production in
+            if(0 == var->first_production) {
 
-                // the null production is equivalent to the production we're
-                // trying to add
-                if(var->first_production->is_equivalent_to(*prod)) {
-                    production_allocator->deallocate(prod);
-                    prod = var->first_production;
-
-                // null production is different, remove null production and
-                // add this production in
-                } else {
-
-                    var->first_production = var->first_production->next;
-                    prod->next = var->first_production;
-
-                    cfg::Production<AlphaT>::release(var->null_production);
-
-                    if(0 != var->first_production) {
-                        var->first_production->prev = prod;
-                    }
-
-                    var->first_production = prod;
-
-                    cfg::Production<AlphaT>::hold(prod);
-                }
-
-                var->null_production = 0;
+                prod->next = 0;
+                var->first_production = prod;
+                cfg::Production<AlphaT>::hold(prod);
 
             // no null production; go look for equivalent productions to
             // make sure we don't add a duplicate
             } else {
 
+                cfg::Production<AlphaT> *related_prod(var->first_production);
+                cfg::Production<AlphaT> *prev_prod(0);
+
                 // make sure the production is unique
-                for(cfg::Production<AlphaT> *related_prod(var->first_production);
-                    0 != related_prod;
+                for(; 0 != related_prod;
+                    prev_prod = related_prod,
                     related_prod = related_prod->next) {
 
-                    if(related_prod->is_equivalent_to(*prod)) {
+                    // we've found our insertion point
+                    if(prod->is_less_than(*related_prod)) {
 
-                        // not deleted, return the existing one
-                        if(!related_prod->is_deleted) {
-                            production_allocator->deallocate(prod);
-                            prod = related_prod;
-                            goto done;
+                        prod->next = related_prod;
+                        prod->prev = related_prod->prev;
+                        related_prod->prev = prod;
+
+                        if(0 == prod->prev) {
+                            var->first_production = prod;
+                        } else {
+                            prod->prev->next = prod;
                         }
-
-                        // is deleted, undelete it, increase its ref count,
-                        // and move it to the front
-                        prod = related_prod;
-                        ++num_productions_;
-                        prod->is_deleted = false;
 
                         cfg::Production<AlphaT>::hold(prod);
+                        goto done;
 
-                        assert(0 != prod->prev);
+                    // insertion sort by hash value
+                    } else if(prod->is_greater_than(*related_prod)) {
+                        continue;
 
+                    // possible duplicate found
+                    } else if(related_prod->is_equivalent_to(*prod)) {
 
-                        // the previous production isn't deleted, so
-                        // don't move this one.
-                        if(!prod->prev->is_deleted) {
-                            goto done;
+                        if(related_prod->is_deleted) {
+                            related_prod->is_deleted = false;
+                            cfg::Production<AlphaT>::hold(related_prod);
+                        } else {
+                            --num_productions_;
+                            --(var->num_productions);
                         }
 
-                        // the previous production is deleted, unlink
-                        // this production and move it to the front.
-                        prod->prev->next = prod->next;
-                        if(0 != prod->next) {
-                            prod->next->prev = prod->prev;
-                        }
-
-                        prod->prev = 0;
-                        prod->next = var->first_production;
-                        var->first_production->prev = prod;
-                        var->first_production = prod;
-
+                        production_allocator->deallocate(prod);
+                        prod = related_prod;
                         goto done;
                     }
                 }
 
-                // we didn't find a copy of the production; add the new one
-                // in.
-                ++num_productions_;
-                var->first_production->prev = prod;
-                prod->next = var->first_production;
-                var->first_production = prod;
+                // add to the end of the list
+
+                assert(0 != prev_prod);
+                prev_prod->next = prod;
+                prod->prev = prev_prod;
+                prod->next = 0;
                 cfg::Production<AlphaT>::hold(prod);
             }
 
         done:
 
-            if(update_first_production) {
-                first_production = var->first_production;
+            if(0 == first_production
+            || first_production->var->id > var->id
+            || (first_production->var->id == var->id
+                && prod->is_less_than(*first_production))) {
+                first_production = prod;
             }
 
             return production_type(prod);
@@ -848,111 +808,23 @@ namespace fltl {
             cfg::Variable<AlphaT> *var(prod->var);
 
             assert(
-                (prod == var->null_production ||
-                 var->null_production != var->first_production) &&
+                (0 != var->first_production) &&
                 "The variable is in an invalid state."
-            );
-
-            const bool update_first_production(
-                first_production == var->first_production
             );
 
             prod->is_deleted = true;
 
-            // this is the first production
-            if(0 == prod->prev) {
-
-                // this is the null production; do nothing
-                if(prod == var->null_production) {
-                    prod->is_deleted = false;
-                    goto done;
-                }
-
-                // this is only production; OR: all other productions are
-                // deleted
-                //
-                // add in a null production and release this production
-                if(0 == prod->next || prod->next->is_deleted) {
-
-                    var->make_null_production();
-                    var->first_production->next = prod;
-                    prod->prev = var->first_production;
-                    
-                    cfg::Production<AlphaT>::release(prod);
-
-                // there is a non-deleted production after this one
-                } else {
-
-                    --num_productions_;
-
-                    // change the first production of this variable
-                    var->first_production = prod->next;
-                    var->first_production->prev = 0;
-                    prod->next = var->first_production->next;
-                    prod->prev = var->first_production;
-                    var->first_production->next = prod;
-
-                    move_production_to_end(prod);
-                }
-
-            // this is not the first production, i.e. there is no null
-            // production. further, there is at least one other production
-            // related to this variable
-            } else {
-
-                --num_productions_;
-                move_production_to_end(prod);
+            // go find the next production
+            if(first_production == prod) {
+                set_next_production(var->id);
             }
 
-        done:
-            if(update_first_production) {
-                first_production = var->first_production;
-            }
-        }
-
-    private:
-
-        /// go look for the first deleted production related to
-        /// this variable
-        void move_production_to_end(
-            cfg::Production<AlphaT> *prod
-        ) throw() {
-
-            if(0 == prod->next || prod->next->is_deleted) {
-                cfg::Production<AlphaT>::release(prod);
-                return;
-            }
-
-            // we are guaranteed now that there is a next production
-            // and there is a previous production; we are also guranteed that
-            // the next production is not deleted.
-            prod->prev->next = prod->next;
-            prod->next->prev = prod->prev;
-
-            cfg::Production<AlphaT> *last(prod->next);
-            cfg::Production<AlphaT> *curr(last->next);
-            prod->next = 0;
-            prod->prev = 0;
-
-            for(; 0 != curr; last = curr, curr = curr->next) {
-                if(curr->is_deleted) {
-                    break;
-                }
-            }
-
-            prod->next = last->next;
-
-            if(0 != last->next) {
-                last->next->prev = prod;
-            }
-
-            last->next = prod;
-            prod->prev = last;
+            --num_productions_;
+            --(var->num_productions);
 
             cfg::Production<AlphaT>::release(prod);
         }
 
-    public:
 
         /// get the variable representing the empty string, epsilon
         inline const symbol_string_type &epsilon(void) const throw() {
@@ -971,13 +843,7 @@ namespace fltl {
 
         /// get the number of productions related to a variable
         unsigned num_productions(variable_type _var) throw() {
-            cfg::Variable<AlphaT> *var(get_variable(_var));
-            unsigned count(0);
-            for(cfg::Production<AlphaT> *pp(var->first_production);
-                0 != pp && !pp->is_deleted; pp = pp->next, ++count) {
-                // lalala
-            }
-            return count;
+            return get_variable(_var)->num_productions;
         }
 
         /// get the number of terminals in the CFG; note: not all terminals
@@ -990,12 +856,6 @@ namespace fltl {
         /// are left undefined in the grammar.
         inline unsigned num_variable_terminals(void) const throw() {
             return variable_terminal_map.size();
-        }
-
-        /// does a variable only have the default production?
-        inline bool has_default_production(variable_type _var) const throw() {
-            cfg::Variable<AlphaT> *var(get_variable(_var));
-            return var->first_production == var->null_production;
         }
 
         /// create a variable generator
@@ -1133,6 +993,57 @@ namespace fltl {
         }
 
     private:
+
+        /// go find the next variable in some direction
+        cfg::Variable<AlphaT> *find_variable(
+            const cfg::internal_sym_type id,
+            const int increment
+        ) throw() {
+            cfg::Variable<AlphaT> *next(0);
+            for(cfg::internal_sym_type i(id);
+                i < next_variable_id && 0 < i;
+                i += increment) {
+
+                next = variable_map.get(static_cast<unsigned>(i));
+
+                if(0 != next) {
+                    break;
+                }
+            }
+            return next;
+        }
+
+        /// go find and set the next production
+        void set_next_production(const cfg::internal_sym_type id) throw() {
+            cfg::Production<AlphaT> *next(0);
+            cfg::Variable<AlphaT> *next_var(0);
+
+            for(cfg::internal_sym_type i(id);
+                i < next_variable_id;
+                ++i) {
+
+                next_var = variable_map.get(static_cast<unsigned>(i));
+
+                if(0 == next_var) {
+                    continue;
+                }
+
+                for(next = next_var->first_production;
+                    0 != next;
+                    next = next->next) {
+
+                    if(next->is_deleted) {
+                        continue;
+                    }
+
+                    goto found_next;
+                }
+            }
+
+        found_next:
+
+            first_production = next;
+        }
 
         inline cfg::Variable<AlphaT> *
         get_variable(const variable_type _var) const throw() {

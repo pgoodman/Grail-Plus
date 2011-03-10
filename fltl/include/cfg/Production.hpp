@@ -73,8 +73,6 @@ namespace fltl { namespace cfg {
                 "Cannot hold non-existant production."
             );
 
-            //printf("HOLD(%p)\n", reinterpret_cast<void *>(prod));
-
             ++(prod->ref_count);
         }
 
@@ -94,6 +92,9 @@ namespace fltl { namespace cfg {
 
                 if(0 != prod->prev) {
                     prod->prev->next = prod->next;
+
+                } else if(0 != prod->var) {
+                    prod->var->first_production = prod->next;
                 }
 
                 if(0 != prod->next) {
@@ -105,6 +106,32 @@ namespace fltl { namespace cfg {
                 prod->symbols.clear();
                 CFG<AlphaT>::production_allocator->deallocate(prod);
                 prod = 0;
+            }
+        }
+
+        inline bool is_less_than(const self_type &that) const throw() {
+            if(0 == symbols.symbols && 0 == that.symbols.symbols) {
+                return false;
+            } else if(0 == symbols.symbols) {
+                return true;
+            } else if(0 == that.symbols.symbols) {
+                return false;
+            } else {
+                return symbols.symbols[str::HASH].value
+                     < that.symbols.symbols[str::HASH].value;
+            }
+        }
+
+        inline bool is_greater_than(const self_type &that) const throw() {
+            if(0 == symbols.symbols && 0 == that.symbols.symbols) {
+                return false;
+            } else if(0 == symbols.symbols) {
+                return false;
+            } else if(0 == that.symbols.symbols) {
+                return true;
+            } else {
+                return symbols.symbols[str::HASH].value
+                     > that.symbols.symbols[str::HASH].value;
             }
         }
 

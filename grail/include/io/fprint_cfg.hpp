@@ -17,6 +17,7 @@
 #include "fltl/include/CFG.hpp"
 
 #include "grail/include/io/fprint.hpp"
+#include "grail/algorithm/CFG_REMOVE_USELESS.hpp"
 
 namespace grail { namespace io {
 
@@ -62,13 +63,15 @@ namespace grail { namespace io {
 
     /// print out a context-free grammar
     template <typename AlphaT>
-    int fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg) throw() {
+    int fprint(FILE *ff, fltl::CFG<AlphaT> &cfg) throw() {
         int num(0);
 
         using fltl::CFG;
 
+        algorithm::CFG_REMOVE_USELESS<AlphaT>::run(cfg);
+
         // nothing to print
-        if(0 == cfg.num_productions()) {
+        if(0 == cfg.num_productions() || !cfg.has_start_variable()) {
             return num;
         }
 
@@ -76,11 +79,6 @@ namespace grail { namespace io {
         typename CFG<AlphaT>::var_t V(SV);
         typename CFG<AlphaT>::prod_t P;
         typename CFG<AlphaT>::sym_str_t S;
-
-        // the grammar generates the empty language
-        if(cfg.has_default_production(SV)) {
-            return num;
-        }
 
         // print the start variable first
         typename CFG<AlphaT>::generator_t productions(cfg.search(
