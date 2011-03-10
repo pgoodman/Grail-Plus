@@ -18,11 +18,11 @@
 
 #include "fltl/include/preprocessor/COLOR.hpp"
 
-#include "grail/include/CStringMap.hpp"
+#include "grail/include/helper/CStringMap.hpp"
 
 /// this code is a bit of a mishmash
 
-namespace grail {
+namespace grail { namespace io {
 
     namespace opt {
         typedef enum {
@@ -169,6 +169,6 @@ namespace grail {
 
         option_type operator[](const unsigned) throw();
     };
-}
+}}
 
 #endif /* FLTL_COMMANDLINEOPTIONS_HPP_ */

@@ -13,10 +13,9 @@
 
 #include <cstdio>
 
-#include "grail/include/CommandLineOptions.hpp"
+#include "grail/include/algorithm/PDA_TO_CFG.hpp"
 
-#include "grail/algorithm/PDA_TO_CFG.hpp"
-
+#include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_pda.hpp"
 #include "grail/include/io/fprint_cfg.hpp"
 
@@ -28,8 +27,8 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &opt, bool in_help) throw() {
-            option_type in(opt.declare("stdin", opt::OPTIONAL, opt::NO_VAL));
+        static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
+            io::option_type in(opt.declare("stdin", io::opt::OPTIONAL, io::opt::NO_VAL));
             if(!in_help) {
                 if(in.is_valid()) {
                     opt.declare_max_num_positional(0);
@@ -55,13 +54,13 @@ namespace grail { namespace cli {
             );
         }
 
-        static int main(CommandLineOptions &options) throw() {
+        static int main(io::CommandLineOptions &options) throw() {
 
             using fltl::CFG;
             using fltl::PDA;
 
             // run the tool
-            option_type file;
+            io::option_type file;
             const char *file_name(0);
 
             FILE *fp(0);

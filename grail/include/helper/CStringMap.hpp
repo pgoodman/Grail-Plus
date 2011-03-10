@@ -31,7 +31,7 @@ namespace std {
     };
 }
 
-namespace grail {
+namespace grail { namespace helper {
 
     /// alternative to std::map<std::string>, mainly because std::string
     /// has issues in GCC 4.1.2
@@ -67,6 +67,6 @@ namespace grail {
             return 0 != mm.count(pp);
         }
     };
-}
+}}
 
 #endif /* FLTL_CSTRINGMAP_HPP_ */

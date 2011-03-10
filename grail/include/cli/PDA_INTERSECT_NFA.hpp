@@ -13,10 +13,9 @@
 
 #include <cstdio>
 
-#include "grail/include/CommandLineOptions.hpp"
+#include "grail/include/algorithm/PDA_INTERSECT_NFA.hpp"
 
-#include "grail/algorithm/PDA_INTERSECT_NFA.hpp"
-
+#include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_pda.hpp"
 #include "grail/include/io/fread_nfa.hpp"
 #include "grail/include/io/fprint_pda.hpp"
@@ -29,7 +28,7 @@ namespace grail { namespace cli {
 
         static const char * const TOOL_NAME;
 
-        static void declare(CommandLineOptions &opt, bool in_help) throw() {
+        static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
             if(!in_help) {
                 opt.declare_min_num_positional(2);
                 opt.declare_max_num_positional(2);
@@ -50,13 +49,13 @@ namespace grail { namespace cli {
             );
         }
 
-        static int main(CommandLineOptions &options) throw() {
+        static int main(io::CommandLineOptions &options) throw() {
 
             using fltl::NFA;
             using fltl::PDA;
 
             // run the tool
-            option_type file[2];
+            io::option_type file[2];
             const char *file_name[2] = {0};
             FILE *fp[2] = {0};
 

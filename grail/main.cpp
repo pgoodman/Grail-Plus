@@ -16,8 +16,8 @@
 #include "fltl/test/Test.hpp"
 #include "fltl/test/cfg/CFG.hpp"
 
-#include "grail/include/CommandLineOptions.hpp"
-#include "grail/include/CStringMap.hpp"
+#include "grail/include/io/CommandLineOptions.hpp"
+#include "grail/include/helper/CStringMap.hpp"
 
 namespace {
 
@@ -50,8 +50,8 @@ namespace {
         );
     }
 
-    typedef int (cli_tool_type)(grail::CommandLineOptions &);
-    typedef void (cli_decl_type)(grail::CommandLineOptions &, bool);
+    typedef int (cli_tool_type)(grail::io::CommandLineOptions &);
+    typedef void (cli_decl_type)(grail::io::CommandLineOptions &, bool);
     typedef void (cli_help_type)(void);
     typedef const char *alphabet_type;
 
@@ -68,7 +68,7 @@ namespace {
     /// map holding the tools
     static ToolMeta *first_tool(0);
     static ToolMeta *last_tool(0);
-    static grail::CStringMap<ToolMeta *> tools;
+    static grail::helper::CStringMap<ToolMeta *> tools;
 
     // chain together command-line tools
     struct ToolAdder {
@@ -106,6 +106,7 @@ namespace {
 int main(const int argc, const char **argv) throw() {
 
     using namespace grail;
+    using namespace grail::io;
 
     // in the tools; this needs to be done *after* static initialization
     // because we are not guaranteed that the tool names will be initialized

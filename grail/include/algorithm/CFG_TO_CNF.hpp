@@ -18,9 +18,9 @@
 
 #include "fltl/include/CFG.hpp"
 
-#include "grail/algorithm/CFG_REMOVE_UNITS.hpp"
-#include "grail/algorithm/CFG_REMOVE_EPSILON.hpp"
-#include "grail/algorithm/CFG_TO_2CFG.hpp"
+#include "grail/include/algorithm/CFG_REMOVE_UNITS.hpp"
+#include "grail/include/algorithm/CFG_REMOVE_EPSILON.hpp"
+#include "grail/include/algorithm/CFG_TO_2CFG.hpp"
 
 namespace grail { namespace algorithm {
 

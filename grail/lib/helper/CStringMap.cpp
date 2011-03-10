@@ -11,7 +11,7 @@
 #ifndef FLTL_CSTRINGMAP_CPP_
 #define FLTL_CSTRINGMAP_CPP_
 
-#include "grail/include/CStringMap.hpp"
+#include "grail/include/helper/CStringMap.hpp"
 
 namespace std {
 

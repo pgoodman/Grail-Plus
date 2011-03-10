@@ -17,8 +17,8 @@
 
 #include "fltl/include/CFG.hpp"
 
-#include "grail/algorithm/CFG_REMOVE_DIRECT_LOOPS.hpp"
-#include "grail/algorithm/CFG_REMOVE_USELESS.hpp"
+#include "grail/include/algorithm/CFG_REMOVE_DIRECT_LOOPS.hpp"
+#include "grail/include/algorithm/CFG_REMOVE_USELESS.hpp"
 
 #include "grail/include/io/fprint_cfg.hpp"
 

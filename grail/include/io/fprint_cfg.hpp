@@ -17,7 +17,8 @@
 #include "fltl/include/CFG.hpp"
 
 #include "grail/include/io/fprint.hpp"
-#include "grail/algorithm/CFG_REMOVE_USELESS.hpp"
+
+#include "grail/include/algorithm/CFG_REMOVE_USELESS.hpp"
 
 namespace grail { namespace io {
 

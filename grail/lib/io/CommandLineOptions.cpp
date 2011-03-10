@@ -11,18 +11,18 @@
 #ifndef FLTL_COMMANDLINEOPTIONS_CPP_
 #define FLTL_COMMANDLINEOPTIONS_CPP_
 
-#include "grail/include/CommandLineOptions.hpp"
+#include "grail/include/io/CommandLineOptions.hpp"
 
 /// this code is a bit of a mishmash
 
-namespace grail {
+namespace grail { namespace io {
 
     namespace opt {
 
         // static array for holding short command line options
         CommandLineOption *short_options[52] = {'\0'};
 
-        CStringMap<CommandLineOption *> long_options;
+        helper::CStringMap<CommandLineOption *> long_options;
 
         const char * const EMPTY_VALUE("");
 
@@ -887,6 +887,6 @@ namespace grail {
             return std::make_pair(option->val_begin, option->val_end);
         }
     }
-}
+}}
 
 #endif /* FLTL_COMMANDLINEOPTIONS_CPP_ */

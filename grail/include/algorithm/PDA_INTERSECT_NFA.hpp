@@ -17,7 +17,7 @@
 #include "fltl/include/NFA.hpp"
 #include "fltl/include/PDA.hpp"
 
-#include "grail/algorithm/NFA_REMOVE_EPSILON.hpp"
+#include "grail/include/algorithm/NFA_REMOVE_EPSILON.hpp"
 
 namespace grail { namespace algorithm {
 
