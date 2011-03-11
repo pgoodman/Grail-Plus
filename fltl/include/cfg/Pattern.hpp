@@ -74,6 +74,7 @@ namespace fltl { namespace cfg {
             variable_type *as_variable;
             terminal_type *as_terminal;
             symbol_string_type *as_symbol_string;
+            unsigned *as_length;
         };
 
         ///
@@ -102,6 +103,17 @@ namespace fltl { namespace cfg {
 
         template <const unsigned offset>
         class Factor<any_symbol_string_tag,offset> {
+        public:
+            enum {
+                WIDTH = 1,
+                MIN_NUM_SYMBOLS = 0,
+                OFFSET = offset,
+                NEXT_OFFSET = OFFSET + WIDTH
+            };
+        };
+
+        template <const unsigned offset>
+        class Factor<any_symbol_string_of_length_tag,offset> {
         public:
             enum {
                 WIDTH = 1,
@@ -423,6 +435,28 @@ namespace fltl { namespace cfg {
             }
         };
 
+        /// any symbol string of a specific length + T
+        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+        class Match2<AlphaT,StringT,offset,any_symbol_string_of_length_tag, T> {
+        public:
+            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+                const unsigned min_len(*(slots->as_length));
+
+                if(len < (min_len + GetMinNumSymbolsAfter<StringT,offset>::RESULT)) {
+                    return false;
+                }
+
+                return Match2<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + min_len, len - min_len);
+            }
+        };
+
         /// nothing to match, success.
         template <typename AlphaT, typename StringT, const unsigned offset>
         class Match2<AlphaT,StringT,offset, void, void> {
@@ -552,6 +586,15 @@ namespace fltl { namespace cfg {
         public:
             inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned) throw() {
                 return true;
+            }
+        };
+
+        /// trailing any symbol string of a specific length
+        template <typename AlphaT, typename StringT, const unsigned offset>
+        class Match2<AlphaT,StringT,offset,any_symbol_string_of_length_tag, void> {
+        public:
+            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *, const unsigned len) throw() {
+                return len == *(slots->as_length);
             }
         };
 
@@ -824,6 +867,7 @@ namespace fltl { namespace cfg {
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, any_symbol_tag, 0)
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolString<AlphaT>, any_symbol_string_tag, 1)
+            FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolStringOfLength<AlphaT>, any_symbol_string_of_length_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(terminal_type, terminal_tag, 0)
@@ -912,6 +956,7 @@ namespace fltl { namespace cfg {
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbol<AlphaT>, any_symbol_tag, 0)
 
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(symbol_string_type, any_symbol_string_tag, 0)
+            FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolStringOfLength<AlphaT>, any_symbol_string_of_length_tag, 0)
 
             inline bool match(const production_type &prod) throw() {
                 return DestructuringBind<
@@ -1020,6 +1065,10 @@ namespace fltl { namespace cfg {
 
             inline void extend(AnySymbolString<AlphaT> *, const unsigned) throw() { }
 
+            inline void extend(AnySymbolStringOfLength<AlphaT> *expr, const unsigned slot) throw() {
+                slots[slot].as_length = expr->length;
+            }
+
         public:
 
             static self_type *allocate(variable_type *_var) throw() {
@@ -1100,6 +1149,7 @@ namespace fltl { namespace cfg {
 
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbol<AlphaT>, any_symbol_tag, 0)
         FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbolString<AlphaT>, any_symbol_string_tag, 1)
+        FLTL_CFG_PRODUCTION_PATTERN_INIT(AnySymbolStringOfLength<AlphaT>, any_symbol_string_of_length_tag, 0)
     };
 }}
 

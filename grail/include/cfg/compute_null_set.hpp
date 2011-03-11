@@ -11,17 +11,17 @@
 #ifndef FLTL_FIND_NULLABLE_VARIABLES_HPP_
 #define FLTL_FIND_NULLABLE_VARIABLES_HPP_
 
-#include <set>
+#include <vector>
 
 #include "fltl/include/CFG.hpp"
 
-namespace grail { namespace function { namespace cfg {
+namespace grail { namespace cfg {
 
     /// compute all nullable variables
     template <typename AlphaT>
     void compute_null_set(
         const fltl::CFG<AlphaT> &cfg,
-        std::set<typename fltl::CFG<AlphaT>::variable_type> &nullable
+        std::vector<bool> &nullable
     ) throw() {
 
         typedef typename fltl::CFG<AlphaT>::variable_type variable_type;
@@ -31,10 +31,12 @@ namespace grail { namespace function { namespace cfg {
         variable_type V;
         variable_type Q;
 
+        nullable.reserve(cfg.num_variables() + 2);
+
         // base case: directly nullable productions
         generator_type null_prods(cfg.search((~V) --->* cfg.epsilon()));
         for(; null_prods.match_next(); ) {
-            nullable.insert(V);
+            nullable.assign(V.number(), true);
         }
 
         if(nullable.empty()) {
@@ -55,8 +57,7 @@ namespace grail { namespace function { namespace cfg {
 
                 // either this isn't a nullable production, or we know
                 // that this variable is nullable
-                if(0 != nullable.count(V)
-                || 0 == nullable.count(Q)) {
+                if(nullable[V.number()] || !nullable[Q.number()]) {
                     continue;
                 }
 
@@ -66,18 +67,18 @@ namespace grail { namespace function { namespace cfg {
                     }
 
                     S = str.at(i);
-                    if(0 == nullable.count(S)) {
+                    if(!nullable[S.number()]) {
                         break;
                     }
                 }
 
                 if(i == str.length()) {
-                    nullable.insert(V);
+                    nullable.assign(V.number(), true);
                     found_nullable = true;
                 }
             }
         }
     }
-}}}
+}}
 
 #endif /* FLTL_FIND_NULLABLE_VARIABLES_HPP_ */

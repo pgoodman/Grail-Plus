@@ -16,15 +16,16 @@
 
 #include "fltl/include/CFG.hpp"
 
-namespace grail { namespace function { namespace cfg {
+#include "fltl/include/helper/Array.hpp"
+
+namespace grail { namespace cfg {
 
     /// compute the first sets for a CFG.
     template <typename AlphaT>
     void compute_first_set(
         const fltl::CFG<AlphaT> &cfg,
-        const std::set<typename fltl::CFG<AlphaT>::variable_type> &nullable,
-        std::map<
-            typename fltl::CFG<AlphaT>::variable_type,
+        const std::vector<bool> &nullable,
+        fltl::helper::Array<
             std::set<typename fltl::CFG<AlphaT>::terminal_type> *
         > &first
     ) throw() {
@@ -36,11 +37,13 @@ namespace grail { namespace function { namespace cfg {
 
         typedef std::set<terminal_type> terminal_set_type;
 
+        first.reserve(cfg.num_variables() + 2);
+
         // allocate the sets
         variable_type V;
         generator_type variables(cfg.search(~V));
         for(; variables.match_next(); ) {
-            first[V] = new std::set<terminal_type>;
+            first[V.number()] = new std::set<terminal_type>;
         }
 
         // base case, all productions with a terminal as the first symbol on
@@ -49,7 +52,7 @@ namespace grail { namespace function { namespace cfg {
         generator_type first_subsets(cfg.search((~V) --->* ~T + cfg.__));
         bool updated(false);
         for(; first_subsets.match_next(); ) {
-            first[V]->insert(T);
+            first[V.number()]->insert(T);
             updated = true;
         }
 
@@ -66,14 +69,17 @@ namespace grail { namespace function { namespace cfg {
 
             for(variables.rewind(); variables.match_next(); ) {
 
-                curr_set = first[V];
+                curr_set = first[V.number()];
                 old_len = curr_set->size();
 
                 for(next_subsets.rewind(); next_subsets.match_next(); ) {
 
                     // collect for the prefix
                     if(V != prefix) {
-                        reached_set = first[prefix];
+                        reached_set = first[prefix.number()];
+
+                        assert(0 != reached_set);
+
                         curr_set->insert(
                             reached_set->begin(),
                             reached_set->end()
@@ -81,7 +87,7 @@ namespace grail { namespace function { namespace cfg {
                     }
 
                     // can't move past this variable
-                    if(0 == nullable.count(prefix)) {
+                    if(!nullable[prefix.number()]) {
                         break;
                     }
 
@@ -95,14 +101,17 @@ namespace grail { namespace function { namespace cfg {
                         // found a variable, union in, try to move past
                         } else {
                             reached = suffix.at(i);
-                            reached_set = first[reached];
+                            reached_set = first[reached.number()];
+
+                            assert(0 != reached_set);
+
                             curr_set->insert(
                                 reached_set->begin(),
                                 reached_set->end()
                             );
 
                             // can't move past
-                            if(0 == nullable.count(reached)) {
+                            if(!nullable[reached.number()]) {
                                 break;
                             }
                         }
@@ -117,6 +126,6 @@ namespace grail { namespace function { namespace cfg {
         }
     }
 
-}}}
+}}
 
 #endif /* FLTL_COMPUTE_FIRST_SET_HPP_ */

@@ -75,6 +75,7 @@ namespace fltl {
         template <typename, typename> class Pattern;
         template <typename> class AnySymbol;
         template <typename> class AnySymbolString;
+        template <typename> class AnySymbolStringOfLength;
 
         class symbol_tag { };
         class terminal_tag { };
@@ -86,6 +87,7 @@ namespace fltl {
         class unbound_symbol_string_tag { };
         class any_symbol_tag { };
         class any_symbol_string_tag { };
+        class any_symbol_string_of_length_tag { };
         class production_tag { };
 
         namespace detail {
@@ -1101,6 +1103,7 @@ namespace fltl {
 #include "fltl/include/cfg/ProductionBuilder.hpp"
 #include "fltl/include/cfg/SymbolString.hpp"
 #include "fltl/include/cfg/OpaqueProduction.hpp"
+#include "fltl/include/cfg/Any.hpp"
 #include "fltl/include/cfg/Unbound.hpp"
 #include "fltl/include/cfg/Generator.hpp"
 #include "fltl/include/cfg/Pattern.hpp"

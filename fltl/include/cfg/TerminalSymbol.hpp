@@ -72,6 +72,10 @@ namespace fltl { namespace cfg {
         bool operator>=(const self_type &that) const throw() {
             return this->value >= that.value;
         }
+
+        unsigned number(void) const throw() {
+            return static_cast<unsigned>(-1 * this->value);
+        }
     };
 }}
 
