@@ -23,6 +23,8 @@
 #include "grail/include/algorithm/CFG_TO_CNF.hpp"
 #include "grail/include/algorithm/CFG_TO_2CFG.hpp"
 
+#include "grail/include/io/verbose.hpp"
+
 namespace grail { namespace algorithm {
 
     /// convert a context-free grammar into Greibach Normal Form.

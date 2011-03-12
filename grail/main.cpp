@@ -17,6 +17,8 @@
 #include "fltl/test/cfg/CFG.hpp"
 
 #include "grail/include/io/CommandLineOptions.hpp"
+#include "grail/include/io/verbose.hpp"
+
 #include "grail/include/helper/CStringMap.hpp"
 
 namespace {
@@ -37,6 +39,8 @@ namespace {
             "                                   specific help\n"
             "    --test                         execute all test cases\n"
             "    --version                      show the version\n"
+            "    --verbose, -v                  print out debugging information to\n"
+            "                                   <stderr>.\n"
             "    --tools                        list all installed tools\n\n",
             argv0
         );
@@ -124,9 +128,14 @@ int main(const int argc, const char **argv) throw() {
         option_type list_tools(options.declare("tools", opt::OPTIONAL, opt::NO_VAL));
         option_type test(options.declare("test", opt::OPTIONAL, opt::NO_VAL));
         option_type version(options.declare("version", opt::OPTIONAL, opt::NO_VAL));
+        option_type verb(options.declare("verbose", 'v', opt::OPTIONAL, opt::NO_VAL));
 
         if(options.has_error()) {
             return 1;
+        }
+
+        if(verb.is_valid()) {
+            verbose_enable();
         }
 
         // show the current version

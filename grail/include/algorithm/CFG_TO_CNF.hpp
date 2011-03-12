@@ -22,6 +22,8 @@
 #include "grail/include/algorithm/CFG_REMOVE_EPSILON.hpp"
 #include "grail/include/algorithm/CFG_TO_2CFG.hpp"
 
+#include "grail/include/io/verbose.hpp"
+
 namespace grail { namespace algorithm {
 
     /// convert a context-free grammar into Chomsky Normal Form.
@@ -117,17 +119,27 @@ namespace grail { namespace algorithm {
                 return;
             }
 
+            io::verbose("Adding new start variable...\n");
+
             // add a new start variable
             variable_type old_start_var(cfg.get_start_variable());
             variable_type new_start_var(cfg.add_variable());
             cfg.set_start_variable(new_start_var);
             cfg.add_production(new_start_var, old_start_var);
 
+            io::verbose("Shortening productions...\n");
+
             CFG_TO_2CFG<AlphaT>::run(cfg);
+
+            io::verbose("Removing epsilon productions...\n");
 
             CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
 
+            io::verbose("Removing unit productions...\n");
+
             CFG_REMOVE_UNITS<AlphaT>::run(cfg);
+
+            io::verbose("Moving terminals to their own variables...\n");
 
             // keep track of those productions that only generate a terminal
             std::map<terminal_type, variable_type> terminal_rules;
@@ -151,7 +163,11 @@ namespace grail { namespace algorithm {
                 }
             }
 
+            io::verbose("Updating non-unit productions with terminals...\n");
+
             clean_up_terminals(cfg, terminal_rules, vars_to_replace);
+
+            io::verbose("Done.\n");
         }
     };
 

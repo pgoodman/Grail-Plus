@@ -49,6 +49,7 @@ OBJS = bin/main.o bin/lib/io/CommandLineOptions.o
 OBJS += bin/lib/helper/CStringMap.o bin/test/Test.o bin/test/cfg/CFG.o
 OBJS += bin/lib/io/fprint.o bin/lib/io/UTF8FileBuffer.o bin/lib/io/error.o
 OBJS += bin/lib/io/fread_cfg.o bin/lib/io/fread_pda.o bin/lib/io/fread_nfa.o 
+OBJS += bin/lib/io/verbose.o
 OUT = bin/grail
 
 all: ${OBJS}

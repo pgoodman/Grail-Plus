@@ -20,6 +20,7 @@
 
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_cfg.hpp"
+#include "grail/include/io/verbose.hpp"
 
 #include "grail/include/cfg/compute_null_set.hpp"
 #include "grail/include/cfg/compute_first_set.hpp"
@@ -89,25 +90,24 @@ namespace grail { namespace cli {
             CFG cfg;
             int ret(0);
 
-            printf("reading...\n");
+            io::verbose("Reading file '%s'...\n", file_name);
             if(io::fread(fp, cfg, file_name)) {
 
                 std::vector<bool> is_nullable;
                 std::vector<std::vector<bool> *> first_terminals;
 
                 // fill the first and nullable sets
-                printf("computing null set...\n");
+                io::verbose("Computing NULL set of variables...\n");
                 cfg::compute_null_set(cfg, is_nullable);
 
                 bool use_first_sets(false);
                 if(options["first"].is_valid()) {
-                    printf("computing first set...\n");
-
+                    io::verbose("Computing FIRST set of variables...\n");
                     use_first_sets = true;
                     cfg::compute_first_set(cfg, is_nullable, first_terminals);
                 }
 
-                printf("parsing...\n");
+                io::verbose("Parsing...\n");
                 algorithm::CFG_PARSE_EARLEY<AlphaT>::run(
                     cfg,
                     is_nullable,
