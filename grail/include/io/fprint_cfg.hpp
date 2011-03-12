@@ -78,7 +78,6 @@ namespace grail { namespace io {
 
         typename CFG<AlphaT>::var_t SV(cfg.get_start_variable());
         typename CFG<AlphaT>::var_t V(SV);
-        typename CFG<AlphaT>::prod_t P;
         typename CFG<AlphaT>::sym_str_t S;
 
         // print the start variable first

@@ -148,7 +148,6 @@ namespace grail { namespace algorithm {
             terminal_type T;
             production_type P;
             variable_type A;
-            variable_type B;
 
             generator_type terminal_units(cfg.search(~P, (~A) --->* T));
 
