@@ -21,7 +21,7 @@
 
 #include "fltl/include/mpl/Static.hpp"
 
-#define D(x)
+#define D(x) x
 
 namespace grail { namespace algorithm {
 
@@ -226,20 +226,22 @@ namespace grail { namespace algorithm {
         /// for this grammar
         static parser_state_type run(
             CFG &cfg,
-            std::vector<bool> &is_nullable
+            std::vector<bool> &is_nullable,
+            const bool use_first_set,
+            std::vector<std::vector<bool> *> &first_terminals
         ) throw() {
 
             (void) cfg;
             (void) is_nullable;
 
             const char *tokens[] = {
-                "xray", "seven", "two", "and", "golf", "one", "four",
-                "move", "to", "enemy", "position", "niner", "one",
-                "six", "niner", "seven", "zero", "and", "then",
-                "move", "to", "checkpoint", "two",
+                "platoon", "one", "assault", "checkpoint",
+                "one", "in", "vee", "formation",
+                "at", "fifty", "miles", "per",
+                "hour",
                 0
             };
-            const unsigned num_tokens(23U);
+            const unsigned num_tokens(13U);
             /*
 
             const char *tokens[] = {
@@ -247,6 +249,7 @@ namespace grail { namespace algorithm {
             };
             const unsigned num_tokens(9U);
             */
+
             // allocator for Earley sets
             static fltl::helper::BlockAllocator<
                 earley_set_type, NUM_BLOCKS
@@ -277,6 +280,12 @@ namespace grail { namespace algorithm {
             variable_type SV(cfg.add_variable());
             production_type SP(cfg.add_production(SV, ASV));
             is_nullable[SV.number()] = is_nullable[ASV.number()];
+
+            if(use_first_set) {
+                first_terminals[SV.number()] = new std::vector<bool>(
+                    *(first_terminals[ASV.number()])
+                );
+            }
 
             // set up the base case for the earley parser
             earley_item_type *curr_item(item_allocator.allocate());
@@ -353,6 +362,9 @@ namespace grail { namespace algorithm {
                     // found a token but this grammar has no variable terminals
                     // and so it can't be substituted for anything
                     } else if(0 == cfg.num_variable_terminals()){
+
+                        printf("unknown lexeme '%s'\n", serialized_token);
+
                         return E_UNRECOGNIZED_TOKEN;
                     }
 
@@ -387,6 +399,13 @@ namespace grail { namespace algorithm {
                                 item_allocator,
                                 next_item
                             ));
+                        }
+
+                        // if we're using FIRST sets then use them to skip
+                        // useless predictions
+                        if(use_first_set && not_at_end
+                        && !(first_terminals[B.number()]->operator[](a.number()))) {
+                            continue;
                         }
 
                         // for each B --> alpha, add B --> * alpha to the

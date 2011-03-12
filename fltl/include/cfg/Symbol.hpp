@@ -157,6 +157,14 @@ namespace fltl { namespace cfg {
             return value < 0;
         }
 
+        unsigned number(void) const throw() {
+            if(value < 0) {
+                return static_cast<unsigned>(value * -1);
+            } else {
+                return static_cast<unsigned>(value);
+            }
+        }
+
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
         Unbound<AlphaT,symbol_tag> operator~(void) throw() {

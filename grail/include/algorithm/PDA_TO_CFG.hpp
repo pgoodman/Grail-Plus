@@ -180,25 +180,19 @@ namespace grail { namespace algorithm {
 
             // the various generators over states
             typename PDA::state_type p;
-            typename PDA::generator_type states_p(pda.search(~p));
-
             typename PDA::state_type q;
-            typename PDA::generator_type states_q(pda.search(~q));
-
             typename PDA::state_type r;
+            typename PDA::state_type s;
+
+            typename PDA::generator_type states_p(pda.search(~p));
+            typename PDA::generator_type states_q(pda.search(~q));
             typename PDA::generator_type states_r(pda.search(~r));
 
-            typename PDA::state_type s;
-            typename PDA::generator_type states_s(pda.search(~s));
-
             typename PDA::symbol_type a;
-            typename PDA::generator_type symbols_a(pda.search(~a));
-
             typename PDA::symbol_type b;
-            typename PDA::generator_type symbols_b(pda.search(~b));
-
             typename PDA::symbol_type t;
-            typename PDA::generator_type symbols_t(pda.search(~t));
+
+            typename PDA::generator_type symbols_a(pda.search(~a));
 
             // initialize the variable table
             char scratch[1024] = {'\0'};
@@ -224,66 +218,27 @@ namespace grail { namespace algorithm {
             const typename PDA::symbol_type epsilon(pda.epsilon());
 
             typename PDA::generator_type p_a_epsilon_contains_t_r(
-                pda.search(p, a, epsilon, t, r)
+                pda.search(~p, ~a, epsilon, ~t, ~r)
             );
 
             typename PDA::generator_type s_b_t_contains_epsilon_q(
-                pda.search(s, b, t, epsilon, q)
+                pda.search(~s, ~b, t, epsilon, ~q)
             );
 
             typename CFG::production_builder_type buffer;
 
             // add in the productions $A_{pq} \to a A_{rs} b$
-            states_p.rewind();
-            states_q.rewind();
-            symbols_a.rewind();
+            for(; p_a_epsilon_contains_t_r.match_next(); ) {
+                for(s_b_t_contains_epsilon_q.rewind();
+                    s_b_t_contains_epsilon_q.match_next();) {
 
-            for(; symbols_a.match_next(); states_p.rewind()) {
-
-                if(!pda.is_in_input_alphabet(a) && epsilon != a) {
-                    continue;
-                }
-
-                for(; states_p.match_next(); states_r.rewind()) {
-
-                    for(; states_r.match_next(); symbols_t.rewind()) {
-
-                        for(; symbols_t.match_next(); symbols_b.rewind()) {
-
-                            p_a_epsilon_contains_t_r.rewind();
-
-                            if(!p_a_epsilon_contains_t_r.match_next()) {
-                                continue;
-                            }
-
-                            for(; symbols_b.match_next(); states_q.rewind()) {
-
-                                if(!pda.is_in_input_alphabet(b)
-                                && epsilon != b) {
-                                    continue;
-                                }
-
-                                for(; states_q.match_next(); states_s.rewind()) {
-
-                                    for(; states_s.match_next(); ) {
-
-                                        s_b_t_contains_epsilon_q.rewind();
-                                        if(!s_b_t_contains_epsilon_q.match_next()) {
-                                            continue;
-                                        }
-
-                                        cfg.add_production(
-                                            A(p.number(), q.number()),
-                                            buffer.clear()
-                                             << E.get(a.number())
-                                             << A(r.number(), s.number())
-                                             << E.get(b.number())
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    cfg.add_production(
+                        A(p.number(), q.number()),
+                        buffer.clear()
+                         << E.get(a.number())
+                         << A(r.number(), s.number())
+                         << E.get(b.number())
+                    );
                 }
             }
 
@@ -294,11 +249,9 @@ namespace grail { namespace algorithm {
             ));
 
             // add in rules $A_{pq} \to A_{pr} A_{rq}$ to the grammar
-            states_p.rewind();
-            states_q.rewind();
-            for(; states_p.match_next(); states_q.rewind()) {
-                for(; states_q.match_next(); states_r.rewind()) {
-                    for(; states_r.match_next(); ) {
+            for(states_p.rewind(); states_p.match_next(); ) {
+                for(states_q.rewind(); states_q.match_next(); ) {
+                    for(states_r.rewind(); states_r.match_next(); ) {
                         cfg.add_production(
                             A(p.number(), q.number()),
                             buffer.clear()
