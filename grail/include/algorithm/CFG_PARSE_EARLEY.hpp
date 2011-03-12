@@ -167,8 +167,6 @@ namespace grail { namespace algorithm {
             earley_item_type *&items(index.get(offset));
             earley_item_type *prev(0);
 
-            D( printf("         indexing at offset %u\n", offset); )
-
             for(earley_item_type *curr(items);
                 0 != curr;
                 prev = curr, curr = curr->next_with_same_initial_set) {
@@ -191,7 +189,6 @@ namespace grail { namespace algorithm {
 
                 // same dot values, check if the productions are equivalent
                 } else if(curr->production == item->production) {
-                    D( printf("        found duplicate\n"); )
                     allocator.deallocate(item);
                     return 0;
                 }

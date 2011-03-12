@@ -40,7 +40,7 @@ namespace grail { namespace cli {
 
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
-            opt.declare("first", io::opt::OPTIONAL, io::opt::NO_VAL);
+            opt.declare("predict", io::opt::OPTIONAL, io::opt::NO_VAL);
 
             if(!in_help) {
                 opt.declare_min_num_positional(1);
@@ -54,7 +54,7 @@ namespace grail { namespace cli {
                 "  %s:\n"
                 "    Parses a token stream according to a context-free grammar (CFG).\n\n"
                 "  basic use options for %s:\n"
-                "    --first                        compute the first sets of all\n"
+                "    --predict                      compute the FIRST sets of all\n"
                 "                                   variables. This computation can\n"
                 "                                   take a long time for larger\n"
                 "                                   grammars, but can also speed up\n"
@@ -101,7 +101,7 @@ namespace grail { namespace cli {
                 cfg::compute_null_set(cfg, is_nullable);
 
                 bool use_first_sets(false);
-                if(options["first"].is_valid()) {
+                if(options["predict"].is_valid()) {
                     io::verbose("Computing FIRST set of variables...\n");
                     use_first_sets = true;
                     cfg::compute_first_set(cfg, is_nullable, first_terminals);
@@ -116,10 +116,12 @@ namespace grail { namespace cli {
                 );
 
                 // clean out the first set
-                for(unsigned i(0); i < first_terminals.size(); ++i) {
-                    if(0 != first_terminals[i]) {
-                        delete first_terminals[i];
-                        first_terminals[i] = 0;
+                if(use_first_sets) {
+                    for(unsigned i(0); i < first_terminals.size(); ++i) {
+                        if(0 != first_terminals[i]) {
+                            delete first_terminals[i];
+                            first_terminals[i] = 0;
+                        }
                     }
                 }
 
