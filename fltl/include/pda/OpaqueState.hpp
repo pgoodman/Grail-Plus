@@ -72,7 +72,7 @@ namespace fltl { namespace pda {
             return id != that.id;
         }
 
-                bool operator<(const self_type &that) const throw() {
+        bool operator<(const self_type &that) const throw() {
             return id < that.id;
         }
 
