@@ -98,6 +98,7 @@ namespace grail { namespace io {
         CommandLineOption *last;
 
         bool has_errors;
+        bool disambiguated_positional;
         unsigned num_positional;
 
         /// report an error with the command-line arguments. this writes errors
@@ -125,6 +126,11 @@ namespace grail { namespace io {
             CommandLineOption *loc
         ) throw();
 
+        void warning(
+            const unsigned diag,
+            CommandLineOption *loc
+        ) throw();
+
         /// report an error with the command-line arguments. this writes errors
         /// out in a Clang-like way, i.e. it tries to highlight and pinpoint the
         /// context of an error
@@ -135,6 +141,8 @@ namespace grail { namespace io {
 
         CommandLineOption *make_option(const int, const char *) throw();
         void check_option(CommandLineOption *option, const opt::val_constraint_type vc) throw();
+
+        void disambiguate_undeclared(void) throw();
 
     public:
 

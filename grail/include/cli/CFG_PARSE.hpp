@@ -40,7 +40,7 @@ namespace grail { namespace cli {
 
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
-            opt.declare("--first", io::opt::OPTIONAL, io::opt::NO_VAL);
+            opt.declare("first", io::opt::OPTIONAL, io::opt::NO_VAL);
 
             if(!in_help) {
                 opt.declare_min_num_positional(1);

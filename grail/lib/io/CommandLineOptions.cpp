@@ -115,6 +115,7 @@ namespace grail { namespace io {
         , first(0)
         , last(0)
         , has_errors(false)
+        , disambiguated_positional(false)
         , num_positional(0)
     { }
 
@@ -150,54 +151,60 @@ namespace grail { namespace io {
     /// parse the basic structure of command-line options
     bool CommandLineOptions::parse(void) throw() {
 
-        CommandLineOption *opt_to_fill(0);
-        bool opt_to_fill_is_long(false);
-        const char *first_char(0);
+        //CommandLineOption *opt_to_fill(0);
+        //bool opt_to_fill_is_long(false);
         size_t equals_offset(0);
         int equals_argv(-1);
 
-        for(int i(1); i < argc; ++i) {
+        const char *first_char(&(argv[1][0]));
+        const char *next_char(0);
+
+        CommandLineOption *opt(0);
+        CommandLineOption *last_karg(0);
+        bool seen_equal(false);
+        bool last_is_short(false);
+
+        size_t offset(0);
+
+
+        for(int i(1); i < argc; ) {
 
             first_char = detail::eat_chars(
-                &(argv[i][0]),
+                first_char,
                 &isspace
             );
-            size_t offset(static_cast<size_t>(first_char - argv[i]));
 
-        process_first_char:
+            offset = static_cast<size_t>(first_char - argv[i]);
 
-            // all spaces
-            if('\0' == *first_char) {
+            // empty argv slot
+            if(0 == first_char || '\0' == *first_char) {
+                first_char = &(argv[++i][0]);
                 continue;
 
-            // keyword argument
+            // looks like some sort of keyword option
             } else if('-' == *first_char) {
 
-                if(0 != opt_to_fill
-                && !opt_to_fill->is_positional_candidate) {
-                    return error(
-                        diag::err_equal_with_no_value,
-                        equals_argv, equals_offset
-                    );
-                }
-
-                opt_to_fill = 0;
+                ++first_char;
 
                 // long option
-                if('-' == first_char[1]) {
+                if('-' == *first_char) {
 
-                    if(!isalpha(first_char[2])) {
-                        return error(diag::err_bad_long_option, i, offset + 2UL);
+                    ++first_char;
+
+                    // long option doesn't start with an alphabetic character
+                    if(!isalpha(*first_char)) {
+                        return error(
+                            diag::err_bad_long_option, i, offset + 2UL
+                        );
                     }
 
-                    // go find the next non-keyword-like character
-                    const char *next_char(detail::eat_chars(
-                        &(first_char[2]),
+                    next_char = detail::eat_chars(
+                        first_char,
                         &detail::iskeychar
-                    ));
+                    );
 
                     CommandLineOption *&opt(opt::long_options.get(
-                        first_char + 2,
+                        first_char,
                         next_char
                     ));
 
@@ -211,22 +218,19 @@ namespace grail { namespace io {
                     }
 
                     // add in the option
-                    opt = opt_to_fill = make_option(i, first_char + 2);
+                    opt = last_karg = make_option(i, first_char);
+                    last_karg->is_positional_candidate = true;
+                    seen_equal = false;
+                    last_is_short = false;
+
+                    // set up the state for the next pass
                     first_char = next_char;
-                    opt_to_fill_is_long = true;
-                    offset = static_cast<size_t>(next_char - argv[i]);
-                    goto process_first_char;
+                    next_char = 0;
 
                 // short option
-                } else if(isalpha(first_char[1])) {
+                } else if(isalpha(*first_char)) {
 
-                    // go fin the next non-space character
-                    const char *next_char(detail::eat_chars(
-                        &(first_char[2]),
-                        &isspace
-                    ));
-
-                    const size_t opt(detail::alpha_to_offset(first_char[1]));
+                    const size_t opt(detail::alpha_to_offset(*first_char));
 
                     // the option already exists!
                     if(0 != opt::short_options[opt]) {
@@ -238,135 +242,77 @@ namespace grail { namespace io {
                         return false;
                     }
 
-                    opt::short_options[opt] = make_option(
+                    // make the option
+                    opt::short_options[opt] = last_karg = make_option(
                         i,
-                        first_char + 1
+                        first_char
                     );
 
-                    // short option followed by a space, the value of this
-                    // option should be stored in the next cell, assuming it
-                    // exists.
-                    if('\0' == first_char[2]) {
+                    seen_equal = false;
+                    last_is_short = true;
 
-                        opt_to_fill_is_long = false;
-                        opt_to_fill = opt::short_options[opt];
+                    // set up the state for the next pass
+                    ++first_char;
+                    next_char = 0;
 
-                    // short option using an '='
-                    } else if('=' == first_char[2]) {
-                        return error(
-                            diag::err_equals_with_short_option,
-                            i, offset + 2UL
-                        );
-
-                    // the value of this option immediately follows the
-                    // letter, possibly preceded by some whitespace
-                    } else {
-                        const char *end_char(opt::short_options[opt]->init(
-                            i, next_char
-                        ));
-
-                        // go look for an '=' in this short option
-                        for(const char *curr(next_char);
-                            0 != curr && curr < end_char;
-                            ++curr) {
-                            if('=' == *curr && '\\' != *(curr - 1)) {
-                                return error(
-                                    diag::err_equals_with_short_option,
-                                    i, static_cast<size_t>(curr - argv[i])
-                                );
-                            }
-                        }
-
-                        first_char = end_char;
-                        offset = static_cast<size_t>(first_char - argv[i]);
-                        goto process_first_char;
-                    }
-
-                // error, bad option type
+                // unknown
                 } else {
                     return error(
                         diag::err_bad_first_option_char, i, offset + 1UL
                     );
                 }
 
-            // looks like a long option to fill in
-            } else if('=' == *first_char) {
-
-                equals_argv = i;
-                equals_offset = offset;
-
-                if(0 == opt_to_fill) {
-                    return error(
-                        diag::err_equal_with_no_option, i, offset
-                    );
-                } else if(!opt_to_fill_is_long) {
-                    return error(
-                        diag::err_equals_with_short_option, i, offset
-                    );
-                }
-
-                // we found and '=', so the user was explicit in that this
-                // wasn't a positional argument
-                opt_to_fill->is_positional_candidate = false;
-
-                ++first_char;
-                offset = static_cast<unsigned>(first_char - argv[i]);
-
-                goto process_dangling;
-
-            // we need to fill in an option
+            // either positional or a value
             } else {
-            process_dangling:
+                if('=' == *first_char) {
 
-                if(0 != opt_to_fill) {
+                    equals_offset = offset;
+                    equals_argv = i;
 
-                    const char *next_char(
-                        detail::eat_chars(first_char, &isspace)
-                    );
-
-                    // dangling equals
-                    if(0 == next_char || '\0' == *next_char) {
-                        opt_to_fill->is_positional_candidate = false;
-                        continue;
-
-                    } else if('-' == *next_char) {
-
-                        // missing value with an '=' specified
-                        if(!opt_to_fill->is_positional_candidate) {
-                            return error(
-                                diag::err_equal_with_no_value,
-                                equals_argv, equals_offset
-                            );
-
-                        // no value missing, process the thing as an option
-                        } else {
-                            first_char = next_char;
-                            offset = static_cast<size_t>(first_char - argv[i]);
-                        }
-
-                    // we found the value
-                    } else {
-
-                        first_char = opt_to_fill->init(i, next_char);
-                        offset = static_cast<unsigned>(first_char - argv[i]);
+                    if(0 == last_karg) {
+                        return error(
+                            diag::err_equal_with_no_option, i, offset
+                        );
+                    } else if(last_is_short) {
+                        return error(
+                            diag::err_equals_with_short_option, i, offset
+                        );
+                    } else if(seen_equal) {
+                        return error(
+                            diag::err_too_many_eqs, i, offset
+                        );
                     }
 
-                // positional argument
-                } else {
-                    opt_to_fill = make_option(i, 0);
-                    first_char = opt_to_fill->init(i, first_char);
-                    offset = static_cast<size_t>(first_char - argv[i]);
-                    opt_to_fill->is_positional = true;
-                    ++num_positional;
-                }
+                    last_karg->is_positional_candidate = false;
+                    seen_equal = true;
+                    ++first_char;
 
-                opt_to_fill = 0;
-                goto process_first_char;
+                // positional
+                } else if(0 == last_karg) {
+
+                    opt = make_option(i, 0);
+                    first_char = opt->init(i, first_char);
+                    offset = static_cast<size_t>(first_char - argv[i]);
+                    opt->is_positional = true;
+                    opt->is_positional_candidate = true;
+                    ++num_positional;
+
+                    last_karg = 0;
+                    seen_equal = false;
+                    last_is_short = false;
+
+                // looks like a value
+                } else {
+                    first_char = last_karg->init(i, first_char);
+                    last_karg->is_positional = false;
+                    last_karg = 0;
+                    seen_equal = false;
+                    last_is_short = false;
+                }
             }
         }
 
-        if(0 != opt_to_fill
-        && !opt_to_fill->is_positional_candidate) {
+        if(0 != last_karg && seen_equal) {
             return error(
                 diag::err_equal_with_no_value,
                 equals_argv, equals_offset
@@ -416,6 +362,19 @@ namespace grail { namespace io {
         has_errors = true;
         message(
             "error",
+            FLTL_F_RED,
+            diag::diag_message[diag_id],
+            loc->opt_argv,
+            static_cast<size_t>(loc->opt_begin - argv[loc->opt_argv])
+        );
+    }
+
+    void CommandLineOptions::warning(
+        const unsigned diag_id,
+        CommandLineOption *loc
+    ) throw() {
+        message(
+            "warning",
             FLTL_F_RED,
             diag::diag_message[diag_id],
             loc->opt_argv,
@@ -608,40 +567,42 @@ namespace grail { namespace io {
         CommandLineOption *opt,
         const opt::val_constraint_type vc
     ) throw() {
-        if(opt::REQUIRES_VAL == vc && 0 == opt->val_begin) {
-            error(diag::err_option_requires_val, opt);
+
+        if(opt::REQUIRES_VAL == vc) {
+            if(0 == opt->val_begin) {
+                error(diag::err_option_requires_val, opt);
+                return;
+            }
         } else if(opt::NO_VAL == vc && 0 != opt->val_begin) {
+
+            // split the option into two
             if(opt->is_positional_candidate) {
 
-                if(0 == opt->opt_begin) {
-                    opt->is_positional = true;
-                    opt->is_accounted_for = false;
-                } else {
-                    CommandLineOption *pos(new CommandLineOption);
-                    pos->opt_argv = opt->opt_argv;
-                    pos->val_argv = opt->val_argv;
-                    pos->val_begin = opt->val_begin;
-                    pos->val_end = opt->val_end;
-                    pos->is_positional = true;
-                    pos->is_positional_candidate = true;
-                    pos->is_accounted_for = false;
+                CommandLineOption *pos(new CommandLineOption);
+                pos->opt_argv = opt->opt_argv;
+                pos->val_argv = opt->val_argv;
+                pos->val_begin = opt->val_begin;
+                pos->val_end = opt->val_end;
+                pos->is_positional = true;
+                pos->is_positional_candidate = true;
+                pos->is_accounted_for = false;
 
-                    opt->val_begin = 0;
-                    opt->val_end = 0;
-                    opt->is_positional_candidate = false;
-                    opt->is_accounted_for = true;
+                opt->val_begin = 0;
+                opt->val_end = 0;
+                opt->is_positional_candidate = false;
+                opt->is_accounted_for = true;
 
-                    pos->next = opt->next;
-                    opt->next = pos;
-                }
+                pos->next = opt->next;
+                opt->next = pos;
 
                 ++num_positional;
+
+            // there was an '=' sign, error
             } else {
                 error(diag::err_option_no_val, opt);
             }
-        } else {
-            opt->is_accounted_for = true;
         }
+        opt->is_accounted_for = true;
     }
 
     /// declare an option that can only be addressed by a long keyword form.
@@ -651,6 +612,7 @@ namespace grail { namespace io {
         const opt::val_constraint_type vc
     ) throw() {
         CommandLineOption *&opt(opt::long_options.get(long_opt_));
+
         if(0 == opt) {
             if(opt::REQUIRED == kc) {
                 char buffer[1024];
@@ -755,12 +717,54 @@ namespace grail { namespace io {
         return operator[](short_str);
     }
 
+    /// run through the command line options and warn about
+    void CommandLineOptions::disambiguate_undeclared(void) throw() {
+        if(disambiguated_positional) {
+            return;
+        }
+
+        disambiguated_positional = true;
+
+        for(CommandLineOption *opt(first); 0 != opt; opt = opt->next) {
+            if(opt->is_accounted_for || opt->is_positional) {
+                continue;
+            }
+
+            warning(diag::warn_unknown_option, opt);
+
+            if(!opt->is_positional_candidate) {
+                continue;
+            }
+
+            CommandLineOption *pos(new CommandLineOption);
+            pos->opt_argv = opt->opt_argv;
+            pos->val_argv = opt->val_argv;
+            pos->val_begin = opt->val_begin;
+            pos->val_end = opt->val_end;
+            pos->is_positional = true;
+            pos->is_positional_candidate = true;
+            pos->is_accounted_for = false;
+
+            opt->val_begin = 0;
+            opt->val_end = 0;
+            opt->is_positional_candidate = false;
+            opt->is_accounted_for = false;
+
+            pos->next = opt->next;
+            opt->next = pos;
+
+            ++num_positional;
+        }
+    }
+
     /// declare that this tool requires a minimum number of positional
     /// arguments. this should use used *after* declaring keyword arguments
     /// as keyword arguments disambiguate things that look like values to
     /// keyword arguments.
     void CommandLineOptions::declare_min_num_positional(unsigned x) {
+        disambiguate_undeclared();
         if(num_positional < x) {
+
             char buffer[1024];
             memset(buffer, 0, 1024 * sizeof(char));
             sprintf(
@@ -777,6 +781,7 @@ namespace grail { namespace io {
     /// arguments as keyword arguments disambiguate things that look like
     /// values to keyword arguments.
     void CommandLineOptions::declare_max_num_positional(unsigned x) {
+        disambiguate_undeclared();
         if(num_positional > x) {
             char buffer[1024];
             memset(buffer, 0, 1024 * sizeof(char));
