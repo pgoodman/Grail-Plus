@@ -31,12 +31,12 @@ namespace grail { namespace cfg {
         variable_type V;
         variable_type Q;
 
-        nullable.reserve(cfg.num_variables() + 2);
+        nullable.assign(cfg.num_variables() + 2, false);
 
         // base case: directly nullable productions
         generator_type null_prods(cfg.search((~V) --->* cfg.epsilon()));
         for(; null_prods.match_next(); ) {
-            nullable.assign(V.number(), true);
+            nullable[V.number()] = true;
         }
 
         if(nullable.empty()) {
@@ -72,8 +72,8 @@ namespace grail { namespace cfg {
                     }
                 }
 
-                if(i == str.length()) {
-                    nullable.assign(V.number(), true);
+                if(str.length() == i) {
+                    nullable[V.number()] = true;
                     found_nullable = true;
                 }
             }

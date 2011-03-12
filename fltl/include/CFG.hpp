@@ -307,12 +307,13 @@ namespace fltl {
             , __()
         {
             static const char * const UB("$0");
+            static const char * const EPSILON("epsilon");
 
             auto_symbol_upper_bound = UB;
 
             terminal_map.append(std::make_pair<alphabet_type,const char *>(
                 mpl::Static<AlphaT>::VALUE,
-                0
+                EPSILON
             ));
             variable_map.append(0);
         }
@@ -596,6 +597,11 @@ namespace fltl {
             }
         }
 
+        /// does this grammar have this particular terminal?
+        bool has_terminal(const alphabet_type term) const throw() {
+            return 0 != terminal_map_inv.count(term);
+        }
+
         /// get the terminal reference for a particular terminal.
         const terminal_type get_terminal(const alphabet_type term) throw() {
             typename terminal_map_inv_type::iterator pos(
@@ -646,6 +652,9 @@ namespace fltl {
             assert(0 != term.value);
             const unsigned id(static_cast<unsigned>(term.value * -1));
             assert(id < terminal_map.size());
+            if(0 == terminal_map.get(id).second) {
+                printf("failed on terminal %u\n", id);
+            }
             assert(0 != terminal_map.get(id).second);
             return terminal_map.get(id).second;
         }

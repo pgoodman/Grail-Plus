@@ -22,7 +22,6 @@
 #include "grail/include/io/fread_cfg.hpp"
 
 #include "grail/include/cfg/compute_null_set.hpp"
-#include "grail/include/cfg/compute_first_set.hpp"
 
 #include "grail/include/algorithm/CFG_PARSE_EARLEY.hpp"
 
@@ -80,30 +79,19 @@ namespace grail { namespace cli {
             CFG<AlphaT> cfg;
             int ret(0);
 
+            printf("reading...\n");
             if(io::fread(fp, cfg, file_name)) {
 
-                std::vector<bool> NULLABLE;
-                fltl::helper::Array<
-                    std::set<typename fltl::CFG<AlphaT>::terminal_type> *
-                > FIRST;
+                std::vector<bool> is_nullable;
 
                 // fill the first and nullable sets
-                cfg::compute_null_set(cfg, NULLABLE);
-                cfg::compute_first_set(cfg, NULLABLE, FIRST);
-
+                printf("computing null set...\n");
+                cfg::compute_null_set(cfg, is_nullable);
+                printf("parsing...\n");
                 algorithm::CFG_PARSE_EARLEY<AlphaT>::run(
                     cfg,
-                    NULLABLE,
-                    FIRST
+                    is_nullable
                 );
-
-                // clean out the first set
-                for(unsigned i(0); i < FIRST.size(); ++i) {
-                    if(0 != FIRST.get(i)) {
-                        delete FIRST.get(i);
-                        FIRST.set(i, 0);
-                    }
-                }
 
             } else {
                 ret = 1;
