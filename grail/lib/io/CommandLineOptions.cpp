@@ -612,10 +612,30 @@ namespace grail { namespace io {
             error(diag::err_option_requires_val, opt);
         } else if(opt::NO_VAL == vc && 0 != opt->val_begin) {
             if(opt->is_positional_candidate) {
+
+                if(0 == opt->opt_begin) {
+                    opt->is_positional = true;
+                    opt->is_accounted_for = false;
+                } else {
+                    CommandLineOption *pos(new CommandLineOption);
+                    pos->opt_argv = opt->opt_argv;
+                    pos->val_argv = opt->val_argv;
+                    pos->val_begin = opt->val_begin;
+                    pos->val_end = opt->val_end;
+                    pos->is_positional = true;
+                    pos->is_positional_candidate = true;
+                    pos->is_accounted_for = false;
+
+                    opt->val_begin = 0;
+                    opt->val_end = 0;
+                    opt->is_positional_candidate = false;
+                    opt->is_accounted_for = true;
+
+                    pos->next = opt->next;
+                    opt->next = pos;
+                }
+
                 ++num_positional;
-                opt->is_positional = true;
-                opt->opt_begin = 0;
-                opt->is_accounted_for = false;
             } else {
                 error(diag::err_option_no_val, opt);
             }
