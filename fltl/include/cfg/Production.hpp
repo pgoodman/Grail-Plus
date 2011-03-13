@@ -90,15 +90,24 @@ namespace fltl { namespace cfg {
             // time to clean up; unchain them
             if(0 == --(prod->ref_count)) {
 
+                // when variables are deleted, we signal this delete to
+                // generators by setting prod->prev to be a pointer to
+                // a variable. thus, we need to make sure not to unsafely
+                // alter the variable
+
                 if(0 != prod->prev) {
-                    prod->prev->next = prod->next;
+                    if(0 != prod->var) {
+                        prod->prev->next = prod->next;
+                    }
 
                 } else if(0 != prod->var) {
                     prod->var->first_production = prod->next;
                 }
 
                 if(0 != prod->next) {
-                    prod->next->prev = prod->prev;
+                    if(0 != prod->next->var) {
+                        prod->next->prev = prod->prev;
+                    }
                 }
 
                 prod->next = 0;

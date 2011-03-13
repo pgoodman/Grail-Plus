@@ -21,6 +21,7 @@ namespace fltl { namespace cfg {
         friend class CFG<AlphaT>;
 
         typedef Symbol<AlphaT> symbol_type;
+        typedef SymbolString<AlphaT> symbol_string_type;
         typedef ProductionBuilder<AlphaT> self_type;
 
         helper::Array<symbol_type> buffer;
@@ -45,9 +46,25 @@ namespace fltl { namespace cfg {
             return *this;
         }
 
+        inline self_type &operator<<(const symbol_string_type &str) throw() {
+            append(str);
+            return *this;
+        }
+
         inline void append(const symbol_type &sym) throw() {
             if(0 != sym.value) {
                 buffer.append(sym);
+            }
+        }
+
+        inline void append(const symbol_string_type &str) throw() {
+            if(0 != str.symbols) {
+                const unsigned str_len(str.length());
+                buffer.reserve(buffer.size() + str_len);
+
+                for(unsigned i(0); i < str_len; ++i) {
+                    buffer.append(str.at(i));
+                }
             }
         }
 

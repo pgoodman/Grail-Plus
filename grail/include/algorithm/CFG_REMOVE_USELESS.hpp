@@ -11,22 +11,79 @@
 #ifndef FLTL_CFG_REMOVE_USELESS_HPP_
 #define FLTL_CFG_REMOVE_USELESS_HPP_
 
+#include <vector>
+
 namespace grail { namespace algorithm {
 
-    /// remove all non-generating variables
+    /// remove all non-generating variables and all unreachable variables
     template <typename AlphaT>
     class CFG_REMOVE_USELESS {
-    public:
 
         typedef fltl::CFG<AlphaT> CFG;
         typedef typename CFG::variable_type variable_type;
         typedef typename CFG::generator_type generator_type;
+        typedef typename CFG::symbol_string_type symbol_string_type;
+
+    private:
+
+        static void reach_variable(
+            const CFG &cfg,
+            const variable_type var,
+            std::vector<bool> &reachable
+        ) throw() {
+            if(reachable[var.number()]) {
+                return;
+            }
+
+            reachable[var.number()] = true;
+
+            symbol_string_type str;
+            generator_type reached_productions(cfg.search(var --->* ~str));
+
+            for(; reached_productions.match_next(); ) {
+                for(unsigned i(0), len(str.length()); i < len; ++i) {
+                    if(str.at(i).is_variable()) {
+                        reach_variable(
+                            cfg,
+                            variable_type(str.at(i)),
+                            reachable
+                        );
+                    }
+                }
+            }
+        }
+
+    public:
 
         static void run(CFG &cfg) throw() {
             variable_type V;
             generator_type variables(cfg.search(~V));
 
-            for(; variables.match_next(); ) {
+            // no start variable, nothing is reachable
+            if(!cfg.has_start_variable()) {
+                for(; variables.match_next(); ) {
+                    cfg.unsafe_remove_variable(V);
+                }
+                return;
+            }
+
+            // find all reachable variables
+            std::vector<bool> reachable(cfg.num_variables_capacity() + 2, false);
+            reach_variable(cfg, cfg.get_start_variable(), reachable);
+
+            // get rid of unreachable variables
+            for(variables.rewind();
+                variables.match_next(); ) {
+
+                if(!(reachable[V.number()])) {
+                    cfg.remove_variable(V);
+                }
+            }
+
+            // get rid of non-generating variables
+            for(variables.rewind();
+                variables.match_next(); ) {
+
                 if(0 == cfg.num_productions(V)) {
                     cfg.remove_variable(V);
                 }

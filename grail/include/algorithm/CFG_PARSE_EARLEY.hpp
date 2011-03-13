@@ -21,7 +21,7 @@
 
 #include "fltl/include/mpl/Static.hpp"
 
-#define D(x) x
+#define D(x)
 
 namespace grail { namespace algorithm {
 
@@ -230,7 +230,7 @@ namespace grail { namespace algorithm {
 
             (void) cfg;
             (void) is_nullable;
-
+            /*
             const char *tokens[] = {
                 "platoon", "one", "assault", "checkpoint",
                 "one", "in", "vee", "formation",
@@ -239,13 +239,13 @@ namespace grail { namespace algorithm {
                 0
             };
             const unsigned num_tokens(13U);
-            /*
+            */
 
             const char *tokens[] = {
                 "1", "+", "2", "*", "(", "3", "+", "4", ")"
             };
             const unsigned num_tokens(9U);
-            */
+
 
             // allocator for Earley sets
             static fltl::helper::BlockAllocator<

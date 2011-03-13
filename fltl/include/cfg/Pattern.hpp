@@ -253,6 +253,7 @@ namespace fltl { namespace cfg {
         class Match2<AlphaT,StringT,offset,variable_tag, T> {
         public:
             inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
                 if((1 <= len) && (*symbols == *(slots->as_symbol))) {
                     return Match2<
                         AlphaT,
@@ -419,6 +420,7 @@ namespace fltl { namespace cfg {
 
                 const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
                 for(unsigned i(0); i <= max; ++i) {
+
                     const bool matched_next_at_i(Match2<
                         AlphaT,
                         StringT,
@@ -426,6 +428,7 @@ namespace fltl { namespace cfg {
                         T,
                         typename GetFactor<StringT,offset + 2>::type
                     >::bind(slots + 1, symbols + i, len - i));
+
                     if(matched_next_at_i) {
                         return true;
                     }

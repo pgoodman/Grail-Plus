@@ -72,7 +72,7 @@ namespace fltl { namespace pda {
                 Symbol<AlphaT> *
             >(gen->binder));
 
-            if(offset >= gen->pda->num_symbols()) {
+            if(offset > gen->pda->num_symbols()) {
                 binder->id = 0U;
                 return false;
             }

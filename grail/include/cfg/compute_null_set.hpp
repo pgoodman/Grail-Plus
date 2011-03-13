@@ -31,7 +31,7 @@ namespace grail { namespace cfg {
         variable_type V;
         variable_type Q;
 
-        nullable.assign(cfg.num_variables() + 2, false);
+        nullable.assign(cfg.num_variables_capacity() + 2, false);
 
         // base case: directly nullable productions
         generator_type null_prods(cfg.search((~V) --->* cfg.epsilon()));

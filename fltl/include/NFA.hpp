@@ -101,6 +101,7 @@ namespace fltl {
         using PDA<AlphaT>::is_accept_state;
         using PDA<AlphaT>::get_alpha;
         using PDA<AlphaT>::num_states;
+        using PDA<AlphaT>::num_states_capacity;
         using PDA<AlphaT>::num_accept_states;
         using PDA<AlphaT>::num_symbols;
         using PDA<AlphaT>::num_transitions;

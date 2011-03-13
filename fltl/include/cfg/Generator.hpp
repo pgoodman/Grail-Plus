@@ -46,6 +46,9 @@ namespace fltl { namespace cfg {
             ) throw() {
                 if(0 == prod) {
                     return 0;
+
+                // production's var has been deleted or production was
+                // deleted
                 } else if(0 == prod->var || prod->is_deleted) {
                     return find_next_production(cfg, prod);
                 } else {
@@ -191,29 +194,23 @@ namespace fltl { namespace cfg {
                 );
 
                 unsigned offset(state->cursor.variable_offset);
+                const unsigned num_vars(state->cfg->variable_map.size());
+
                 Variable<AlphaT> *var(0);
-
-            check_var_offset:
-
-                if(offset >= state->cfg->variable_map.size()) {
-                    binder->value = 0;
-                    state->cursor.variable_offset = offset;
-                    return false;
+                for(; 0 == var && offset < num_vars; ++offset) {
+                    var = state->cfg->variable_map.get(offset);
                 }
 
-                var = state->cfg->variable_map.get(offset);
+                state->cursor.variable_offset = offset;
 
                 // deleted variable
                 if(0 == var) {
-                    ++offset;
-                    goto check_var_offset;
+                    binder->value = 0;
+                    return false;
+                } else {
+                    binder->value = var->id;
+                    return true;
                 }
-
-                // bind the variable and point the cursor at the next
-                // variable
-                binder->value = var->id;
-                state->cursor.variable_offset = offset + 1;
-                return true;
             }
 
             /// reset the terminal generator
@@ -284,6 +281,7 @@ namespace fltl { namespace cfg {
                 orig_prod = 0;
 
                 while(!PatternBuilderT::static_match(state->pattern, opaque_prod)) {
+
                     curr_prod = SimpleGenerator<AlphaT>::find_next_production(
                         state->cfg,
                         curr_prod

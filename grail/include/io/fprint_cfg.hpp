@@ -72,7 +72,8 @@ namespace grail { namespace io {
         algorithm::CFG_REMOVE_USELESS<AlphaT>::run(cfg);
 
         // nothing to print
-        if(0 == cfg.num_productions() || !cfg.has_start_variable()) {
+        if(0 == cfg.num_productions()
+        || !cfg.has_start_variable()) {
             return num;
         }
 

@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <map>
+#include <list>
 #include <utility>
 #include <stdint.h>
 #include <functional>
@@ -321,11 +322,16 @@ namespace fltl {
         /// destructor
         ~CFG(void) throw() {
 
+            unsigned j(0);
+
             // free the variables
             const unsigned max(static_cast<unsigned>(next_variable_id));
             for(unsigned i(1U); i < max; ++i) {
-                variable_allocator->deallocate(variable_map.get(i));
-                variable_map.set(i, 0);
+                if(0 != variable_map.get(i)) {
+                    variable_allocator->deallocate(variable_map.get(i));
+                    variable_map.set(i, 0);
+                    ++j;
+                }
             }
 
             // free the terminals
@@ -336,6 +342,15 @@ namespace fltl {
 
                 traits_type::destroy(pp.first);
                 trait::Alphabet<const char *>::destroy(pp.second);
+            }
+
+            for(cfg::Variable<AlphaT> *var(unused_variables), *next_var(0);
+                0 != var;
+                var = next_var) {
+
+                next_var = var->next;
+                variable_allocator->deallocate(var);
+                ++j;
             }
 
             first_production = 0;
@@ -467,13 +482,10 @@ namespace fltl {
 
             // get an allocated variable
             cfg::Variable<AlphaT> *var(unused_variables);
-            cfg::Variable<AlphaT> *prev(0);
-            cfg::Variable<AlphaT> *next(0);
             cfg::internal_sym_type var_id(1);
 
             if(0 == var) {
                 var = variable_allocator->allocate();
-                prev = variable_map.back();
                 var->name = 0;
                 var_id = next_variable_id;
                 ++next_variable_id;
@@ -481,14 +493,16 @@ namespace fltl {
             } else {
                 unused_variables = var->next;
                 var_id = var->id;
-                prev = find_variable(var_id, -1);
-                next = find_variable(var_id, 1);
                 variable_map.set(static_cast<unsigned>(var_id), var);
             }
+
+            cfg::Variable<AlphaT> *prev(find_variable(var_id, -1));
+            cfg::Variable<AlphaT> *next(find_variable(var_id, 1));
 
             // initialize
             var->prev = prev;
             var->next = next;
+
             var->id = var_id;
             var->num_productions = 0;
 
@@ -517,11 +531,22 @@ namespace fltl {
         /// !!! this modifies any living productions so that generators
         ///     pointing at productions of this variable can recover.
         void unsafe_remove_variable(const variable_type _var) throw() {
+
             cfg::Variable<AlphaT> *var(get_variable(_var));
 
             // update the first production
             if(0 != first_production && first_production->var == var) {
                 set_next_production(var->id + 1);
+            }
+
+            if(0 != var->prev) {
+                assert(0 != var->prev->next);
+                var->prev->next = var->next;
+            }
+
+            if(0 != var->next) {
+                assert(0 != var->next->prev);
+                var->next->prev = var->prev;
             }
 
             // release the productions
@@ -546,53 +571,59 @@ namespace fltl {
                 }
 
                 prod->is_deleted = true;
-                
-
                 cfg::Production<AlphaT>::release(prod);
                 --num_productions_;
             }
 
-            // highlights that this variable is deleted
+            // clear out this var's info
             var->first_production = 0;
             var->num_productions = 0;
-
-            if(0 != var->prev) {
-                var->prev->next = var->next;
-            }
-
-            if(0 != var->next) {
-                var->next->prev = var->prev;
-            }
-
             var->prev = 0;
+
+            // add it to the unused variable list
             var->next = unused_variables;
             unused_variables = var;
 
             variable_map.set(static_cast<unsigned>(var->id), 0);
+
+            --num_variables_;
         }
 
         /// remove a variable and all productions in the grammar that
         /// relate to this variable. this can have the effect of removing
         /// many variables
         void remove_variable(const variable_type _var) throw() {
-            unsafe_remove_variable(_var);
+
+
 
             production_type P;
             variable_type V;
+            variable_type R;
 
             generator_type prods_using_var(
-                search(~P, (~V) --->* __ + _var + __)
+                search(~P, (~V) --->* __ + R + __)
             );
 
-            for(; prods_using_var.match_next(); ) {
+            std::list<variable_type> vars_to_remove;
+            vars_to_remove.push_back(_var);
 
-                remove_production(P);
+            while(!vars_to_remove.empty()) {
 
-                // this variable only generates the variable we are deleting;
-                // remove the variable
-                if(0 == num_productions(V)) {
-                    remove_variable(V);
-                    continue;
+                R = vars_to_remove.back();
+                unsafe_remove_variable(R);
+
+                vars_to_remove.pop_back();
+
+                for(prods_using_var.rewind();
+                    prods_using_var.match_next(); ) {
+
+                    remove_production(P);
+
+                    // this variable only generates the variable we are deleting;
+                    // remove the variable
+                    if(0 == num_productions(V)) {
+                        vars_to_remove.push_back(V);
+                    }
                 }
             }
         }
@@ -652,9 +683,6 @@ namespace fltl {
             assert(0 != term.value);
             const unsigned id(static_cast<unsigned>(term.value * -1));
             assert(id < terminal_map.size());
-            if(0 == terminal_map.get(id).second) {
-                printf("failed on terminal %u\n", id);
-            }
             assert(0 != terminal_map.get(id).second);
             return terminal_map.get(id).second;
         }
@@ -847,6 +875,11 @@ namespace fltl {
             return num_variables_;
         }
 
+        /// the capacity of this CFG
+        inline unsigned num_variables_capacity(void) const throw() {
+            return static_cast<unsigned>(next_variable_id);
+        }
+
         /// get the number of productions in the CFG
         inline unsigned num_productions(void) const throw() {
             return num_productions_;
@@ -1008,15 +1041,14 @@ namespace fltl {
         /// go find the next variable in some direction
         cfg::Variable<AlphaT> *find_variable(
             const cfg::internal_sym_type id,
-            const int increment
+            const cfg::internal_sym_type increment
         ) throw() {
             cfg::Variable<AlphaT> *next(0);
-            for(cfg::internal_sym_type i(id);
+            for(cfg::internal_sym_type i(id + increment);
                 i < next_variable_id && 0 < i;
                 i += increment) {
 
                 next = variable_map.get(static_cast<unsigned>(i));
-
                 if(0 != next) {
                     break;
                 }
@@ -1061,7 +1093,7 @@ namespace fltl {
             assert(
                 0 < _var.value &&
                 _var.value < next_variable_id &&
-                "Invalid variable passed to add_production()."
+                "Invalid variable passed to get_variable()."
             );
 
             cfg::Variable<AlphaT> *var(variable_map.get(
@@ -1070,7 +1102,7 @@ namespace fltl {
 
             assert(
                 0 != var &&
-                "Invalid variable passed to add_production()."
+                "Invalid variable passed to get_variable()."
             );
 
             return var;

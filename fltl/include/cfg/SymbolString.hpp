@@ -402,6 +402,17 @@ namespace fltl { namespace cfg {
             return *this;
         }
 
+        self_type &operator=(const symbol_type sym) throw() {
+            decref(symbols);
+            symbols = 0;
+            if(0 != sym.value) {
+                symbols = allocate(1U);
+                symbols[str::FIRST_SYMBOL] = sym;
+                symbols[str::HASH].value = sym.hash();
+            }
+            return *this;
+        }
+
         /// copy a symbol string by value
         void copy(const self_type &that) throw() {
             decref(symbols);

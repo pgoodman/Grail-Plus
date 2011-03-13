@@ -535,7 +535,11 @@ namespace fltl {
         /// check whether a symbol is part of the input alphabet
         bool is_in_input_alphabet(symbol_type sym) const throw() {
             assert(sym.id < next_symbol_id);
-            return 0 == symbol_map.get(sym.id).second;
+            if(0 == sym.id) {
+                return false;
+            } else {
+                return 0 == symbol_map.get(sym.id).second;
+            }
         }
 
         /// get the alphabetic representation of an input symbol
@@ -552,6 +556,10 @@ namespace fltl {
         }
 
         unsigned num_states(void) const throw() {
+            return state_transitions.size();
+        }
+
+        unsigned num_states_capacity(void) const throw() {
             return state_transitions.size();
         }
 

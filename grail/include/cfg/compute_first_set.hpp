@@ -69,7 +69,7 @@ namespace grail { namespace cfg {
 
         typedef std::vector<bool> terminal_set_type;
 
-        first.reserve(cfg.num_variables() + 2);
+        first.reserve(cfg.num_variables_capacity() + 2);
 
         // allocate the sets
         variable_type V;
@@ -90,7 +90,10 @@ namespace grail { namespace cfg {
             updated = true;
         }
 
-        // induction step
+        // induction step. note: base case won't necessarily yield anything
+        // if every production has a form like "A -> alpha t beta" where
+        // alpha is a sequence of one or more nullable variables and t is a
+        // terminal.
         variable_type A;
         variable_type reached;
         production_type prod;
@@ -98,6 +101,7 @@ namespace grail { namespace cfg {
         terminal_set_type *curr_set(0);
         terminal_set_type *reached_set(0);
 
+        updated = true;
         for(unsigned old_len(0); updated; ) {
             updated = false;
 
