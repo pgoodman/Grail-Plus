@@ -342,6 +342,28 @@ namespace grail { namespace io {
     }
 
     bool CommandLineOptions::error(
+        const char *error_message,
+        ...
+    ) throw() {
+        has_errors = true;
+        char buffer[2048] = {'\0'};
+
+        va_list args;
+        va_start(args, error_message);
+        vsprintf(buffer, error_message, args);
+        va_end(args);
+
+        message(
+            "error",
+            FLTL_F_RED,
+            buffer,
+            -1,
+            0
+        );
+        return false;
+    }
+
+    bool CommandLineOptions::error_simple(
         const char *error_message
     ) throw() {
         has_errors = true;
@@ -622,7 +644,7 @@ namespace grail { namespace io {
                     diag::diag_message[diag::err_required_long_option],
                     long_opt_
                 );
-                error(buffer);
+                error_simple(buffer);
             }
         } else {
             check_option(opt, vc);
@@ -656,7 +678,7 @@ namespace grail { namespace io {
                     long_opt_,
                     short_opt_
                 );
-                error(buffer);
+                error_simple(buffer);
             }
 
         // one is defined
@@ -704,7 +726,7 @@ namespace grail { namespace io {
                     diag::diag_message[diag::err_required_short_option],
                     short_opt_
                 );
-                error(buffer);
+                error_simple(buffer);
             }
         } else {
             check_option(opt, vc);
@@ -772,7 +794,7 @@ namespace grail { namespace io {
                 diag::diag_message[diag::err_too_few_positional_opts],
                 x
             );
-            error(buffer);
+            error_simple(buffer);
         }
     }
 
@@ -790,7 +812,7 @@ namespace grail { namespace io {
                 diag::diag_message[diag::err_too_many_positional_opts],
                 x
             );
-            error(buffer);
+            error_simple(buffer);
         }
     }
 

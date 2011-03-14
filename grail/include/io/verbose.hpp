@@ -16,16 +16,11 @@
 #include <cstdarg>
 
 #include "fltl/include/preprocessor/COLOR.hpp"
-
-#if defined(__GNUC__)
-#define GCC_PRINTF(fmt,start) __attribute__ ((format (printf, fmt, start)))
-#else
-#define GCC_PRINTF(fmt,start)
-#endif
+#include "fltl/include/preprocessor/VARG_CHECK_FORMAT.hpp"
 
 namespace grail { namespace io {
 
-    int verbose(const char *str, ...) throw() GCC_PRINTF(1,2);
+    int verbose(const char *str, ...) throw() FLTL_VARG_CHECK_FORMAT(1,2);
 
     void verbose_enable(void) throw();
     void verbose_disable(void) throw();

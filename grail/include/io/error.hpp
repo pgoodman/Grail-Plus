@@ -16,16 +16,11 @@
 #include <cstdarg>
 
 #include "fltl/include/preprocessor/COLOR.hpp"
-
-#if defined(__GNUC__)
-#define GCC_PRINTF(fmt,start) __attribute__ ((format (printf, fmt, start)))
-#else
-#define GCC_PRINTF(fmt,start)
-#endif
+#include "fltl/include/preprocessor/VARG_CHECK_FORMAT.hpp"
 
 namespace grail { namespace io {
 
-    void error(const char *str, ...) GCC_PRINTF(1,2);
+    void error(const char *str, ...) FLTL_VARG_CHECK_FORMAT(1,2);
 
     void error(
         const char * const file_name,
@@ -33,7 +28,7 @@ namespace grail { namespace io {
         const unsigned col,
         const char *str,
         ...
-    ) GCC_PRINTF(4,5);
+    ) FLTL_VARG_CHECK_FORMAT(4,5);
 
 }}
 

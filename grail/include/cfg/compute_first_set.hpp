@@ -69,7 +69,7 @@ namespace grail { namespace cfg {
 
         typedef std::vector<bool> terminal_set_type;
 
-        first.reserve(cfg.num_variables_capacity() + 2);
+        first.assign(cfg.num_variables_capacity() + 2, 0);
 
         // allocate the sets
         variable_type V;

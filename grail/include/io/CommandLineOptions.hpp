@@ -15,8 +15,11 @@
 #include <cstdio>
 #include <cassert>
 #include <cstring>
+#include <cstdarg>
+#include <cstdio>
 
 #include "fltl/include/preprocessor/COLOR.hpp"
+#include "fltl/include/preprocessor/VARG_CHECK_FORMAT.hpp"
 
 #include "grail/include/helper/CStringMap.hpp"
 
@@ -144,6 +147,8 @@ namespace grail { namespace io {
 
         void disambiguate_undeclared(void) throw();
 
+        bool error_simple(const char *message) throw();
+
     public:
 
         CommandLineOptions(const int argc_, const char **argv_) throw();
@@ -152,8 +157,9 @@ namespace grail { namespace io {
         bool parse(void) throw();
 
         bool error(
-            const char *diag
-        ) throw();
+            const char *diag,
+            ...
+        ) throw() FLTL_VARG_CHECK_FORMAT(2, 3);
 
         void note(
             const char *diag

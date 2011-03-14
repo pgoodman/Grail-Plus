@@ -19,7 +19,7 @@
 #include "fltl/include/helper/Array.hpp"
 #include "fltl/include/helper/BlockAllocator.hpp"
 
-#include "fltl/include/mpl/Static.hpp"
+#include "grail/include/cfg/ParseTree.hpp"
 
 #define D(x)
 
@@ -33,6 +33,7 @@ namespace grail { namespace algorithm {
         // take off the templates!
         typedef fltl::CFG<AlphaT> CFG;
         typedef typename CFG::alphabet_type alphabet_type;
+        typedef typename CFG::symbol_type symbol_type;
         typedef typename CFG::traits_type traits_type;
         typedef typename CFG::variable_type variable_type;
         typedef typename CFG::pattern_type pattern_type;
@@ -41,6 +42,8 @@ namespace grail { namespace algorithm {
         typedef typename CFG::generator_type generator_type;
         typedef typename CFG::symbol_string_type symbol_string_type;
         typedef typename CFG::production_builder_type production_builder_type;
+
+        typedef cfg::ParseTree<AlphaT> parse_tree_type;
 
         class earley_item_type;
 
@@ -93,14 +96,15 @@ namespace grail { namespace algorithm {
         class earley_item_type {
         public:
             // dotted production
-            unsigned dot;
+            unsigned short dot;
             production_type production;
 
             // next item in the set
             earley_item_type *next;
 
             // the (first) item that caused this item to be generated
-            earley_item_type *antecedent;
+            earley_item_type *caused_by;
+            earley_item_type *scanned_by;
 
             // the set that first introduced the production being used. that
             // is, sliding the dot changes the set that owns an item, but not
@@ -111,20 +115,29 @@ namespace grail { namespace algorithm {
             // set
             earley_item_type *next_with_same_initial_set;
 
+            // has this item been scanned?
+            bool was_scanned;
+
             earley_item_type(void)
                 : dot(0)
                 , production()
                 , next(0)
-                , antecedent(0)
+                , caused_by(0)
+                , scanned_by(0)
                 , initial_set(0)
                 , next_with_same_initial_set(0)
+                , was_scanned(false)
             { }
 
-            void scanned_from(earley_item_type *ant) throw() {
-                dot = ant->dot + 1U;
-                production = ant->production;
-                antecedent = ant;
-                initial_set = ant->initial_set;
+            void scanned_from(
+                earley_item_type *scan,
+                earley_item_type *ant
+            ) throw() {
+                dot = scan->dot + 1U;
+                production = scan->production;
+                scanned_by = scan;
+                caused_by = ant;
+                initial_set = scan->initial_set;
             }
 
             void predicted_from(
@@ -134,8 +147,10 @@ namespace grail { namespace algorithm {
             ) throw() {
                 dot = 0;
                 production = prod;
-                antecedent = ant;
+                scanned_by = ant;
+                caused_by = 0;
                 initial_set = set;
+                ant->was_scanned = true;
             }
         };
 
@@ -208,25 +223,19 @@ namespace grail { namespace algorithm {
 
     public:
 
-        typedef enum {
-            S_PARSED,
-            E_EMPTY_LANGUAGE,
-            E_UNRECOGNIZED_TOKEN
-        } parser_state_type;
-
-        typedef struct {
-            parser_state_type state;
-            const char *last_token_read;
-        } parser_return_type;
 
         /// run the parser; assumes that the NULLABLE set is properly filled
         /// for this grammar
-        static parser_state_type run(
+        static bool run(
             CFG &cfg,
             std::vector<bool> &is_nullable,
             const bool use_first_set,
-            std::vector<std::vector<bool> *> &first_terminals
+            std::vector<std::vector<bool> *> &first_terminals,
+            const bool build_parse_tree,
+            parse_tree_type **tree
         ) throw() {
+
+            bool parse_result(false);
 
             (void) cfg;
             (void) is_nullable;
@@ -266,9 +275,11 @@ namespace grail { namespace algorithm {
             || !cfg.has_start_variable()
             || 0 == cfg.num_productions(ASV)) {
                 if(0 == tokens[0] || '\0' == *(tokens[0])) {
-                    return S_PARSED;
+                    io::verbose("Parsed. Accepted empty language.\n");
+                    return true;
                 } else {
-                    return E_EMPTY_LANGUAGE;
+                    io::verbose("Failed to parse. Language is empty.\n");
+                    return false;
                 }
             }
 
@@ -288,15 +299,14 @@ namespace grail { namespace algorithm {
             earley_item_type *curr_item(item_allocator.allocate());
             earley_set_type *curr_set(set_allocator.allocate());
             earley_set_type *prev_set(0);
+
+            earley_item_type *first_item(curr_item);
             earley_set_type *first_set(curr_set);
 
             curr_set->next = 0;
-
-            curr_item->antecedent = 0;
-            curr_item->dot = 0;
             curr_item->production = SP;
             curr_item->initial_set = curr_set;
-            curr_set->push(curr_item);
+            curr_set->push(first_item);
 
             // variables used in the patterns
             unsigned dot;
@@ -329,7 +339,10 @@ namespace grail { namespace algorithm {
 
             // for each set
             bool not_at_end(true);
-            for(earley_set_type *next_set(0);
+            earley_set_type *next_set(0);
+            earley_item_type *next_item(0);
+
+            for(;
                 0 != curr_set && not_at_end;
                 prev_set = curr_set,
                 curr_set = curr_set->next,
@@ -360,9 +373,8 @@ namespace grail { namespace algorithm {
                     // and so it can't be substituted for anything
                     } else if(0 == cfg.num_variable_terminals()){
 
-                        printf("unknown lexeme '%s'\n", serialized_token);
-
-                        return E_UNRECOGNIZED_TOKEN;
+                        io::verbose("Failed to parse all input. Unknown lexeme '%s'.\n", serialized_token);
+                        return false;
                     }
 
                     printf("looking at token '%s'...\n", serialized_token);
@@ -370,7 +382,7 @@ namespace grail { namespace algorithm {
 
                 // for each item
                 curr_item = curr_set->first;
-                for(earley_item_type *next_item(0);
+                for(next_item = 0;
                     0 != curr_item;
                     curr_item = curr_item->next) {
 
@@ -390,7 +402,7 @@ namespace grail { namespace algorithm {
                             D( printf("      predicted '%s --> epsilon'\n", cfg.get_name(B)); )
 
                             next_item = item_allocator.allocate();
-                            next_item->scanned_from(curr_item);
+                            next_item->scanned_from(curr_item, curr_item);
                             curr_set->push(indexed(
                                 set_index[curr_index],
                                 item_allocator,
@@ -439,12 +451,15 @@ namespace grail { namespace algorithm {
                             }
 
                             next_item = item_allocator.allocate();
-                            next_item->scanned_from(rel_item);
+                            next_item->scanned_from(rel_item, curr_item);
                             curr_set->push(indexed(
                                 set_index[curr_index],
                                 item_allocator,
                                 next_item
                             ));
+
+                        skip_complete_add_item:
+                            continue;
                         }
 
                     // try to "solve" this terminal
@@ -487,7 +502,7 @@ namespace grail { namespace algorithm {
                         }
 
                         next_item = item_allocator.allocate();
-                        next_item->scanned_from(curr_item);
+                        next_item->scanned_from(curr_item, curr_item);
                         next_set->push(indexed(
                             set_index[1U - curr_index],
                             item_allocator,
@@ -515,7 +530,18 @@ namespace grail { namespace algorithm {
 
                     if(1U == curr_item->dot
                     && SV == curr_item->production.variable()) {
-                        printf("parsed!\n");
+                        io::verbose("Successfully parsed.\n");
+                        parse_result = true;
+
+                        if(build_parse_tree) {
+
+                            io::verbose("Building parse tree...\n");
+                            *tree = make_parse_tree(
+                                cfg,
+                                first_item,
+                                curr_item
+                            );
+                        }
                         goto done;
                     }
                 }
@@ -523,16 +549,194 @@ namespace grail { namespace algorithm {
 
         parse_error:
 
-            printf("failed to parse all input.\n");
+            parse_result = false;
+            io::verbose("Failed to parse all input.\n");
 
         done:
 
-            (void) first_set;
+            io::verbose("Cleaning up Earley items/sets...\n");
+
+            next_set = 0;
+            for(curr_set = first_set; 0 != curr_set; curr_set = next_set) {
+                next_set = curr_set->next;
+
+                for(curr_item = curr_set->first;
+                    0 != curr_item;
+                    curr_item = next_item) {
+
+                    next_item = curr_item->next;
+
+                    item_allocator.deallocate(curr_item);
+                }
+
+                set_allocator.deallocate(curr_set);
+            }
 
             // done; clean up
             cfg.unsafe_remove_variable(SV);
 
-            return S_PARSED;
+            io::verbose("Done.\n");
+
+            return parse_result;
+        }
+#if 1
+        static void print_dotted_production(CFG &cfg, earley_item_type *item) throw() {
+            printf("%s -->", cfg.get_name(item->production.variable()));
+            symbol_string_type syms(item->production.symbols());
+            for(unsigned i(0); i < syms.length(); ++i) {
+                if(i == item->dot) {
+                    printf(" @");
+                }
+
+                if(syms.at(i).is_variable()) {
+                    printf(" %s", cfg.get_name(variable_type(syms.at(i))));
+                } else {
+                    printf(" %s", cfg.get_alpha(terminal_type(syms.at(i))));
+                }
+            }
+            if(item->dot == syms.length()) {
+                printf(" @");
+            }
+            printf("\n");
+        }
+
+        static void print_derivation(CFG &cfg, earley_item_type *item, int depth) throw() {
+
+            for(; 0 != item; item = item->caused_by) {
+                printf("%*s", depth, "");
+                print_dotted_production(cfg, item);
+
+                //if(0 != item->caused_by) {
+                //    print_derivation(cfg, item->caused_by, depth + 4);
+                //}
+            }
+        }
+
+#endif
+        static parse_tree_type *make_parse_tree(
+            CFG &cfg,
+            earley_item_type *first_item,
+            earley_item_type *final_item
+        ) throw() {
+
+            (void) cfg;
+            (void) first_item;
+
+            std::vector<parse_tree_type *> stack;
+            parse_tree_type *last(0);
+
+
+            print_derivation(cfg, final_item, 0);
+
+            return 0;
+#if 0
+                production_type prod(item->production);
+                symbol_string_type str(prod.symbols());
+                unsigned num_symbols(str.length());
+
+                // end of a derivation
+                if(item->dot == num_symbols) {
+                    stack.push_back(new parse_tree_type(prod));
+                    printf("    ");
+                    for(unsigned i(0); i < stack.size(); ++i) {
+                        printf("%s ", cfg.get_name(variable_type(stack[i]->symbol)));
+                    }
+                    printf("\n");
+                } else {
+
+                    assert(!stack.empty());
+
+                    printf("    ");
+                    for(unsigned i(0); i < stack.size(); ++i) {
+                        printf("%s ", cfg.get_name(variable_type(stack[i]->symbol)));
+                    }
+                    printf("\n");
+
+                    // add in a terminal parse tree
+                    if(str.at(item->dot).is_terminal()) {
+
+                        stack.back()->add_child(new parse_tree_type(
+                            terminal_type(str.at(item->dot)),
+                            0
+                        ));
+                    } else {
+
+                        last = stack.back();
+                        stack.pop_back();
+
+                        if(!stack.empty()) {
+                            stack.back()->add_child(last);
+                        }
+                    }
+                }
+            }
+
+            return last;
+#endif
+            /*
+            // reverse the list
+            for(earley_item_type *item(final_item), *prev(0), *next(0);
+                0 != item;
+                item = next) {
+                next = item->antecedent;
+                item->antecedent = prev;
+                prev = item;
+            }
+
+            // build the tree
+            std::vector<parse_tree_type *> stack;
+            parse_tree_type *last(0);
+
+            for(earley_item_type *item(first_item->antecedent);
+                0 != item;
+                item = item->antecedent) {
+
+                print_dotted_production(cfg, item);
+
+                production_type prod(item->production);
+                symbol_string_type str(prod.symbols());
+                unsigned num_symbols(str.length());
+
+                // end of a derivation
+                if(item->dot == num_symbols) {
+                    assert(!stack.empty());
+
+                    last = stack.back();
+                    stack.pop_back();
+
+                    if(!stack.empty()) {
+
+                        if(0 < item->dot) {
+                            if(str.at(item->dot - 1) == last->symbol) {
+
+                            }
+                        } else {
+                            stack.back()->add_child(last);
+                        }
+                    }
+
+                // pointing at a symbol
+                } else {
+
+                    if(0 == item->dot) {
+                        parse_tree_type *child(new parse_tree_type(prod));
+                        stack.push_back(child);
+                    }
+
+                    assert(!stack.empty());
+
+                    // add in a terminal parse tree
+                    if(str.at(item->dot).is_terminal()) {
+                        stack.push_back(new parse_tree_type(
+                            terminal_type(str.at(item->dot)),
+                            0
+                        ));
+                    }
+                }
+            }
+            */
+
+            return last;
         }
     };
 }}

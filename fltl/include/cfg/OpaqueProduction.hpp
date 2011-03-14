@@ -153,6 +153,18 @@ namespace fltl { namespace cfg {
         Unbound<AlphaT, production_tag> operator~(void) throw() {
             return Unbound<AlphaT, production_tag>(this);
         }
+
+        bool operator<(const self_type &that) const throw() {
+            if(0 == production && 0 == that.production) {
+                return false;
+            } else if(0 == production) {
+                return true;
+            } else if(0 == that.production) {
+                return false;
+            } else {
+                return production->is_less_than(*(that.production));
+            }
+        }
     };
 
 }}
