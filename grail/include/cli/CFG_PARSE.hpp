@@ -45,12 +45,12 @@ namespace grail { namespace cli {
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
             opt.declare("predict", io::opt::OPTIONAL, io::opt::NO_VAL);
-            io::option_type in(opt.declare("stdin", io::opt::OPTIONAL, io::opt::NO_VAL));
-            /*io::option_type tree(opt.declare(
-                "tree",
+
+            io::option_type in(opt.declare(
+                "stdin",
                 io::opt::OPTIONAL,
-                io::opt::OPTIONAL_VAL
-            ));*/
+                io::opt::NO_VAL
+            ));
 
             if(!in_help) {
                 if(in.is_valid()) {
@@ -60,21 +60,6 @@ namespace grail { namespace cli {
                     opt.declare_min_num_positional(2);
                     opt.declare_max_num_positional(2);
                 }
-
-                /*
-                if(tree.is_valid() && tree.has_value()) {
-                    if(0 != strcmp("DOT", tree.value())
-                    && 0 != strcmp("LISP", tree.value())) {
-                        opt.error(
-                            "Output format '%s' is not recognized as a "
-                            "parse tree format. Either don't specify a "
-                            "format (--tree), specify DOT (--tree=DOT), "
-                            "or specify LISP (--tree=LISP).",
-                            tree.value()
-                        );
-                        opt.note("Language specified here:", tree);
-                    }
-                }*/
             }
         }
 
@@ -93,12 +78,6 @@ namespace grail { namespace cli {
                 "                                   Each tokenmake clean should be separated by a new\n"
                 "                                   line. Typing a new line followed by Ctrl-D\n"
                 "                                   or Ctrl-Z will close stdin.\n"
-                //"    --tree[=DOT|LISP]              Output a parse tree. By default,\n"
-                //"                                   parse trees are printed to the shell\n"
-                //"                                   like a directory listing. However,\n"
-                //"                                   an alternate language can be specified.\n"
-                //"                                   If the option isn't specified then no tree\n"
-                //"                                   will be generated.\n"
                 "    <file0>                        read in a CFG from <file>.\n"
                 "    <file1>                        read in a newline-separated list of tokens\n"
                 "                                   from <file1> if --stdin is not used.\n\n",
@@ -172,12 +151,6 @@ namespace grail { namespace cli {
 
                 io::verbose("Parsing...\n");
 
-                //io::option_type tree(options["tree"]);
-                //bool build_parse_tree(tree.is_valid());
-                //cfg::ParseTree<AlphaT> *parse_tree(0);
-
-                //bool print_sets(false);
-
                 io::UTF8FileLineBuffer<1024U> reader(fp[1]);
 
                 if(algorithm::CFG_PARSE_EARLEY<AlphaT, 1024U>::run(
@@ -186,17 +159,11 @@ namespace grail { namespace cli {
                     use_first_sets,
                     first_terminals,
                     reader
-                    //build_parse_tree,
-                    //&parse_tree
                 )) {
                     printf("Yes.\n");
                 } else {
                     printf("No.\n");
                 }
-
-                //if(0 != parse_tree) {
-                //    delete parse_tree;
-                //}
 
                 // clean out the first set
                 for(unsigned i(0); i < first_terminals.size(); ++i) {
