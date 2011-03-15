@@ -96,7 +96,7 @@ namespace grail { namespace algorithm {
         class earley_item_type {
         public:
             // dotted production
-            unsigned short dot;
+            unsigned dot;
             production_type production;
 
             // next item in the set
