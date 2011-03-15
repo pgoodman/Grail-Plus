@@ -46,7 +46,7 @@ namespace grail { namespace cli {
                 "    Converts a non-deterministic pushdown automaton (PDA) into a context-free\n"
                 "    grammar (CFG).\n\n"
                 "  basic use options for %s:\n"
-                "    --stdin                        Read a PDA from stdin. Typing a new,\n"
+                "    --stdin                        Read a PDA from stdin. Typing a new\n"
                 "                                   line followed by Ctrl-D or Ctrl-Z will\n"
                 "                                   close stdin.\n"
                 "    <file>                         read in a PDA from <file>.\n\n",

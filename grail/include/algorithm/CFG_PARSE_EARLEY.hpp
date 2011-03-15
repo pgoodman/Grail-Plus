@@ -21,12 +21,15 @@
 
 #include "grail/include/cfg/ParseTree.hpp"
 
+#include "grail/include/io/verbose.hpp"
+#include "grail/include/io/UTF8FileLineBuffer.hpp"
+
 #define D(x)
 
 namespace grail { namespace algorithm {
 
     /// parse a context free grammar using an Earley-style parser
-    template <typename AlphaT>
+    template <typename AlphaT, const unsigned MAX_TOK_LENGTH>
     class CFG_PARSE_EARLEY {
     public:
 
@@ -156,9 +159,9 @@ namespace grail { namespace algorithm {
         };
 
         static void
-        clear_index(fltl::helper::Array<earley_item_type *> &index) throw() {
+        clear_index(std::vector<earley_item_type *> &index) throw() {
             for(unsigned i(0); i < index.size(); ++i) {
-                index.set(i, 0);
+                index[i] = 0;
             }
         }
 
@@ -167,7 +170,7 @@ namespace grail { namespace algorithm {
         static earley_item_type *
         indexed_push(
             earley_set_type *set,
-            fltl::helper::Array<earley_item_type *> &index,
+            std::vector<earley_item_type *> &index,
             fltl::helper::BlockAllocator<
                 earley_item_type, NUM_BLOCKS
             > &allocator,
@@ -175,7 +178,7 @@ namespace grail { namespace algorithm {
         ) throw() {
 
             const unsigned offset(item->initial_set->offset);
-            earley_item_type *&items(index.get(offset));
+            earley_item_type *&items(index[offset]);
             earley_item_type *prev(0);
 
             for(earley_item_type *curr(items);
@@ -228,29 +231,14 @@ namespace grail { namespace algorithm {
             CFG &cfg,
             std::vector<bool> &is_nullable,
             const bool use_first_set,
-            std::vector<std::vector<bool> *> &first_terminals //,
+            std::vector<std::vector<bool> *> &first_terminals,
+            io::UTF8FileLineBuffer<MAX_TOK_LENGTH> &reader
             //const bool build_parse_tree,
             //parse_tree_type **tree
         ) throw() {
 
             bool parse_result(false);
-
-            /*
-            const char *tokens[] = {
-                "platoon", "one", "assault", "checkpoint",
-                "one", "in", "vee", "formation",
-                "at", "fifty", "miles", "per",
-                "hour",
-                0
-            };
-            const unsigned num_tokens(13U);
-            */
-
-            const char *tokens[] = {
-                "1", "+", "2", "*", "(", "3", "+", "4", ")"
-            };
-            const unsigned num_tokens(9U);
-
+            const char *token(reader.read());
 
             // allocator for Earley sets
             static fltl::helper::BlockAllocator<
@@ -270,7 +258,7 @@ namespace grail { namespace algorithm {
             if(0 == cfg.num_productions()
             || !cfg.has_start_variable()
             || 0 == cfg.num_productions(ASV)) {
-                if(0 == tokens[0] || '\0' == *(tokens[0])) {
+                if(0 == token || '\0' == *token) {
                     io::verbose("Parsed. Accepted empty language.\n");
                     return true;
                 } else {
@@ -326,11 +314,9 @@ namespace grail { namespace algorithm {
 
             // indexes for the sets to test membership, +1 as there are n+1
             // sets (S_0 ... S_n) for a string of length n.
-            fltl::helper::Array<earley_item_type *> set_index[2];
-            set_index[0].reserve(num_tokens + 1U);
-            set_index[0].set_size(num_tokens + 1U);
-            set_index[1].reserve(num_tokens + 1U);
-            set_index[1].set_size(num_tokens + 1U);
+            std::vector<earley_item_type *> set_index[2];
+            set_index[0].assign(1U, static_cast<earley_item_type *>(0));
+            set_index[1].assign(1U, static_cast<earley_item_type *>(0));
             unsigned curr_index(0U);
 
             // for each set
@@ -343,22 +329,18 @@ namespace grail { namespace algorithm {
                 prev_set = curr_set,
                 curr_set = curr_set->next,
                 curr_index = 1U - curr_index,
-                ++i) {
+                ++i, token = reader.read()) {
 
-                // get the terminal
-                const char *serialized_token(tokens[i]);
+                set_index[curr_index].push_back(0);
 
                 // done the tokens
-                if(i == num_tokens) {
+                if(0 == token || '\0' == *token) {
                     not_at_end = false;
                     io::verbose("    Looking at EOF\n");
 
                 } else {
 
-                    traits_type::unserialize(
-                        serialized_token,
-                        lexeme
-                    );
+                    traits_type::unserialize(token, lexeme);
 
                     // try to get the terminal
                     solve_for_variable_terminal = !cfg.has_terminal(lexeme);
@@ -369,11 +351,11 @@ namespace grail { namespace algorithm {
                     // and so it can't be substituted for anything
                     } else if(0 == cfg.num_variable_terminals()){
 
-                        io::verbose("Failed to parse all input. Unknown lexeme '%s'.\n", serialized_token);
-                        return false;
+                        io::verbose("    Unrecognized terminal '%s'.\n", token);
+                        goto parse_error;
                     }
 
-                    io::verbose("    Looking at '%s'...\n", serialized_token);
+                    io::verbose("    Looking at '%s'...\n", token);
                 }
 
                 // for each item
@@ -410,6 +392,7 @@ namespace grail { namespace algorithm {
                         // if we're using FIRST sets then use them to skip
                         // useless predictions
                         if(use_first_set && not_at_end
+                        && !solve_for_variable_terminal
                         && !(first_terminals[B.number()]->operator[](a.number()))) {
                             continue;
                         }
@@ -478,7 +461,10 @@ namespace grail { namespace algorithm {
                                 continue;
                             }
 
-                            D( printf("   solving for '%s --> ... [%u] %s ...'\n", cfg.get_name(A), dot, cfg.get_name(a)); )
+                            io::verbose(
+                                "        Substituting as %s...\n",
+                                cfg.get_name(a)
+                            );
 
                         // we know the terminal of this lexeme
                         } else {
@@ -497,6 +483,7 @@ namespace grail { namespace algorithm {
                         if(0 == next_set) {
                             next_set = set_allocator.allocate();
                             curr_set->set_next(next_set);
+                            set_index[1U - curr_index].push_back(0);
                             clear_index(set_index[1U - curr_index]);
                         }
 
@@ -512,7 +499,7 @@ namespace grail { namespace algorithm {
                 }
             }
 
-            if(i > num_tokens) {
+            if(0 != token && '\0' == *token) {
 
                 // handle the case where we accept the empty string
                 if(0 == curr_set) {
@@ -532,25 +519,6 @@ namespace grail { namespace algorithm {
                     && SV == curr_item->production.variable()) {
                         io::verbose("Successfully parsed.\n");
                         parse_result = true;
-#if 0
-                        if(build_parse_tree) {
-
-                            io::verbose("Building parse tree...\n");
-
-                            /**tree = make_parse_tree(
-                                cfg,
-                                first_item,
-                                curr_item,
-                                num_tokens
-                            );*/
-
-                            (void) tree;
-                            curr_item->in_degree = 1;
-
-                            //remove_useless(first_set, item_allocator);
-                            print_sets(cfg, first_set);
-                        }
-#endif
                         goto done;
                     }
                 }

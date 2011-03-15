@@ -47,7 +47,7 @@ namespace grail { namespace cli {
                 "    CFG generates the empty string then the only epsilon production in the\n"
                 "    CFG will be that of the start variable.\n\n"
                 "  basic use options for %s:\n"
-                "    --stdin                        Read a CFG from stdin. Typing a new,\n"
+                "    --stdin                        Read a CFG from stdin. Typing a new\n"
                 "                                   line followed by Ctrl-D or Ctrl-Z will\n"
                 "                                   close stdin.\n"
                 "    <file>                         read in a CFG from <file>.\n\n",

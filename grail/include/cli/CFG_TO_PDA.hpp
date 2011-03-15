@@ -46,7 +46,7 @@ namespace grail { namespace cli {
                 "    Converts a context-free grammar (CFG) into a Non-deterministic Pushdown\n"
                 "    Automaton (PDA).\n\n"
                 "  basic use options for %s:\n"
-                "    --stdin                        Read a CFG from stdin. Typing a new,\n"
+                "    --stdin                        Read a CFG from stdin. Typing a new\n"
                 "                                   line followed by Ctrl-D or Ctrl-Z will\n"
                 "                                   close stdin.\n"
                 "    <file>                         read in a CFG from <file>.\n\n",

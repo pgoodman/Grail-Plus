@@ -23,6 +23,7 @@
 #include "grail/include/io/fread_cfg.hpp"
 #include "grail/include/io/fprint_parse_tree.hpp"
 #include "grail/include/io/verbose.hpp"
+#include "grail/include/io/UTF8FileLineBuffer.hpp"
 
 #include "grail/include/cfg/compute_null_set.hpp"
 #include "grail/include/cfg/compute_first_set.hpp"
@@ -44,6 +45,7 @@ namespace grail { namespace cli {
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
             opt.declare("predict", io::opt::OPTIONAL, io::opt::NO_VAL);
+            io::option_type in(opt.declare("stdin", io::opt::OPTIONAL, io::opt::NO_VAL));
             /*io::option_type tree(opt.declare(
                 "tree",
                 io::opt::OPTIONAL,
@@ -51,8 +53,13 @@ namespace grail { namespace cli {
             ));*/
 
             if(!in_help) {
-                opt.declare_min_num_positional(1);
-                opt.declare_max_num_positional(1);
+                if(in.is_valid()) {
+                    opt.declare_min_num_positional(1);
+                    opt.declare_max_num_positional(1);
+                } else {
+                    opt.declare_min_num_positional(2);
+                    opt.declare_max_num_positional(2);
+                }
 
                 /*
                 if(tree.is_valid() && tree.has_value()) {
@@ -82,13 +89,19 @@ namespace grail { namespace cli {
                 "                                   take a long time for larger\n"
                 "                                   grammars, but can also speed up\n"
                 "                                   parsing.\n"
+                "      --stdin                      Take the input tokens from standard input.\n"
+                "                                   Each tokenmake clean should be separated by a new\n"
+                "                                   line. Typing a new line followed by Ctrl-D\n"
+                "                                   or Ctrl-Z will close stdin.\n"
                 //"    --tree[=DOT|LISP]              Output a parse tree. By default,\n"
                 //"                                   parse trees are printed to the shell\n"
                 //"                                   like a directory listing. However,\n"
                 //"                                   an alternate language can be specified.\n"
                 //"                                   If the option isn't specified then no tree\n"
                 //"                                   will be generated.\n"
-                "    <file>                         read in a CFG from <file>.\n\n",
+                "    <file0>                        read in a CFG from <file>.\n"
+                "    <file1>                        read in a newline-separated list of tokens\n"
+                "                                   from <file1> if --stdin is not used.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
         }
@@ -96,22 +109,43 @@ namespace grail { namespace cli {
         static int main(io::CommandLineOptions &options) throw() {
 
             // run the tool
-            io::option_type file;
-            const char *file_name(0);
+            io::option_type file[2];
+            const char *file_name[2] = {0};
+            FILE *fp[2] = {0};
 
-            FILE *fp(0);
+            file[0] = options[0U];
+            file_name[0] = file[0].value();
+            fp[0] = fopen(file_name[0], "r");
 
-            file = options[0U];
-            file_name = file.value();
-            fp = fopen(file_name, "r");
-
-            if(0 == fp) {
-
+            if(0 == fp[0]) {
                 options.error(
                     "Unable to open file containing context-free "
                     "grammar for reading."
                 );
-                options.note("File specified here:", file);
+                options.note("File specified here:", file[0]);
+
+                return 1;
+            }
+
+            file[1] = options["stdin"];
+            if(file[1].is_valid()) {
+                fp[1] = stdin;
+                file_name[1] = "<stdin>";
+            } else {
+                file[1] = options[1U];
+                file_name[1] = file[1].value();
+                fp[1] = fopen(file_name[1], "r");
+            }
+
+            if(0 == fp[1]) {
+                options.error(
+                    "Unable to open file containing tokens to be parsed."
+                );
+                options.note("File specified here:", file[1]);
+
+                if(0 != fp[0]) {
+                    fclose(fp[0]);
+                }
 
                 return 1;
             }
@@ -119,8 +153,8 @@ namespace grail { namespace cli {
             CFG cfg;
             int ret(0);
 
-            io::verbose("Reading file '%s'...\n", file_name);
-            if(io::fread(fp, cfg, file_name)) {
+            io::verbose("Reading file '%s'...\n", file_name[0]);
+            if(io::fread(fp[0], cfg, file_name[0])) {
 
                 std::vector<bool> is_nullable;
                 std::vector<std::vector<bool> *> first_terminals;
@@ -138,17 +172,20 @@ namespace grail { namespace cli {
 
                 io::verbose("Parsing...\n");
 
-                io::option_type tree(options["tree"]);
+                //io::option_type tree(options["tree"]);
                 //bool build_parse_tree(tree.is_valid());
                 //cfg::ParseTree<AlphaT> *parse_tree(0);
 
                 //bool print_sets(false);
 
-                if(algorithm::CFG_PARSE_EARLEY<AlphaT>::run(
+                io::UTF8FileLineBuffer<1024U> reader(fp[1]);
+
+                if(algorithm::CFG_PARSE_EARLEY<AlphaT, 1024U>::run(
                     cfg,
                     is_nullable,
                     use_first_sets,
-                    first_terminals //,
+                    first_terminals,
+                    reader
                     //build_parse_tree,
                     //&parse_tree
                 )) {
@@ -173,7 +210,8 @@ namespace grail { namespace cli {
                 ret = 1;
             }
 
-            fclose(fp);
+            fclose(fp[0]);
+            fclose(fp[1]);
 
             return ret;
         }
