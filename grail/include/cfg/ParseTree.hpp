@@ -98,6 +98,17 @@ namespace grail { namespace cfg {
 
             assert(false);
         }
+
+        // can a child be added?
+        bool can_add_child(void) const throw() {
+            if(0 == num_children) {
+                return false;
+            } else if(-1 == num_children) {
+                return 0 != data.alpha;
+            } else {
+                return 0 != data.slots[0];
+            }
+        }
     };
 
 }}

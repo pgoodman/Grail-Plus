@@ -82,6 +82,7 @@ namespace grail { namespace algorithm {
                 }
 
                 item->next = 0;
+                item->current_set = this;
             }
 
             void set_next(earley_set_type *set) throw() {
@@ -103,54 +104,48 @@ namespace grail { namespace algorithm {
             earley_item_type *next;
 
             // the (first) item that caused this item to be generated
-            earley_item_type *caused_by;
-            earley_item_type *scanned_by;
+            //earley_item_type *caused_by;
+            //earley_item_type *predecessor;
 
             // the set that first introduced the production being used. that
             // is, sliding the dot changes the set that owns an item, but not
             // the set that initiated an item.
             earley_set_type *initial_set;
+            earley_set_type *current_set;
 
             // the next item in the same set that has the same initial
             // set
             earley_item_type *next_with_same_initial_set;
 
-            // has this item been scanned?
-            bool was_scanned;
-
             earley_item_type(void)
                 : dot(0)
                 , production()
                 , next(0)
-                , caused_by(0)
-                , scanned_by(0)
+                //, caused_by(0)
+                //, predecessor(0)
                 , initial_set(0)
+                , current_set(0)
                 , next_with_same_initial_set(0)
-                , was_scanned(false)
             { }
 
             void scanned_from(
-                earley_item_type *scan,
-                earley_item_type *ant
+                earley_item_type *scan
             ) throw() {
                 dot = scan->dot + 1U;
                 production = scan->production;
-                scanned_by = scan;
-                caused_by = ant;
+                //predecessor = scan;
                 initial_set = scan->initial_set;
             }
 
             void predicted_from(
-                earley_item_type *ant,
+                //earley_item_type *ant,
                 earley_set_type *set,
                 const production_type &prod
             ) throw() {
                 dot = 0;
                 production = prod;
-                scanned_by = ant;
-                caused_by = 0;
+                //predecessor = ant;
                 initial_set = set;
-                ant->was_scanned = true;
             }
         };
 
@@ -170,7 +165,8 @@ namespace grail { namespace algorithm {
         /// check the index for the existence of item, if it's in, return 0,
         /// otherwise return the item and add it to the index
         static earley_item_type *
-        indexed(
+        indexed_push(
+            earley_set_type *set,
             fltl::helper::Array<earley_item_type *> &index,
             fltl::helper::BlockAllocator<
                 earley_item_type, NUM_BLOCKS
@@ -196,6 +192,7 @@ namespace grail { namespace algorithm {
                         prev->next_with_same_initial_set = item;
                     }
 
+                    set->push(item);
                     return item;
 
                 // skip
@@ -205,7 +202,7 @@ namespace grail { namespace algorithm {
                 // same dot values, check if the productions are equivalent
                 } else if(curr->production == item->production) {
                     allocator.deallocate(item);
-                    return 0;
+                    return curr;
                 }
             }
 
@@ -218,6 +215,7 @@ namespace grail { namespace algorithm {
                 prev->next_with_same_initial_set = item;
             }
 
+            set->push(item);
             return item;
         }
 
@@ -230,15 +228,13 @@ namespace grail { namespace algorithm {
             CFG &cfg,
             std::vector<bool> &is_nullable,
             const bool use_first_set,
-            std::vector<std::vector<bool> *> &first_terminals,
-            const bool build_parse_tree,
-            parse_tree_type **tree
+            std::vector<std::vector<bool> *> &first_terminals //,
+            //const bool build_parse_tree,
+            //parse_tree_type **tree
         ) throw() {
 
             bool parse_result(false);
 
-            (void) cfg;
-            (void) is_nullable;
             /*
             const char *tokens[] = {
                 "platoon", "one", "assault", "checkpoint",
@@ -355,7 +351,7 @@ namespace grail { namespace algorithm {
                 // done the tokens
                 if(i == num_tokens) {
                     not_at_end = false;
-                    printf("looking at EOF\n");
+                    io::verbose("    Looking at EOF\n");
 
                 } else {
 
@@ -377,7 +373,7 @@ namespace grail { namespace algorithm {
                         return false;
                     }
 
-                    printf("looking at token '%s'...\n", serialized_token);
+                    io::verbose("    Looking at '%s'...\n", serialized_token);
                 }
 
                 // for each item
@@ -402,12 +398,13 @@ namespace grail { namespace algorithm {
                             D( printf("      predicted '%s --> epsilon'\n", cfg.get_name(B)); )
 
                             next_item = item_allocator.allocate();
-                            next_item->scanned_from(curr_item, curr_item);
-                            curr_set->push(indexed(
+                            next_item->scanned_from(curr_item);
+                            indexed_push(
+                                curr_set,
                                 set_index[curr_index],
                                 item_allocator,
                                 next_item
-                            ));
+                            );
                         }
 
                         // if we're using FIRST sets then use them to skip
@@ -424,16 +421,17 @@ namespace grail { namespace algorithm {
 
                             next_item = item_allocator.allocate();
                             next_item->predicted_from(
-                                curr_item,
+                                //curr_item,
                                 curr_set,
                                 prod
                             );
 
-                            curr_set->push(indexed(
+                            indexed_push(
+                                curr_set,
                                 set_index[curr_index],
                                 item_allocator,
                                 next_item
-                            ));
+                            );
                         }
 
                     // the item has the form A --> ... *
@@ -451,15 +449,16 @@ namespace grail { namespace algorithm {
                             }
 
                             next_item = item_allocator.allocate();
-                            next_item->scanned_from(rel_item, curr_item);
-                            curr_set->push(indexed(
+                            next_item->scanned_from(rel_item);
+                            next_item = indexed_push(
+                                curr_set,
                                 set_index[curr_index],
                                 item_allocator,
                                 next_item
-                            ));
+                            );
 
-                        skip_complete_add_item:
-                            continue;
+                            //next_item->caused_by = curr_item;
+                            //++(curr_item->in_degree);
                         }
 
                     // try to "solve" this terminal
@@ -469,7 +468,7 @@ namespace grail { namespace algorithm {
                         // see if we can substitute a variable terminal
                         if(solve_for_variable_terminal) {
 
-                            printf("   it is a variable terminal.\n");
+                            D( printf("   it is a variable terminal.\n"); )
 
                             // try to match this production as
                             // A --> ... * a ... for some variable terminal
@@ -479,7 +478,7 @@ namespace grail { namespace algorithm {
                                 continue;
                             }
 
-                            printf("   solving for '%s --> ... [%u] %s ...'\n", cfg.get_name(A), dot, cfg.get_name(a));
+                            D( printf("   solving for '%s --> ... [%u] %s ...'\n", cfg.get_name(A), dot, cfg.get_name(a)); )
 
                         // we know the terminal of this lexeme
                         } else {
@@ -491,7 +490,7 @@ namespace grail { namespace algorithm {
                                 continue;
                             }
 
-                            printf("   scanning for '%s --> ... [%u] %s ...'\n", cfg.get_name(A), dot, cfg.get_alpha(a));
+                            D( printf("   scanning for '%s --> ... [%u] %s ...'\n", cfg.get_name(A), dot, cfg.get_alpha(a)); )
                         }
 
                         next_set = curr_set->next;
@@ -502,12 +501,13 @@ namespace grail { namespace algorithm {
                         }
 
                         next_item = item_allocator.allocate();
-                        next_item->scanned_from(curr_item, curr_item);
-                        next_set->push(indexed(
+                        next_item->scanned_from(curr_item);
+                        next_item = indexed_push(
+                            next_set,
                             set_index[1U - curr_index],
                             item_allocator,
                             next_item
-                        ));
+                        );
                     }
                 }
             }
@@ -532,16 +532,25 @@ namespace grail { namespace algorithm {
                     && SV == curr_item->production.variable()) {
                         io::verbose("Successfully parsed.\n");
                         parse_result = true;
-
+#if 0
                         if(build_parse_tree) {
 
                             io::verbose("Building parse tree...\n");
-                            *tree = make_parse_tree(
+
+                            /**tree = make_parse_tree(
                                 cfg,
                                 first_item,
-                                curr_item
-                            );
+                                curr_item,
+                                num_tokens
+                            );*/
+
+                            (void) tree;
+                            curr_item->in_degree = 1;
+
+                            //remove_useless(first_set, item_allocator);
+                            print_sets(cfg, first_set);
                         }
+#endif
                         goto done;
                     }
                 }
@@ -579,90 +588,266 @@ namespace grail { namespace algorithm {
 
             return parse_result;
         }
-#if 1
-        static void print_dotted_production(CFG &cfg, earley_item_type *item) throw() {
-            printf("%s -->", cfg.get_name(item->production.variable()));
-            symbol_string_type syms(item->production.symbols());
+#if 0
+
+#if 0
+        static void remove_useless(
+            earley_set_type *first_set,
+            fltl::helper::BlockAllocator<
+                earley_item_type, NUM_BLOCKS
+            > &item_allocator
+        ) throw() {
+
+            for(earley_set_type *set(first_set);
+                0 != set;
+                set = set->next) {
+
+                earley_item_type **prev(&(set->first));
+
+                for(earley_item_type *item(set->first), *curr(0), *next(0);
+                    0 != item; ) {
+
+                    curr = item;
+                    for(next = item->next;
+                        0 == item->in_degree;
+                        item = next) {
+
+                        next = item->next;
+                        item_allocator.deallocate(item);
+                    }
+
+                    *prev = item;
+
+                    if(0 == item) {
+                        break;
+                    }
+
+                    prev = &(item->next);
+                }
+            }
+        }
+#endif
+
+        static void print_dotted_production(
+            CFG &cfg,
+            earley_item_type *item
+        ) throw() {
+            production_type prod(item->production);
+            const unsigned dot(item->dot);
+
+            printf(
+                "        p%p [label=<%s &rarr;",
+                reinterpret_cast<void *>(item),
+                cfg.get_name(prod.variable())
+            );
+            symbol_string_type syms(prod.symbols());
             for(unsigned i(0); i < syms.length(); ++i) {
-                if(i == item->dot) {
-                    printf(" @");
+                if(i == dot) {
+                    printf(" &middot;");
                 }
 
                 if(syms.at(i).is_variable()) {
                     printf(" %s", cfg.get_name(variable_type(syms.at(i))));
                 } else {
-                    printf(" %s", cfg.get_alpha(terminal_type(syms.at(i))));
+                    printf(" '%s' ", cfg.get_alpha(terminal_type(syms.at(i))));
                 }
             }
-            if(item->dot == syms.length()) {
-                printf(" @");
+            if(dot == syms.length()) {
+                printf(" &middot;");
             }
-            printf("\n");
+            printf(">]\n");
         }
 
-        static void print_derivation(CFG &cfg, earley_item_type *item, int depth) throw() {
+        static void print_sets(
+            CFG &cfg,
+            earley_set_type *first_set
+        ) throw() {
 
-            for(; 0 != item; item = item->caused_by) {
-                printf("%*s", depth, "");
-                print_dotted_production(cfg, item);
+            printf("digraph {\n");
+            printf("    rankdir=LR;\n");
 
-                //if(0 != item->caused_by) {
-                //    print_derivation(cfg, item->caused_by, depth + 4);
-                //}
+            for(earley_set_type *set(first_set);
+                0 != set;
+                set = set->next) {
+
+                printf("    subgraph cluster_%u {\n", set->offset);
+                printf("        style=filled;\n");
+                printf("        node [style=filled,color=white];\n");
+                printf("        color=lightgrey;\n");
+                printf("        rankdir=TB;\n");
+                printf("        label = < S<sub>%u</sub> >;\n", set->offset);
+
+                for(earley_item_type *item(set->first);
+                    0 != item;
+                    item = item->next) {
+
+                    print_dotted_production(cfg, item);
+
+                    if(0 != item->predecessor
+                    && set == item->predecessor->current_set) {
+
+                        printf(
+                            "        p%p -> p%p [style=dotted];\n",
+                            reinterpret_cast<void *>(item),
+                            reinterpret_cast<void *>(item->predecessor)
+                        );
+
+                    }
+
+                    if(0 != item->caused_by
+                    && set == item->caused_by->current_set) {
+                        printf(
+                            "        p%p -> p%p;\n",
+                            reinterpret_cast<void *>(item),
+                            reinterpret_cast<void *>(item->caused_by)
+                        );
+                    }
+                }
+
+                printf("    }\n");
+
             }
+
+            for(earley_set_type *set(first_set);
+                0 != set;
+                set = set->next) {
+
+                for(earley_item_type *item(set->first);
+                    0 != item;
+                    item = item->next) {
+
+                    if(0 != item->predecessor
+                    && set != item->predecessor->current_set) {
+                        printf(
+                            "    p%p -> p%p [style=dotted];\n",
+                            reinterpret_cast<void *>(item),
+                            reinterpret_cast<void *>(item->predecessor)
+                        );
+                    }
+
+                    if(0 != item->caused_by
+                    && set != item->caused_by->current_set) {
+                        printf(
+                            "    p%p -> p%p;\n",
+                            reinterpret_cast<void *>(item),
+                            reinterpret_cast<void *>(item->caused_by)
+                        );
+                    }
+                }
+            }
+
+            printf("}\n");
+
         }
 
+#if 0
+        static earley_item_type *get_derivation(
+            CFG &cfg,
+            earley_item_type *first,
+            earley_item_type **last,
+            bool *seen_final
+        ) throw() {
+            if(0 == first) {
+                return 0;
+            }
+
+            if(*seen_final) {
+                return 0;
+            }
+
+            earley_item_type *prev(0);
+            for(earley_item_type *item(first), *next(0);
+                0 != item;
+                item = next) {
+
+                if(0 != prev) {
+                    prev->scanned_by = item;
+                }
+
+                prev = item;
+                next = item->scanned_by;
+
+                if(0 == item->caused_by && 0 == item->scanned_by) {
+                    *seen_final = true;
+                    item->scanned_by = 0;
+                    goto done;
+                }
+
+                print_dotted_production(cfg, item->production, item->dot);
+
+                item->scanned_by = get_derivation(
+                    cfg,
+                    item->caused_by,
+                    &prev,
+                    seen_final
+                );
+
+                if(*seen_final) {
+                    break;
+                }
+            }
+
+        done:
+
+            *last = prev;
+            return first;
+        }
 #endif
+#endif
+#if 0
         static parse_tree_type *make_parse_tree(
             CFG &cfg,
             earley_item_type *first_item,
-            earley_item_type *final_item
+            earley_item_type *final_item,
+            const unsigned num_tokens
         ) throw() {
 
-            (void) cfg;
             (void) first_item;
+            (void) cfg;
+            (void) num_tokens;
+#if 0
+            earley_item_type *end(0);
+            bool seen_final(false);
+            earley_item_type *begin(get_derivation(
+                cfg,
+                final_item,
+                &end,
+                &seen_final
+            ));
 
             std::vector<parse_tree_type *> stack;
+            std::vector<earley_item_type *> shadow;
             parse_tree_type *last(0);
 
+            for(earley_item_type *item(begin);
+                0 != item;
+                item = item->scanned_by) {
 
-            print_derivation(cfg, final_item, 0);
-
-            return 0;
-#if 0
                 production_type prod(item->production);
                 symbol_string_type str(prod.symbols());
-                unsigned num_symbols(str.length());
 
-                // end of a derivation
-                if(item->dot == num_symbols) {
-                    stack.push_back(new parse_tree_type(prod));
+                printf("\n");
+                print_dotted_production(cfg, item->production, item->dot);
+                for(unsigned i(0); i < shadow.size(); ++i) {
                     printf("    ");
-                    for(unsigned i(0); i < stack.size(); ++i) {
-                        printf("%s ", cfg.get_name(variable_type(stack[i]->symbol)));
-                    }
-                    printf("\n");
-                } else {
+                    print_dotted_production(cfg, shadow[i]->production, shadow[i]->dot);
+                }
 
+                if(item->dot == str.length()) {
+                    stack.push_back(new parse_tree_type(prod));
+                    shadow.push_back(item);
+                } else {
                     assert(!stack.empty());
 
-                    printf("    ");
-                    for(unsigned i(0); i < stack.size(); ++i) {
-                        printf("%s ", cfg.get_name(variable_type(stack[i]->symbol)));
-                    }
-                    printf("\n");
-
-                    // add in a terminal parse tree
                     if(str.at(item->dot).is_terminal()) {
-
                         stack.back()->add_child(new parse_tree_type(
                             terminal_type(str.at(item->dot)),
                             0
                         ));
                     } else {
-
                         last = stack.back();
                         stack.pop_back();
+                        shadow.pop_back();
 
                         if(!stack.empty()) {
                             stack.back()->add_child(last);
@@ -670,74 +855,126 @@ namespace grail { namespace algorithm {
                     }
                 }
             }
-
-            return last;
 #endif
-            /*
-            // reverse the list
-            for(earley_item_type *item(final_item), *prev(0), *next(0);
-                0 != item;
-                item = next) {
-                next = item->antecedent;
-                item->antecedent = prev;
-                prev = item;
-            }
-
-            // build the tree
+#if 0
             std::vector<parse_tree_type *> stack;
+            std::vector<earley_item_type *> shadow;
             parse_tree_type *last(0);
 
-            for(earley_item_type *item(first_item->antecedent);
-                0 != item;
-                item = item->antecedent) {
+            if(first_item == final_item) {
+                return 0;
+            }
 
-                print_dotted_production(cfg, item);
+
+
+
+            for(earley_item_type *next(0), *item(final_item);
+                0 != item;
+                item = item->scanned_by) {
+
+                (void) next;
+
+                printf("\n%p, %p, S_%u: ", reinterpret_cast<void *>(item->caused_by), reinterpret_cast<void *>(item->scanned_by), item->initial_set->offset);
+                print_dotted_production(cfg, item->production, item->dot);
+
+                make_parse_tree(cfg, 0, item->caused_by, num_tokens);
+
+#if 0
+                (void) next;
+
+#if 0
+                if(!stack.empty()) {
+                    const unsigned offset(item->initial_set->offset);
+                    earley_item_type *top(shadow.back());
+
+                    if(offset < top->initial_set->offset) {
+
+                        continue;
+                    }
+
+                    /*
+                    for(earley_item_type *top(shadow.back());
+                        offset < top->initial_set->offset; ) {
+
+                        printf("POPPING: ");
+
+                        shadow.pop_back();
+                        delete (stack.back());
+
+                        stack.pop_back();
+
+                        assert(!stack.empty());
+
+                        top = shadow.back();
+                    }*/
+                }
+#endif
+                printf("\n%p, %p, S_%u: ", reinterpret_cast<void *>(item->caused_by), reinterpret_cast<void *>(item->scanned_by), item->initial_set->offset);
+                print_dotted_production(cfg, item->production, item->dot);
+
+                for(earley_item_type *scan(item->scanned_by);
+                    0 != scan; scan = scan->scanned_by) {
+
+                    if(0 == scan->caused_by) {
+                        break;
+                    }
+
+                    printf("    %p, %p, S_%u: ", reinterpret_cast<void *>(scan->caused_by), reinterpret_cast<void *>(scan->scanned_by), scan->initial_set->offset);
+                    print_dotted_production(cfg, scan->production, scan->dot);
+                }
+
+#if 0
+                for(unsigned i(0); i < shadow.size(); ++i) {
+                    printf("    ");
+                    printf("%p, %p, %p, S_%u: ", reinterpret_cast<void *>(shadow[i]), reinterpret_cast<void *>(shadow[i]->caused_by), reinterpret_cast<void *>(shadow[i]->scanned_by), shadow[i]->initial_set->offset);
+                    print_dotted_production(cfg, shadow[i]->production, shadow[i]->dot);
+                }
+
+                if(0 != item->caused_by) {
+                    printf("CAUSED: ");
+                    next = item->caused_by;
+                } else {
+                    printf("SCANNED: ");
+                    next = item->scanned_by;
+                }
 
                 production_type prod(item->production);
                 symbol_string_type str(prod.symbols());
-                unsigned num_symbols(str.length());
 
-                // end of a derivation
-                if(item->dot == num_symbols) {
-                    assert(!stack.empty());
-
-                    last = stack.back();
-                    stack.pop_back();
-
-                    if(!stack.empty()) {
-
-                        if(0 < item->dot) {
-                            if(str.at(item->dot - 1) == last->symbol) {
-
-                            }
-                        } else {
-                            stack.back()->add_child(last);
-                        }
-                    }
-
-                // pointing at a symbol
-                } else {
-
+                if(item->dot == str.length()) {
                     if(0 == item->dot) {
-                        parse_tree_type *child(new parse_tree_type(prod));
-                        stack.push_back(child);
+                        assert(!stack.empty());
+                        stack.back()->add_child(new parse_tree_type(prod));
+                    } else {
+                        stack.push_back(new parse_tree_type(prod));
+                        shadow.push_back(item);
                     }
-
+                } else {
                     assert(!stack.empty());
 
-                    // add in a terminal parse tree
                     if(str.at(item->dot).is_terminal()) {
-                        stack.push_back(new parse_tree_type(
+                        stack.back()->add_child(new parse_tree_type(
                             terminal_type(str.at(item->dot)),
                             0
                         ));
+                    } else {
+                        last = stack.back();
+                        stack.pop_back();
+                        shadow.pop_back();
+
+                        if(!stack.empty()) {
+                            stack.back()->add_child(last);
+                        }
                     }
                 }
+#endif
+#endif
             }
-            */
+#endif
 
             return last;
         }
+#endif
     };
 }}
 

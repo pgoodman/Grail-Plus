@@ -754,6 +754,11 @@ namespace grail { namespace io {
 
             warning(diag::warn_unknown_option, opt);
 
+            if(0 != opt->opt_begin && 0 == opt->val_begin) {
+                opt->is_positional_candidate = false;
+                continue;
+            }
+
             if(!opt->is_positional_candidate) {
                 continue;
             }

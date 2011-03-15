@@ -44,16 +44,17 @@ namespace grail { namespace cli {
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
             opt.declare("predict", io::opt::OPTIONAL, io::opt::NO_VAL);
-            io::option_type tree(opt.declare(
+            /*io::option_type tree(opt.declare(
                 "tree",
                 io::opt::OPTIONAL,
                 io::opt::OPTIONAL_VAL
-            ));
+            ));*/
 
             if(!in_help) {
                 opt.declare_min_num_positional(1);
                 opt.declare_max_num_positional(1);
 
+                /*
                 if(tree.is_valid() && tree.has_value()) {
                     if(0 != strcmp("DOT", tree.value())
                     && 0 != strcmp("LISP", tree.value())) {
@@ -66,7 +67,7 @@ namespace grail { namespace cli {
                         );
                         opt.note("Language specified here:", tree);
                     }
-                }
+                }*/
             }
         }
 
@@ -81,12 +82,12 @@ namespace grail { namespace cli {
                 "                                   take a long time for larger\n"
                 "                                   grammars, but can also speed up\n"
                 "                                   parsing.\n"
-                "    --tree[=DOT|LISP]              Output a parse tree. By default,\n"
-                "                                   parse trees are printed to the shell\n"
-                "                                   like a directory listing. However,\n"
-                "                                   an alternate language can be specified.\n"
-                "                                   If the option isn't specified then no tree\n"
-                "                                   will be generated.\n"
+                //"    --tree[=DOT|LISP]              Output a parse tree. By default,\n"
+                //"                                   parse trees are printed to the shell\n"
+                //"                                   like a directory listing. However,\n"
+                //"                                   an alternate language can be specified.\n"
+                //"                                   If the option isn't specified then no tree\n"
+                //"                                   will be generated.\n"
                 "    <file>                         read in a CFG from <file>.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
@@ -138,21 +139,27 @@ namespace grail { namespace cli {
                 io::verbose("Parsing...\n");
 
                 io::option_type tree(options["tree"]);
-                bool build_parse_tree(tree.is_valid());
-                cfg::ParseTree<AlphaT> *parse_tree(0);
+                //bool build_parse_tree(tree.is_valid());
+                //cfg::ParseTree<AlphaT> *parse_tree(0);
 
-                algorithm::CFG_PARSE_EARLEY<AlphaT>::run(
+                //bool print_sets(false);
+
+                if(algorithm::CFG_PARSE_EARLEY<AlphaT>::run(
                     cfg,
                     is_nullable,
                     use_first_sets,
-                    first_terminals,
-                    build_parse_tree,
-                    &parse_tree
-                );
-
-                if(0 != parse_tree) {
-                    delete parse_tree;
+                    first_terminals //,
+                    //build_parse_tree,
+                    //&parse_tree
+                )) {
+                    printf("Yes.\n");
+                } else {
+                    printf("No.\n");
                 }
+
+                //if(0 != parse_tree) {
+                //    delete parse_tree;
+                //}
 
                 // clean out the first set
                 for(unsigned i(0); i < first_terminals.size(); ++i) {
