@@ -74,7 +74,7 @@ namespace grail { namespace cli {
                 "                                   take a long time for larger\n"
                 "                                   grammars, but can also speed up\n"
                 "                                   parsing.\n"
-                "      --stdin                      Take the input tokens from standard input.\n"
+                "    --stdin                        Take the input tokens from standard input.\n"
                 "                                   Each tokenmake clean should be separated by a new\n"
                 "                                   line. Typing a new line followed by Ctrl-D\n"
                 "                                   or Ctrl-Z will close stdin.\n"
@@ -132,7 +132,6 @@ namespace grail { namespace cli {
             CFG cfg;
             int ret(0);
 
-            io::verbose("Reading file '%s'...\n", file_name[0]);
             if(io::fread(fp[0], cfg, file_name[0])) {
 
                 std::vector<bool> is_nullable;

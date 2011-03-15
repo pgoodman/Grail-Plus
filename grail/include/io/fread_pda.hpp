@@ -22,6 +22,7 @@
 #include "grail/include/io/error.hpp"
 #include "grail/include/io/fread.hpp"
 #include "grail/include/io/UTF8FileBuffer.hpp"
+#include "grail/include/io/verbose.hpp"
 
 #include "grail/include/io/detail/find_next.hpp"
 #include "grail/include/io/detail/find_string.hpp"
@@ -404,6 +405,8 @@ namespace grail { namespace io {
             return false;
         }
 
+        io::verbose("Reading PDA from '%s'...\n", file_name);
+
         pda::token_type tt(pda::T_END);
         UTF8FileBuffer<pda::BUFFER_SIZE> buffer(ff);
 
@@ -633,6 +636,11 @@ namespace grail { namespace io {
         }
 
     done:
+
+        io::verbose("    %u states,\n", PDA.num_states());
+        io::verbose("        %u accept states,\n", PDA.num_accept_states());
+        io::verbose("    %u transitions,\n", PDA.num_transitions());
+        io::verbose("    %u symbols.\n", PDA.num_symbols());
 
         return true;
     }

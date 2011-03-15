@@ -18,6 +18,7 @@
 
 #include "grail/include/io/error.hpp"
 #include "grail/include/io/fread.hpp"
+#include "grail/include/io/verbose.hpp"
 #include "grail/include/io/UTF8FileBuffer.hpp"
 
 #include "grail/include/io/detail/find_balanced.hpp"
@@ -480,6 +481,8 @@ namespace grail { namespace io {
             return false;
         }
 
+        io::verbose("Reading CFG from '%s'...\n", file_name);
+
         cfg::token_type tt(cfg::T_END);
         UTF8FileBuffer<cfg::BUFFER_SIZE> buffer(ff);
 
@@ -621,6 +624,12 @@ namespace grail { namespace io {
         }
 
     done_parsing:
+
+        io::verbose("    %u variables,\n", CFG.num_variables());
+        io::verbose("    %u productions,\n", CFG.num_productions());
+        io::verbose("    %u terminals,\n", CFG.num_terminals());
+        io::verbose("    %u variable terminals.\n", CFG.num_variable_terminals());
+
         return true;
     }
 

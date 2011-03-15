@@ -15,6 +15,7 @@
 
 #include "grail/include/io/fread.hpp"
 #include "grail/include/io/fread_pda.hpp"
+#include "grail/include/io/verbose.hpp"
 
 #include "fltl/include/NFA.hpp"
 
@@ -41,6 +42,8 @@ namespace grail { namespace io {
         if(0 == ff) {
             return false;
         }
+
+        io::verbose("Reading NFA from '%s'...\n", file_name);
 
         pda::token_type tt(pda::T_END);
         pda::token_type prev_tt(pda::T_END);
@@ -221,6 +224,11 @@ namespace grail { namespace io {
         }
 
     done:
+
+        io::verbose("    %u states,\n", NFA.num_states());
+        io::verbose("        %u accept states,\n", NFA.num_accept_states());
+        io::verbose("    %u transitions,\n", NFA.num_transitions());
+        io::verbose("    %u symbols.\n", NFA.num_symbols());
 
         return true;
     }
