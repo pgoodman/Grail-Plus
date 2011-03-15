@@ -203,22 +203,22 @@ namespace grail { namespace io {
                         &detail::iskeychar
                     );
 
-                    CommandLineOption *&opt(opt::long_options.get(
+                    CommandLineOption *&curr_opt(opt::long_options.get(
                         first_char,
                         next_char
                     ));
 
-                    if(0 != opt) {
+                    if(0 != curr_opt) {
                         error(diag::err_redefine_option, i, offset + 2UL);
                         note(
                             diag::note_prev_option_definition,
-                            opt
+                            curr_opt
                         );
                         return false;
                     }
 
                     // add in the option
-                    opt = last_karg = make_option(i, first_char);
+                    curr_opt = last_karg = make_option(i, first_char);
                     last_karg->is_positional_candidate = true;
                     seen_equal = false;
                     last_is_short = false;
@@ -230,20 +230,20 @@ namespace grail { namespace io {
                 // short option
                 } else if(isalpha(*first_char)) {
 
-                    const size_t opt(detail::alpha_to_offset(*first_char));
+                    const size_t opt_offset(detail::alpha_to_offset(*first_char));
 
                     // the option already exists!
-                    if(0 != opt::short_options[opt]) {
+                    if(0 != opt::short_options[opt_offset]) {
                         error(diag::err_redefine_option, i, offset + 1UL);
                         note(
                             diag::note_prev_option_definition,
-                            opt::short_options[opt]
+                            opt::short_options[opt_offset]
                         );
                         return false;
                     }
 
                     // make the option
-                    opt::short_options[opt] = last_karg = make_option(
+                    opt::short_options[opt_offset] = last_karg = make_option(
                         i,
                         first_char
                     );
