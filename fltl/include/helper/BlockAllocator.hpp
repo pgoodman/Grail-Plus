@@ -36,7 +36,7 @@
 
 #include "fltl/include/trait/Uncopyable.hpp"
 
-#define FLTL_USE_BLOCK_ALLOCATOR 0
+#define FLTL_USE_BLOCK_ALLOCATOR 1
 
 namespace fltl { namespace helper {
 
