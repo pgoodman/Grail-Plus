@@ -47,6 +47,8 @@ namespace grail { namespace io { namespace detail {
         const char * const scratch_end,
         bool (*predicate)(const char *)
     ) throw() {
+        (void) scratch_end;
+
         const char *codepoint(0);
         for(;;) {
             codepoint = buffer.read();
