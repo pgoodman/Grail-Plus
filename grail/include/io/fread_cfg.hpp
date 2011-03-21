@@ -465,7 +465,9 @@ namespace grail { namespace io {
                                 );
                                 return cfg::T_ERROR;
 
-                            default: break;
+                            case detail::SYMBOL_ACCEPT:
+                            default:
+                                break;
                             }
                         }
 

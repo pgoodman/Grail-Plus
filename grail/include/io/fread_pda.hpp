@@ -568,7 +568,17 @@ namespace grail { namespace io {
                 ++next_seen_state;
                 break;
 
-            default: break;
+            case pda::T_ERROR:
+            case pda::T_END:
+            case pda::T_NEW_LINE:
+            case pda::T_COMMA:
+            case pda::T_SLASH:
+            case pda::T_FINAL_SET:
+            case pda::T_FINAL:
+            case pda::T_START_SET:
+            case pda::T_START:
+            default:
+                break;
             }
 
             switch(state) {
