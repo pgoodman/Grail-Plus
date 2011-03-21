@@ -39,7 +39,7 @@
 
 #include "grail/include/helper/CStringMap.hpp"
 
-namespace {
+namespace grail {
 
     enum {
         GRAIL_MAJOR_VERSION = 0,
@@ -111,14 +111,14 @@ namespace {
 #endif
 
 #define GRAIL_DECLARE_TOOL(tpl) \
-    static ToolMeta cli__ ## tpl ## __meta = { \
+    static grail::ToolMeta cli__ ## tpl ## __meta = { \
         0, \
-        grail::cli::tpl<alphabet_type>::main, \
-        grail::cli::tpl<alphabet_type>::declare, \
-        grail::cli::tpl<alphabet_type>::help, \
-        &(grail::cli::tpl<alphabet_type>::TOOL_NAME) \
+        grail::cli::tpl<grail::alphabet_type>::main, \
+        grail::cli::tpl<grail::alphabet_type>::declare, \
+        grail::cli::tpl<grail::alphabet_type>::help, \
+        &(grail::cli::tpl<grail::alphabet_type>::TOOL_NAME) \
     }; \
-    static ToolAdder cli__ ## tpl (&(cli__ ## tpl ## __meta));
+    static grail::ToolAdder cli__ ## tpl (&(cli__ ## tpl ## __meta));
 
 }
 
