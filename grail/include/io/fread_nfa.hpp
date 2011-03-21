@@ -139,7 +139,12 @@ namespace grail { namespace io {
                 case pda::T_END:
                     strcpy(scratch, "<EOF>");
                     break;
-                default: break;
+                case pda::T_ERROR:
+                case pda::T_INPUT_SYMBOL:
+                case pda::T_STACK_SYMBOL:
+                case pda::T_STATE:
+                default:
+                    break;
                 }
 
                 error(
@@ -149,6 +154,10 @@ namespace grail { namespace io {
                     scratch, prev_state
                 );
                 return false;
+
+            case nfa::STATE_START:
+            default:
+                break;
             }
         }
 

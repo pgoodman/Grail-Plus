@@ -485,7 +485,12 @@ namespace grail { namespace io {
                 case pda::T_END:
                     strcpy(scratch, "<EOF>");
                     break;
-                default: break;
+
+                case pda::T_INPUT_SYMBOL:
+                case pda::T_STACK_SYMBOL:
+                case pda::T_STATE:
+                default:
+                    break;
                 }
 
                 error(
@@ -649,7 +654,14 @@ namespace grail { namespace io {
 
                 break;
 
-            default: break;
+            case pda::STATE_ADDED_NFA_TRANS:
+            case pda::STATE_ADDED_NO_PUSH:
+            case pda::STATE_SEEN_COMMA:
+            case pda::STATE_SEEN_FINAL_SET:
+            case pda::STATE_SEEN_START_SET:
+            case pda::STATE_SINK:
+            default:
+                break;
             }
         }
 

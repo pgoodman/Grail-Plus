@@ -560,7 +560,12 @@ namespace grail { namespace io {
                 case cfg::T_END:
                     strcpy(scratch, "<EOF>");
                     break;
-                default: break;
+
+                case cfg::T_ERROR:
+                case cfg::T_SYMBOL:
+                case cfg::T_TERMINAL:
+                default:
+                    break;
                 }
 
                 error(
