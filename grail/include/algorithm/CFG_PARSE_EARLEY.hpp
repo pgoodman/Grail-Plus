@@ -181,10 +181,9 @@ namespace grail { namespace algorithm {
         ) throw() {
 
             const unsigned offset(item->initial_set->offset);
-            earley_item_type *&items(index[offset]);
             earley_item_type *prev(0);
 
-            for(earley_item_type *curr(items);
+            for(earley_item_type *curr(index[offset]);
                 0 != curr;
                 prev = curr, curr = curr->next_with_same_initial_set) {
 
@@ -193,7 +192,7 @@ namespace grail { namespace algorithm {
                     item->next_with_same_initial_set = curr;
 
                     if(0 == prev) {
-                        items = item;
+                        index[offset] = item;
                     } else {
                         prev->next_with_same_initial_set = item;
                     }
@@ -214,7 +213,7 @@ namespace grail { namespace algorithm {
 
             // the set was empty
             if(0 == prev) {
-                items = item;
+                index[offset] = item;
 
             // this item is going at the end
             } else {
