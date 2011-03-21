@@ -33,7 +33,7 @@ namespace fltl { namespace cfg {
 
     /// buffer for building productions
     template <typename AlphaT>
-    class ProductionBuilder : protected trait::Uncopyable {
+    class ProductionBuilder : public trait::Uncopyable {
     private:
 
         friend class CFG<AlphaT>;
