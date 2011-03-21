@@ -223,34 +223,40 @@ namespace grail { namespace io {
                     // java CUP-like code block
                     if(':' == ch) {
 
-                        const bool find_close(detail::find_next<
-                            cfg::BUFFER_SIZE,
-                            LOOK_FOR_ERRORS
-                        >(
-                            buffer, ":}"
-                        ));
+                        if(LOOK_FOR_ERRORS) {
+                            const bool find_close(detail::find_next<
+                                cfg::BUFFER_SIZE,
+                                LOOK_FOR_ERRORS
+                            >(
+                                buffer, ":}"
+                            ));
 
-                        if(LOOK_FOR_ERRORS && !find_close) {
+                            if(!find_close) {
+
+                                error(
+                                    file_name, buffer.line(), buffer.column(),
+                                    "Expected ':}' as a closing to match the "
+                                    "opening '{:' from line %u, column %u.",
+                                    temp_line, temp_col
+                                );
+                                return cfg::T_ERROR;
+                            }
+                        }
+
+                    // code block following C-language conventions of balanced
+                    // braces, chew braces until they balance!
+                    } else if(LOOK_FOR_ERRORS) {
+
+                        if('\0' == ch) {
                             error(
                                 file_name, buffer.line(), buffer.column(),
-                                "Expected ':}' as a closing to match the opening "
-                                "'{:' from line %u, column %u.",
-                                temp_line, temp_col
+                                "Expected something after the '{' (e.g. "
+                                "inline code) but instead the file abruptly "
+                                "ended!"
                             );
                             return cfg::T_ERROR;
                         }
 
-                    } else if(LOOK_FOR_ERRORS && '\0' == ch) {
-                        error(
-                            file_name, buffer.line(), buffer.column(),
-                            "Expected something after the '{' (e.g. inline "
-                            "code) but instead the file abruptly ended!"
-                        );
-                        return cfg::T_ERROR;
-
-                    // code block following C-language conventions of balanced
-                    // braces, chew braces until they balance!
-                    } else {
                         const bool find_close(detail::find_balanced<
                             cfg::BUFFER_SIZE,
                             LOOK_FOR_ERRORS
@@ -258,11 +264,12 @@ namespace grail { namespace io {
                             buffer, '{', '}'
                         ));
 
-                        if(LOOK_FOR_ERRORS && !find_close) {
+                        if(!find_close) {
                             error(
                                 file_name, buffer.line(), buffer.column(),
-                                "Expected to find a balanced number of '{' and "
-                                "'}' starting from line %u, column %u.",
+                                "Expected to find a balanced number of "
+                                "'{' and '}' starting from line %u, "
+                                "column %u.",
                                 temp_line, temp_col
                             );
                             return cfg::T_ERROR;

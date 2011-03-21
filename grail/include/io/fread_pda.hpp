@@ -489,6 +489,7 @@ namespace grail { namespace io {
                 case pda::T_INPUT_SYMBOL:
                 case pda::T_STACK_SYMBOL:
                 case pda::T_STATE:
+                case pda::T_ERROR:
                 default:
                     break;
                 }

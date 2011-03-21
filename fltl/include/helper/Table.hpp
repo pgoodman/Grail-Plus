@@ -40,6 +40,13 @@ namespace fltl { namespace helper {
         const unsigned num_cols;
         T *slots;
 
+        typedef Table<T> self_type;
+
+        self_type &operator=(const self_type &) throw() {
+            assert(false);
+            return *this;
+        }
+
     public:
 
         Table(const unsigned nr, const unsigned nc) throw()
