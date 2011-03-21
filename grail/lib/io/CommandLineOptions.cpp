@@ -95,6 +95,12 @@ namespace grail { namespace io {
         , next(0)
     { }
 
+    CommandLineOptions &
+    CommandLineOptions::operator=(const CommandLineOptions &) throw() {
+        assert(false);
+        return *this;
+    }
+
     /// initialize the begin and end offsets for a command line option
     /// this attempt
     const char *CommandLineOption::init(

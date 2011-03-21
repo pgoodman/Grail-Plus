@@ -261,8 +261,11 @@ namespace fltl {
             // clean up transitions
             for(unsigned i(0); i < next_state_id; ++i) {
                 pda::Transition<AlphaT> *&trans(state_transitions.get(i));
+                pda::Transition<AlphaT> *trans_ptr(static_cast<
+                    pda::Transition<AlphaT> *
+                >(trans));
 
-                for(pda::Transition<AlphaT> *curr(trans), *next(0);
+                for(pda::Transition<AlphaT> *curr(trans_ptr), *next(0);
                     0 != curr;
                     curr = next) {
 

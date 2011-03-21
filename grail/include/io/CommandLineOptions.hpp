@@ -167,6 +167,8 @@ namespace grail { namespace io {
 
         bool error_simple(const char *message) throw();
 
+        CommandLineOptions &operator=(const CommandLineOptions &) throw();
+
     public:
 
         CommandLineOptions(const int argc_, const char **argv_) throw();
