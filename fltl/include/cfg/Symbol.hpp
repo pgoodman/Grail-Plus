@@ -29,23 +29,6 @@
 #ifndef FLTL_SYMBOL_HPP_
 #define FLTL_SYMBOL_HPP_
 
-namespace fltl {
-    template <typename> class CFG;
-    template <typename> class Variable;
-    template <typename> class Production;
-    template <typename> class OpaqueProduction;
-    template <typename> class ProductionBuilder;
-    template <typename> class SymbolString;
-    template <typename> class VariableSymbol;
-    template <typename> class TerminalSymbol;
-
-    namespace detail {
-        template <typename> class SimpleGenerator;
-        template <typename> class PatternData;
-        template <typename,typename> class PatternGenerator;
-    }
-}
-
 namespace fltl { namespace cfg {
 
     /// grammar symbol (non-terminal or terminal)
