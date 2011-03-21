@@ -295,21 +295,25 @@ namespace grail { namespace io {
                     // yacc code block
                     } else if('{' == ch) {
 
-                        const bool find_close(detail::find_next<
-                            cfg::BUFFER_SIZE,
-                            LOOK_FOR_ERRORS
-                        >(
-                            buffer, "%}"
-                        ));
+                        if(LOOK_FOR_ERRORS) {
 
-                        if(LOOK_FOR_ERRORS && !find_close) {
-                            error(
-                                file_name, buffer.line(), buffer.column(),
-                                "Expected '%%}' as a closing to match the opening "
-                                "'%%{' from line %u, column %u.",
-                                temp_line, temp_col
-                            );
-                            return cfg::T_ERROR;
+                            const bool find_close(detail::find_next<
+                                cfg::BUFFER_SIZE,
+                                LOOK_FOR_ERRORS
+                            >(
+                                buffer, "%}"
+                            ));
+
+                            if(!find_close) {
+                                error(
+                                    file_name, buffer.line(), buffer.column(),
+                                    "Expected '%%}' as a closing to match "
+                                    "the opening '%%{' from line %u, column "
+                                    "%u.",
+                                    temp_line, temp_col
+                                );
+                                return cfg::T_ERROR;
+                            }
                         }
 
                     } else if(LOOK_FOR_ERRORS && '\0' == ch) {
@@ -317,8 +321,8 @@ namespace grail { namespace io {
                         error(
                             file_name, buffer.line(), buffer.column(),
                             "It looks like you were trying to specify a "
-                            "Yacc-like special symbol that starts with a '%%' "
-                            "but instead the file ended abruptly!"
+                            "Yacc-like special symbol that starts with a "
+                            "'%%' but instead the file ended abruptly!"
                         );
 
                         return cfg::T_ERROR;
@@ -343,22 +347,25 @@ namespace grail { namespace io {
                     // C-style comments
                     if('*' == ch) {
 
-                        const bool find_close(detail::find_next<
-                            cfg::BUFFER_SIZE,
-                            LOOK_FOR_ERRORS
-                        >(
-                            buffer, "*/"
-                        ));
+                        if(LOOK_FOR_ERRORS) {
 
-                        if(LOOK_FOR_ERRORS && !find_close) {
-                            error(
-                                file_name, buffer.line(), buffer.column(),
-                                "Expected '*/' as a closing to match the "
-                                "opening '/*' C-style comment block from "
-                                "line %u, column %u.",
-                                temp_line, temp_col
-                            );
-                            return cfg::T_ERROR;
+                            const bool find_close(detail::find_next<
+                                cfg::BUFFER_SIZE,
+                                LOOK_FOR_ERRORS
+                            >(
+                                buffer, "*/"
+                            ));
+
+                            if(!find_close) {
+                                error(
+                                    file_name, buffer.line(), buffer.column(),
+                                    "Expected '*/' as a closing to match the "
+                                    "opening '/*' C-style comment block from "
+                                    "line %u, column %u.",
+                                    temp_line, temp_col
+                                );
+                                return cfg::T_ERROR;
+                            }
                         }
 
                     // C++-style comments, ignore the rest of the line

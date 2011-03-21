@@ -265,22 +265,26 @@ namespace grail { namespace io {
                     if('/' == ch) {
                         goto ignore_line;
                     } else if('*' == ch) {
-                        const bool find_close(detail::find_next<
-                            BUFFER_SIZE,
-                            LOOK_FOR_ERRORS
-                        >(
-                            buffer, "*/"
-                        ));
 
-                        if(LOOK_FOR_ERRORS && !find_close) {
-                            error(
-                                file_name, buffer.line(), buffer.column(),
-                                "Expected '*/' as a closing to match the "
-                                "opening '/*' C-style comment block from "
-                                "line %u, column %u.",
-                                temp_line, temp_col
-                            );
-                            return T_ERROR;
+                        if(LOOK_FOR_ERRORS) {
+
+                            const bool find_close(detail::find_next<
+                                BUFFER_SIZE,
+                                LOOK_FOR_ERRORS
+                            >(
+                                buffer, "*/"
+                            ));
+
+                            if(!find_close) {
+                                error(
+                                    file_name, buffer.line(), buffer.column(),
+                                    "Expected '*/' as a closing to match the "
+                                    "opening '/*' C-style comment block from "
+                                    "line %u, column %u.",
+                                    temp_line, temp_col
+                                );
+                                return T_ERROR;
+                            }
                         }
                     } else {
                         buffer.unread();
@@ -387,7 +391,9 @@ namespace grail { namespace io {
                                 );
                                 return T_ERROR;
 
-                            default: break;
+                            case detail::SYMBOL_ACCEPT:
+                            default:
+                                break;
                             }
                         }
 
