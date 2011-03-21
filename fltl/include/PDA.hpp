@@ -258,14 +258,13 @@ namespace fltl {
         /// destructor
         ~PDA(void) throw() {
 
+            pda::Transition<AlphaT> *trans(0);
+
             // clean up transitions
             for(unsigned i(0); i < next_state_id; ++i) {
-                pda::Transition<AlphaT> *&trans(state_transitions.get(i));
-                pda::Transition<AlphaT> *trans_ptr(static_cast<
-                    pda::Transition<AlphaT> *
-                >(trans));
+                trans = state_transitions.get(i);
 
-                for(pda::Transition<AlphaT> *curr(trans_ptr), *next(0);
+                for(pda::Transition<AlphaT> *curr(trans), *next(0);
                     0 != curr;
                     curr = next) {
 
@@ -279,7 +278,7 @@ namespace fltl {
                     }
                 }
 
-                trans = 0;
+                state_transitions.set(i, 0);
             }
 
             // clean up symbols
