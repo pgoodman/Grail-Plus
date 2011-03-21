@@ -38,7 +38,7 @@ namespace fltl { namespace mpl {
         template <typename T>
         class StaticValue {
         public:
-            inline static T default_value(void) throw() {
+            inline static T &default_value(void) throw() {
                 static T val;
                 static bool is_initialized(false);
                 if(!is_initialized) {
@@ -52,88 +52,99 @@ namespace fltl { namespace mpl {
         template <typename T>
         class StaticValue<T *> {
         public:
-            inline static T *default_value(void) throw() {
-                return 0;
+            inline static T *&default_value(void) throw() {
+                static T *val(0);
+                return val;
             }
         };
 
         template <>
         class StaticValue<char> {
         public:
-            inline static char default_value(void) throw() {
-                return '\0';
+            inline static char &default_value(void) throw() {
+                static char val('\0');
+                return val;
             }
         };
 
         template <>
         class StaticValue<unsigned char> {
         public:
-            inline static unsigned char default_value(void) throw() {
-                return static_cast<unsigned char>(0U);
+            inline static unsigned char &default_value(void) throw() {
+                static unsigned char val(0U);
+                return val;
             }
         };
 
         template <>
         class StaticValue<short> {
         public:
-            inline static short default_value(void) throw() {
-                return 0;
+            inline static short &default_value(void) throw() {
+                static short val(0);
+                return val;
             }
         };
 
         template <>
         class StaticValue<unsigned short> {
         public:
-            inline static unsigned short default_value(void) throw() {
-                return 0U;
+            inline static unsigned short &default_value(void) throw() {
+                static unsigned short val(0U);
+                return val;
             }
         };
 
         template <>
         class StaticValue<int> {
         public:
-            inline static int default_value(void) throw() {
-                return 0;
+            inline static int &default_value(void) throw() {
+                static int val(0);
+                return val;
             }
         };
 
         template <>
         class StaticValue<unsigned> {
         public:
-            inline static unsigned default_value(void) throw() {
-                return 0U;
+            inline static unsigned &default_value(void) throw() {
+                static unsigned val(0U);
+                return val;
             }
         };
 
         template <>
         class StaticValue<long> {
         public:
-            inline static long default_value(void) throw() {
-                return 0L;
+            inline static long &default_value(void) throw() {
+                static long val(0L);
+                return val;
             }
         };
 
         template <>
         class StaticValue<unsigned long> {
         public:
-            inline static unsigned long default_value(void) throw() {
-                return 0UL;
+            inline static unsigned long &default_value(void) throw() {
+                static unsigned long val(0UL);
+                return val;
             }
         };
 
         template <>
         class StaticValue<float> {
         public:
-            inline static float default_value(void) throw() {
-                return 0.0;
+            inline static float &default_value(void) throw() {
+                static float val(0.0);
+                return val;
             }
         };
 
         template <>
         class StaticValue<double> {
         public:
-            inline static double default_value(void) throw() {
-                return 0.0;
+            inline static double &default_value(void) throw() {
+                static double val(0.0);
+                return val;
             }
         };
     }
@@ -142,11 +153,11 @@ namespace fltl { namespace mpl {
     template <typename T>
     class Static {
     public:
-        static const T VALUE;
+        static const T &VALUE;
     };
 
     template <typename T>
-    const T Static<T>::VALUE(detail::StaticValue<T>::default_value());
+    const T &Static<T>::VALUE(detail::StaticValue<T>::default_value());
 }}
 
 #endif /* FLTL_STATIC_HPP_ */
