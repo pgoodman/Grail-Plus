@@ -492,7 +492,7 @@ namespace grail { namespace algorithm {
                     curr_set = prev_set;
                 }
 
-                if(0 == curr_set) {
+                if(0 == curr_set || not_at_end) {
                     goto parse_error;
                 }
 
