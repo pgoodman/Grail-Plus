@@ -32,11 +32,11 @@ namespace grail { namespace io { namespace cfg {
 
     /// symbol character
     bool is_symbol_codepoint(const char * const cp) throw() {
-        return *cp < 0 || isalnum(static_cast<int>(*cp)) || '_' == *cp;
+        return *cp < 0 || (0 != isalnum(static_cast<int>(*cp))) || '_' == *cp;
     }
 
     bool is_numeric_codepoint(const char * const cp) throw() {
-        return isdigit(static_cast<int>(*cp));
+        return 0 != isdigit(static_cast<int>(*cp));
     }
 
     uint8_t next_state(uint8_t curr_state, token_type input) throw() {
