@@ -70,6 +70,12 @@ namespace grail { namespace io { namespace detail {
             }
         }
 
+        // did we get an empty string?
+        if(0U == (num_delims & 1U)) {
+            scratch[0] = '\0';
+            return STRING_ACCEPT;
+        }
+
         for(;;) {
         load_next_char:
             codepoint = buffer.read();
@@ -113,6 +119,8 @@ namespace grail { namespace io { namespace detail {
                 *scratch++ = ch;
                 num_delims_seen = 1;
 
+                // TODO: this wont work for the string """a""""", where the
+                //       internal string is a""
                 for(; num_delims_seen < num_delims; ) {
                     codepoint = buffer.read();
                     strcpy(scratch, codepoint);

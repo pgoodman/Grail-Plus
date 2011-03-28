@@ -227,7 +227,7 @@ namespace grail { namespace io {
                         &detail::iskeychar
                     );
 
-                    CommandLineOption *&curr_opt(opt::long_options.get(
+                    CommandLineOption *curr_opt(opt::long_options.get(
                         first_char,
                         next_char
                     ));
@@ -246,6 +246,12 @@ namespace grail { namespace io {
                     last_karg->is_positional_candidate = true;
                     seen_equal = false;
                     last_is_short = false;
+
+                    opt::long_options.set(
+                        first_char,
+                        next_char,
+                        curr_opt
+                    );
 
                     // set up the state for the next pass
                     first_char = next_char;
@@ -657,7 +663,7 @@ namespace grail { namespace io {
         const opt::key_constraint_type kc,
         const opt::val_constraint_type vc
     ) throw() {
-        CommandLineOption *&opt(opt::long_options.get(long_opt_));
+        CommandLineOption *opt(opt::long_options.get(long_opt_));
 
         if(0 == opt) {
             if(opt::REQUIRED == kc) {
@@ -685,8 +691,8 @@ namespace grail { namespace io {
         const opt::val_constraint_type vc
     ) throw() {
 
-        CommandLineOption *&long_opt(opt::long_options.get(long_opt_));
-        CommandLineOption *&short_opt(
+        CommandLineOption *long_opt(opt::long_options.get(long_opt_));
+        CommandLineOption *short_opt(
             opt::short_options[detail::alpha_to_offset(short_opt_)]
         );
 
@@ -707,12 +713,12 @@ namespace grail { namespace io {
 
         // one is defined
         } else if(0 == long_opt) {
-            long_opt = short_opt;
+            opt::long_options.set(long_opt_, short_opt);
             check_option(short_opt, vc);
 
         // the other is defined
         } else if(0 == short_opt) {
-            short_opt = long_opt;
+            opt::short_options[detail::alpha_to_offset(short_opt_)] = long_opt;
             check_option(long_opt, vc);
 
         // both are defined
@@ -737,7 +743,7 @@ namespace grail { namespace io {
         const opt::key_constraint_type kc,
         const opt::val_constraint_type vc
     ) throw() {
-        CommandLineOption *&opt(
+        CommandLineOption *opt(
             opt::short_options[detail::alpha_to_offset(short_opt_)]
         );
 

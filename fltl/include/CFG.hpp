@@ -614,8 +614,6 @@ namespace fltl {
         /// many variables
         void remove_variable(const variable_type _var) throw() {
 
-
-
             production_type P;
             variable_type V;
             variable_type R;

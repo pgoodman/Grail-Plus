@@ -73,6 +73,18 @@ namespace grail { namespace helper {
             return mm[pp];
         }
 
+        void set(const char *left, const char *right, const T &val) throw() {
+            mm[std::make_pair(left,right)] = val;
+        }
+
+        void set(const char *str, const T &val) throw() {
+            mm[std::make_pair(str, str + strlen(str))] = val;
+        }
+
+        void set(std::pair<const char *, const char *> pp, const T &val) throw() {
+            mm[pp] = val;
+        }
+
         bool contains(const char *left, const char *right) throw() {
             return 0 != mm.count(std::make_pair(left,right));
         }
