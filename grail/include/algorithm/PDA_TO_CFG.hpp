@@ -275,15 +275,7 @@ namespace grail { namespace algorithm {
                     a_str = E.get(a.number());
                 }
 
-                /*
-                printf(
-                    "%u %s %u, epsilon / %s\n",
-                    p.number(),
-                    pda.is_in_input_alphabet(a) ? pda.get_alpha(a) : pda.get_name(a),
-                    r.number(),
-                    pda.is_in_input_alphabet(t) ? pda.get_alpha(t) : pda.get_name(t)
-                );
-                */
+                // t becomes bound by p_to_r_push
 
                 for(s_to_q_pop.rewind();
                     s_to_q_pop.match_next();) {
@@ -294,23 +286,6 @@ namespace grail { namespace algorithm {
                         b_str = E.get(b.number());
                     }
 
-                    /*
-                    printf(
-                        "    %u %s %u, %s / epsilon\n",
-                        s.number(),
-                        pda.is_in_input_alphabet(b) ? pda.get_alpha(b) : pda.get_name(b),
-                        q.number(),
-                        pda.is_in_input_alphabet(t) ? pda.get_alpha(t) : pda.get_name(t)
-                    );
-
-                    printf(
-                        "        A_%u_%u --> %s A_%u_%u %s\n",
-                        p.number(), q.number(),
-                        a_str.length() == 0 ? "epsilon" : cfg.get_alpha(typename CFG::terminal_type(a_str.at(0))),
-                        r.number(), s.number(),
-                        b_str.length() == 0 ? "epsilon" : cfg.get_alpha(typename CFG::terminal_type(b_str.at(0)))
-                    );
-                    */
                     cfg.add_production(
                         A(p.number(), q.number()),
                         buffer.clear()
