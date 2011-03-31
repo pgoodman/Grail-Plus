@@ -1,0 +1,31 @@
+- User extendable pattern languages. Thinking of defining all operators
+  for all of the types, where the types are computed through a template,
+  and then specializing that template to give the desired functionality,
+  where the default instantiation results in a failed assertion or some
+  such.
+
+- Generic translator, e.g. Translator<CFG, terminal_type, PDA, symbol_type>
+  to ease the process of going from symbols in one object to symbols of
+  another object. Also allow Translator<CFG, terminal_type> where the source
+  and destinations are the same but the objects are different.
+
+- Fix the bug in find_string where n-1 quotations followed by n quotations
+  for an n-quotation-delimited string works. This might require changes
+  in how UTF8FileBuffer handles unread().
+
+- Make it so that when --stdin is specified, the input is read into memory
+  first. This would require changing UTF8FileBuffer, making it more generic
+  so that it works on non-files. Right now two passes are needed over most
+  things, which means *NIX pipes are out of the question.
+
+- Add an option to cfg-parse to split characters by whitespace or some
+  other delimiter.
+
+- More thought is needed in the Alphabet trait type, especially with regards
+  to serializing and unserializing aggregate objects whose contained objects
+  serialize to forms that would require quotation marks. Right now, such
+  concerns are completely ignored as I don't have the need to aggregate types
+  yet but it would be an immediate issue for the terminals of a CFG, for
+  example.
+
+
