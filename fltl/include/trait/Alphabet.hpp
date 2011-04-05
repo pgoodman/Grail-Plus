@@ -32,6 +32,8 @@
 #include <functional>
 #include <cstring>
 
+#include "fltl/include/mpl/UserOperators.hpp"
+
 namespace fltl { namespace trait {
 
     namespace detail {
@@ -41,6 +43,7 @@ namespace fltl { namespace trait {
         public:
             typedef T alphabet_type;
             typedef std::less<T> less_type;
+            typedef mpl::global_scope_type scope_type;
 
             static T copy(const T &that) throw() {
                 return that;
@@ -56,11 +59,13 @@ namespace fltl { namespace trait {
         };
     }
 
+    /// alphabet type
     template <typename T>
     class Alphabet : public T {
     public:
         using typename T::alphabet_type;
         using typename T::less_type;
+        using typename T::scope_type;
     };
 
     template<>
@@ -91,6 +96,7 @@ namespace fltl { namespace trait {
     class Alphabet<const char *> {
     public:
         typedef const char *alphabet_type;
+        typedef mpl::global_scope_type scope_type;
 
         typedef struct {
         public:

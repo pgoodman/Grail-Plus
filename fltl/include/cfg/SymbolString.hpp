@@ -158,6 +158,15 @@ namespace fltl { namespace cfg {
         template <typename, typename, typename,const unsigned>
         friend class detail::DecRefCounts;
 
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryPlus;
+
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryEq;
+
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryNotEq;
+
         typedef SymbolString<AlphaT> self_type;
         typedef Symbol<AlphaT> symbol_type;
 

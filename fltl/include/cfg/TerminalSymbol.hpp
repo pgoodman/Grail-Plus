@@ -63,11 +63,13 @@ namespace fltl { namespace cfg {
             assert(that.is_terminal());
         }
 
+#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
         Unbound<AlphaT,terminal_tag> operator~(void) throw() {
             return Unbound<AlphaT,terminal_tag>(this);
         }
+#endif
 
         self_type &operator=(const Symbol<AlphaT> &that) throw() {
             assert(that.is_terminal());
@@ -75,6 +77,7 @@ namespace fltl { namespace cfg {
             return *this;
         }
 
+#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
         bool operator<(const self_type &that) const throw() {
             return this->value < that.value;
         }
@@ -90,12 +93,150 @@ namespace fltl { namespace cfg {
         bool operator>=(const self_type &that) const throw() {
             return this->value >= that.value;
         }
+#endif
 
         unsigned number(void) const throw() {
             return static_cast<unsigned>(-1 * this->value);
         }
+
+#if FLTL_FEATURE_USER_DEFINED_OPERATORS
+        FLTL_USER_BITWISE_OPERATORS_UNARY(AlphaT, terminal_tag)
+        FLTL_USER_LOGICAL_OPERATORS(AlphaT, terminal_tag)
+        FLTL_USER_ARITHMETIC_OPERATORS_BINARY(AlphaT, terminal_tag)
+        FLTL_USER_RELATION_OPERATORS(AlphaT, terminal_tag)
+#endif
     };
 }}
+
+
+#if FLTL_FEATURE_USER_DEFINED_OPERATORS
+namespace fltl { namespace mpl {
+
+    /// unbound symbol used in pattern matching
+    template <typename AlphaT,typename ScopeT>
+    class OpUnaryBitwiseNot<AlphaT, cfg::terminal_tag, ScopeT> {
+    public:
+        typedef cfg::Unbound<AlphaT,cfg::terminal_tag> return_type;
+
+        inline static return_type
+        run(cfg::TerminalSymbol<AlphaT> *self) throw() {
+            return cfg::Unbound<AlphaT,cfg::terminal_tag>(self);
+        }
+    };
+
+    /// are two symbols equivalent?
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::SymbolString<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::Symbol<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::SymbolString<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
+    { };
+
+    /// are two symbols different?
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::Symbol<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    /// concatenate two symbols into a string
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::terminal_tag, ScopeT, cfg::Symbol<AlphaT> >
+     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::terminal_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    /// concatenate a variable with a symbol string
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::terminal_tag, ScopeT, cfg::SymbolString<AlphaT> >
+      : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryLt<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::TerminalSymbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::TerminalSymbol<AlphaT> *self, param_type &that) throw() {
+            return self->number() < that.number();
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryLtEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::TerminalSymbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::TerminalSymbol<AlphaT> *self, param_type &that) throw() {
+            return self->number() <= that.number();
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryGt<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::TerminalSymbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::TerminalSymbol<AlphaT> *self, param_type &that) throw() {
+            return self->number() > that.number();
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryGtEq<AlphaT, cfg::terminal_tag, ScopeT, cfg::TerminalSymbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::TerminalSymbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::TerminalSymbol<AlphaT> *self, param_type &that) throw() {
+            return self->number() >= that.number();
+        }
+    };
+}}
+#endif
 
 namespace std {
 

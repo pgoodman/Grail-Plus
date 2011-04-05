@@ -96,11 +96,13 @@ namespace grail { namespace io { namespace detail {
                     return STRING_EARLY_EOF;
                 }
 
+                *scratch++ = '\\';
+
                 switch(ch) {
-                case 's': *scratch++ = ' '; break;
-                case 't': *scratch++ = '\t'; break;
-                case 'n': *scratch++ = '\n'; break;
-                case 'r': *scratch++ = '\r'; break;
+                case 's': *scratch++ = 's'; break;
+                case 't': *scratch++ = 't'; break;
+                case 'n': *scratch++ = 'n'; break;
+                case 'r': *scratch++ = 'r'; break;
                 case '\\': *scratch++ = '\\'; break;
                 case '"': *scratch++ = '"'; break;
                 case '\'': *scratch++ = '\''; break;

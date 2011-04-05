@@ -1,5 +1,5 @@
 /*
- * UTF8FileLineBuffer.hpp
+ * UTF8FileTokBuffer.hpp
  *
  *  Created on: Mar 15, 2011
  *      Author: Peter Goodman
@@ -35,8 +35,12 @@
 
 namespace grail { namespace io {
 
+    namespace detail {
+        const char *LINE_DELIM("\n\r");
+    }
+
     template <const unsigned LINE_LENGTH>
-    class UTF8FileLineBuffer {
+    class UTF8FileTokBuffer {
     private:
 
         enum {
@@ -45,11 +49,20 @@ namespace grail { namespace io {
 
         UTF8FileBuffer<LINE_LENGTH * 2> buffer;
         char line[LINE_BUFF_LEN];
+        const char *delim_tokens;
 
     public:
 
-        UTF8FileLineBuffer(FILE *ff)
+        UTF8FileTokBuffer(FILE *ff)
             : buffer(ff)
+            , delim_tokens(detail::LINE_DELIM)
+        {
+            memset(line, 0, sizeof(char) * LINE_BUFF_LEN);
+        }
+
+        UTF8FileTokBuffer(FILE *ff, const char *delims)
+            : buffer(ff)
+            , delim_tokens(delims)
         {
             memset(line, 0, sizeof(char) * LINE_BUFF_LEN);
         }
@@ -65,7 +78,7 @@ namespace grail { namespace io {
 
             do {
                 codepoint = buffer.read();
-            } while('\n' == *codepoint || '\r' == *codepoint);
+            } while(0 < strspn(codepoint, delim_tokens));
 
             // can't read past here
             if('\0' == codepoint) {
@@ -78,8 +91,9 @@ namespace grail { namespace io {
             // fill up the line buffer
             for( ; ptr < max
                 && '\0' != *codepoint
-                && '\n' != *codepoint
-                && '\r' != *codepoint;
+                && 0 == strspn(codepoint, delim_tokens);
+                //&& '\n' != *codepoint
+                //&& '\r' != *codepoint;
                 codepoint = buffer.read()) {
 
                 for(const char *cp_ptr(codepoint); '\0' != *cp_ptr; ) {

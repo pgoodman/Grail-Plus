@@ -54,6 +54,9 @@ namespace fltl { namespace cfg {
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
 
+        template <typename, typename, typename>
+        friend class mpl::OpUnaryBitwiseNot;
+
     protected:
 
         Symbol<AlphaT> *symbol;
@@ -89,6 +92,9 @@ namespace fltl { namespace cfg {
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
 
+        template <typename, typename, typename>
+        friend class mpl::OpUnaryBitwiseNot;
+
         typedef Unbound<AlphaT, terminal_tag> self_type;
 
         typename CFG<AlphaT>::terminal_type *symbol;
@@ -120,6 +126,9 @@ namespace fltl { namespace cfg {
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
+
+        template <typename, typename, typename>
+        friend class mpl::OpUnaryBitwiseNot;
 
     private:
 
@@ -159,6 +168,9 @@ namespace fltl { namespace cfg {
 
         friend class detail::PatternData<AlphaT>;
 
+        template <typename, typename, typename>
+        friend class mpl::OpUnaryBitwiseNot;
+
         typedef Unbound<AlphaT, production_tag> self_type;
 
         OpaqueProduction<AlphaT> *prod;
@@ -189,6 +201,9 @@ namespace fltl { namespace cfg {
 
         template <typename, typename, typename, const unsigned>
         friend class detail::ResetPattern;
+
+        template <typename, typename, typename>
+        friend class mpl::OpUnaryBitwiseNot;
 
         typedef Unbound<AlphaT, symbol_string_tag> self_type;
 

@@ -52,6 +52,15 @@ namespace fltl { namespace cfg {
         template <typename, typename>
         friend class detail::PatternGenerator;
 
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryEq;
+
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryNotEq;
+
+        template <typename, typename, typename, typename>
+        friend class mpl::OpBinaryPlus;
+
         typedef SymbolString<AlphaT> symbol_string_type;
 
         /// adapted from fmix32, from Murmurhash3, by Austin Appleby.
@@ -96,6 +105,8 @@ namespace fltl { namespace cfg {
             return *this;
         }
 
+#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
+
         FLTL_FORCE_INLINE bool
         operator==(const self_type &that) const throw() {
             return value == that.value;
@@ -117,10 +128,13 @@ namespace fltl { namespace cfg {
                 length() != that.length() || hash() != that.get_hash()
             );
         }
+#endif
 
         inline unsigned length(void) const throw() {
             return 1U;
         }
+
+#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
 
         /// concatenate this symbol with a symbol string, i.e. prepend this
         /// symbol onto the beginning of the other symbol string and return
@@ -164,6 +178,7 @@ namespace fltl { namespace cfg {
 
             return ret;
         }
+#endif
 
         /// is this a variable?
         FLTL_FORCE_INLINE bool is_variable(void) const throw() {
@@ -175,6 +190,10 @@ namespace fltl { namespace cfg {
             return value < 0;
         }
 
+        /// return a numeric value for this symbol. if this symbol is a
+        /// variable then this is equivalent to variable_type(sym).number().
+        /// If this symbol is a terminal then this is equivalent to
+        /// terminal_type(sym).number()
         unsigned number(void) const throw() {
             if(value < 0) {
                 return static_cast<unsigned>(value * -1);
@@ -183,13 +202,174 @@ namespace fltl { namespace cfg {
             }
         }
 
+#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
+
         /// return an "unbound" version of this symbol
         /// note: *not* const!!
         Unbound<AlphaT,symbol_tag> operator~(void) throw() {
             return Unbound<AlphaT,symbol_tag>(this);
         }
+#endif
+
+#if FLTL_FEATURE_USER_DEFINED_OPERATORS
+        FLTL_USER_BITWISE_OPERATORS_UNARY(AlphaT, symbol_tag)
+        FLTL_USER_LOGICAL_OPERATORS(AlphaT, symbol_tag)
+        FLTL_USER_ARITHMETIC_OPERATORS_BINARY(AlphaT, symbol_tag)
+        FLTL_USER_RELATION_OPERATORS(AlphaT, symbol_tag)
+#endif
+
+    };
+}}
+
+#if FLTL_FEATURE_USER_DEFINED_OPERATORS
+namespace fltl { namespace mpl {
+
+    /// unbound symbol used in pattern matching
+    template <typename AlphaT,typename ScopeT>
+    class OpUnaryBitwiseNot<AlphaT, cfg::symbol_tag, ScopeT> {
+    public:
+        typedef cfg::Unbound<AlphaT,cfg::symbol_tag> return_type;
+
+        inline static return_type
+        run(cfg::Symbol<AlphaT> *self) throw() {
+            return cfg::Unbound<AlphaT,cfg::symbol_tag>(self);
+        }
     };
 
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::SymbolString<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return self->length() == that.length() && self->hash() == that.get_hash();
+        }
+    };
+
+    /// are two symbols equivalent?
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::Symbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return self->value == that.value;
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::SymbolString<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return self->length() != that.length() || self->hash() != that.get_hash();
+        }
+    };
+
+    /// are two symbols different?
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> > {
+    public:
+        typedef bool return_type;
+        typedef const cfg::Symbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return self->value != that.value;
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    /// concatenate two symbols into a string
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> > {
+    public:
+        typedef cfg::SymbolString<AlphaT> return_type;
+        typedef const cfg::Symbol<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return_type ret;
+            const unsigned this_len = self->length();
+            const unsigned that_len = that.length();
+            const unsigned total_len(this_len + that_len);
+
+            if(0 == total_len) {
+                return ret;
+            }
+
+            ret.symbols = return_type::allocate(total_len);
+            ret.symbols[cfg::str::FIRST_SYMBOL].value = self->value;
+            ret.symbols[
+                cfg::str::FIRST_SYMBOL + this_len
+            ].value = that.value;
+
+            if(0 == this_len) {
+                ret.symbols[cfg::str::HASH].value = that.hash();
+            } else if(0 == that_len) {
+                ret.symbols[cfg::str::HASH].value = self->hash();
+            } else {
+                ret.symbols[cfg::str::HASH].value = (
+                    return_type::hash(
+                        self->hash(),
+                        that.hash()
+                    )
+                );
+            }
+
+            return ret;
+        }
+    };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
+     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
+     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
+    { };
+
+    /// concatenate a symbol with a symbol string
+    template <typename AlphaT,typename ScopeT>
+    class OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> > {
+    public:
+        typedef cfg::SymbolString<AlphaT> return_type;
+        typedef const cfg::SymbolString<AlphaT> param_type;
+
+        inline static return_type
+        run(const cfg::Symbol<AlphaT> *self, param_type &that) throw() {
+            return that.prepend_symbol(self);
+        }
+    };
 }}
+#endif
 
 #endif /* FLTL_SYMBOL_HPP_ */

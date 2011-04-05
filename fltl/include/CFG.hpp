@@ -47,6 +47,7 @@
 
 #include "fltl/include/mpl/If.hpp"
 #include "fltl/include/mpl/Static.hpp"
+#include "fltl/include/mpl/UserOperators.hpp"
 
 #include "fltl/include/preprocessor/CATENATE.hpp"
 #include "fltl/include/preprocessor/COLOR.hpp"
@@ -611,13 +612,14 @@ namespace fltl {
 
         /// remove a variable and all productions in the grammar that
         /// relate to this variable. this can have the effect of removing
-        /// many variables
+        /// productions all over the place.
         void remove_variable(const variable_type _var) throw() {
 
             production_type P;
             variable_type V;
             variable_type R;
 
+            generator_type prods_on_var(search(~P, R --->* __));
             generator_type prods_using_var(
                 search(~P, (~V) --->* __ + R + __)
             );
@@ -628,10 +630,16 @@ namespace fltl {
             while(!vars_to_remove.empty()) {
 
                 R = vars_to_remove.back();
-                unsafe_remove_variable(R);
 
                 vars_to_remove.pop_back();
 
+                // remove productions on this variable
+                for(prods_on_var.rewind();
+                    prods_on_var.match_next(); ) {
+                    remove_production(P);
+                }
+
+                // remove productions using this variable
                 for(prods_using_var.rewind();
                     prods_using_var.match_next(); ) {
 
@@ -644,6 +652,8 @@ namespace fltl {
                     }
                 }
             }
+
+            unsafe_remove_variable(_var);
         }
 
         /// does this grammar have this particular terminal?

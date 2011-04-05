@@ -595,6 +595,39 @@ namespace fltl {
             return num_transitions_;
         }
 
+        unsigned num_transitions(state_type state) const throw() {
+            pda::Transition<AlphaT> *curr(state_transitions.get(
+                state.id
+            ));
+
+            unsigned num(0);
+            for(; 0 != curr; curr = curr->next) {
+                if(!curr->is_deleted && 0 != curr->pda) {
+                    ++num;
+                }
+            }
+
+            return num;
+        }
+
+        bool has_transitions(void) const throw() {
+            return 0 != num_transitions_;
+        }
+
+        bool has_transitions(state_type state) const throw() {
+            pda::Transition<AlphaT> *curr(state_transitions.get(
+                state.id
+            ));
+
+            for(; 0 != curr; curr = curr->next) {
+                if(!curr->is_deleted && 0 != curr->pda) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// generate all symbols
         inline generator_type
         search(pda::Unbound<AlphaT,pda::symbol_tag> sym) const throw() {

@@ -40,7 +40,7 @@
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_cfg.hpp"
 #include "grail/include/io/verbose.hpp"
-#include "grail/include/io/UTF8FileLineBuffer.hpp"
+#include "grail/include/io/UTF8FileTokBuffer.hpp"
 
 #include "grail/include/cfg/compute_null_set.hpp"
 #include "grail/include/cfg/compute_first_set.hpp"
@@ -62,6 +62,7 @@ namespace grail { namespace cli {
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
 
             opt.declare("predict", io::opt::OPTIONAL, io::opt::NO_VAL);
+            opt.declare("delim", io::opt::OPTIONAL, io::opt::REQUIRES_VAL);
 
             io::option_type in(opt.declare(
                 "stdin",
@@ -92,14 +93,55 @@ namespace grail { namespace cli {
                 "                                   grammars, but can also speed up\n"
                 "                                   parsing.\n"
                 "    --stdin                        Take the input tokens from standard input.\n"
-                "                                   Each tokenmake clean should be separated by a new\n"
+                "                                   Each token should be separated by a new\n"
                 "                                   line. Typing a new line followed by Ctrl-D\n"
                 "                                   or Ctrl-Z will close stdin.\n"
+                "    --delim                        Change the delimiter of tokens from newlines\n"
+                "                                   to any character present in delim.\n"
                 "    <file0>                        read in a CFG from <file>.\n"
                 "    <file1>                        read in a newline-separated list of tokens\n"
                 "                                   from <file1> if --stdin is not used.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
+        }
+
+        /// interpret the delimiter string
+        static const char *interpret_delim(
+            io::CommandLineOptions &options,
+            io::option_type &opt
+        ) throw() {
+            char *ret(new char[strlen(opt.value()) + 1U]);
+            char *cursor(ret);
+
+            for(const char *ch(opt.value()); '\0' != *ch; ++ch) {
+                if('\\' == *ch) {
+                    switch(*++ch) {
+                    case 'n': *cursor++ = '\n'; break;
+                    case 'r': *cursor++ = '\r'; break;
+                    case '0': break;
+                    case 's': *cursor++ = ' '; break;
+                    case 't': *cursor++ = '\t'; break;
+                    default:
+                        options.error(
+                            "Invalid escape character in delimiter sequence. "
+                            "Escape character \\%c is not known. The "
+                            "supported escape characters are \\s, \\r, \\n, "
+                            "and \\t.",
+                            *ch
+                        );
+
+                        options.note("Error was cause by this option:", opt);
+
+                        *ret = '\0';
+                        return ret;
+                    }
+                } else {
+                    *cursor++ = *ch;
+                }
+            }
+            *cursor = '\0';
+
+            return ret;
         }
 
         static int main(io::CommandLineOptions &options) throw() {
@@ -167,18 +209,34 @@ namespace grail { namespace cli {
 
                 io::verbose("Parsing...\n");
 
-                io::UTF8FileLineBuffer<1024U> reader(fp[1]);
+                const char *delim_chars("\r\n");
 
-                if(algorithm::CFG_PARSE_EARLEY<AlphaT, 1024U>::run(
-                    cfg,
-                    is_nullable,
-                    use_first_sets,
-                    first_terminals,
-                    reader
-                )) {
-                    printf("Yes.\n");
-                } else {
-                    printf("No.\n");
+                io::option_type delim(options["delim"]);
+                if(delim.is_valid()) {
+                    delim_chars = interpret_delim(options, delim);
+                }
+
+                if(!options.has_error()) {
+
+                    io::UTF8FileTokBuffer<1024U> reader(fp[1], delim_chars);
+                    reader.reset();
+
+                    if(algorithm::CFG_PARSE_EARLEY<AlphaT, 1024U>::run(
+                        cfg,
+                        is_nullable,
+                        use_first_sets,
+                        first_terminals,
+                        reader
+                    )) {
+                        printf("Yes.\n");
+                    } else {
+                        printf("No.\n");
+                    }
+                }
+
+                // clean up the custom delimiter string
+                if(delim.is_valid()) {
+                    delete [] delim_chars;
                 }
 
                 // clean out the first set

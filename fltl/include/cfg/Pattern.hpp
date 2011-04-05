@@ -52,6 +52,7 @@
 #define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(type, tag, state) \
     FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(tag), unbound_ ## tag, state)
 
+
 /*
  *     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
     operator+(type &expr) throw() { \

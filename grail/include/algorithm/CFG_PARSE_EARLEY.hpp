@@ -39,7 +39,7 @@
 #include "grail/include/cfg/ParseTree.hpp"
 
 #include "grail/include/io/verbose.hpp"
-#include "grail/include/io/UTF8FileLineBuffer.hpp"
+#include "grail/include/io/UTF8FileTokBuffer.hpp"
 
 namespace grail { namespace algorithm {
 
@@ -234,7 +234,7 @@ namespace grail { namespace algorithm {
             std::vector<bool> &is_nullable,
             const bool use_first_set,
             std::vector<std::vector<bool> *> &first_terminals,
-            io::UTF8FileLineBuffer<MAX_TOK_LENGTH> &reader
+            io::UTF8FileTokBuffer<MAX_TOK_LENGTH> &reader
         ) throw() {
 
             bool parse_result(false);
