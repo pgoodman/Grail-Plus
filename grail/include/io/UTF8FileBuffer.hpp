@@ -108,7 +108,7 @@ namespace grail { namespace io {
             done_reading = false;
 
             if(0 != fp) {
-                if(0 != fseek(fp, 0, SEEK_SET)) {
+                if(stdin != fp && 0 != fseek(fp, 0, SEEK_SET)) {
                     at_end = true;
                 } else {
                     at_end = false;
@@ -156,35 +156,33 @@ namespace grail { namespace io {
 
             // fill the buffer if we need to
             const size_t diff(static_cast<unsigned>(end_offset - curr_offset));
-            if(MAX_CODE_POINT_SIZE > diff) {
-                if(!done_reading) {
+            if(MAX_CODE_POINT_SIZE > diff && !done_reading) {
 
-                    // slide
-                    if(curr_offset != buffer) {
-                        memcpy(buffer, curr_offset, diff);
-                    }
+                // slide
+                if(curr_offset != buffer) {
+                    memcpy(buffer, curr_offset, diff);
+                }
 
-                    // fill
-                    const size_t desired_amount(WINDOW_SIZE - diff);
-                    size_t amount(fread(
-                        reinterpret_cast<void *>(&(buffer[diff])),
-                        sizeof(char),
-                        desired_amount,
-                        fp
-                    ));
+                // fill
+                const size_t desired_amount(WINDOW_SIZE - diff);
+                size_t amount(fread(
+                    reinterpret_cast<void *>(&(buffer[diff])),
+                    sizeof(char),
+                    desired_amount,
+                    fp
+                ));
 
-                    curr_offset = &(buffer[0]);
-                    end_offset = &(buffer[diff + amount]);
+                curr_offset = &(buffer[0]);
+                end_offset = &(buffer[diff + amount]);
+                done_reading = (0 != feof(fp));
 
-                    // done reading from the file
-                    if(desired_amount > amount) {
-                        done_reading = (0 != feof(fp));
-                        memset(
-                            end_offset,
-                            0,
-                            WINDOW_SIZE - (diff + amount)
-                        );
-                    }
+                // done reading from the file
+                if(desired_amount > amount) {
+                    memset(
+                        end_offset,
+                        0,
+                        WINDOW_SIZE - (diff + amount)
+                    );
                 }
             }
 
