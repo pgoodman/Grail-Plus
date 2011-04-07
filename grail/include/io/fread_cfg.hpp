@@ -610,7 +610,7 @@ namespace grail { namespace io {
 
         // go back to the start of the file
         buffer.reset();
-        typename fltl::CFG<AlphaT>::production_builder_type prod_buffer;
+        typename fltl::CFG<AlphaT>::symbol_buffer_type prod_buffer;
         typename fltl::CFG<AlphaT>::variable_type var;
 
         for(state = cfg::STATE_INITIAL; ;) {

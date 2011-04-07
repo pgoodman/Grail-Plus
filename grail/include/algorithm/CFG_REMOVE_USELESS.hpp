@@ -38,9 +38,8 @@ namespace grail { namespace algorithm {
     class CFG_REMOVE_USELESS {
 
         typedef fltl::CFG<AlphaT> CFG;
-        typedef typename CFG::variable_type variable_type;
-        typedef typename CFG::generator_type generator_type;
-        typedef typename CFG::symbol_string_type symbol_string_type;
+
+        FLTL_CFG_USE_TYPES(CFG);
 
     private:
 

@@ -70,6 +70,27 @@
         ); \
     }
 
+#define FLTL_CFG_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
+    typedef typename type::alphabet_type func(prefix, alphabet_type); \
+    typedef typename type::traits_type func(prefix, traits_type); \
+    typedef typename type::symbol_type func(prefix, symbol_type); \
+    typedef typename type::symbol_buffer_type func(prefix, symbol_buffer_type); \
+    typedef typename type::terminal_type func(prefix, terminal_type); \
+    typedef typename type::variable_type func(prefix, variable_type); \
+    typedef typename type::production_type func(prefix, production_type); \
+    typedef typename type::symbol_string_type func(prefix, symbol_string_type); \
+    typedef typename type::generator_type func(prefix, generator_type); \
+    typedef typename type::pattern_type func(prefix, pattern_type)
+
+#define FLTL_CFG_NO_PREFIX(prefix, str) str
+#define FLTL_CFG_USE_PREFIX(prefix, str) prefix ## _ ## str
+
+#define FLTL_CFG_USE_TYPES(type) \
+    FLTL_CFG_USE_TYPES_PREFIX_FUNC(type, foo, FLTL_CFG_NO_PREFIX)
+
+#define FLTL_CFG_USE_TYPES_PREFIX(type, prefix) \
+    FLTL_CFG_USE_TYPES_PREFIX_FUNC(type, prefix, FLTL_CFG_USE_PREFIX)
+
 namespace fltl {
 
     // forward declaration
@@ -275,7 +296,7 @@ namespace fltl {
         typedef cfg::Symbol<AlphaT> symbol_type;
 
         /// type of a production builder
-        typedef cfg::ProductionBuilder<AlphaT> production_builder_type;
+        typedef cfg::ProductionBuilder<AlphaT> symbol_buffer_type;
 
         /// represents a production
         typedef cfg::OpaqueProduction<AlphaT> production_type;
@@ -296,7 +317,7 @@ namespace fltl {
 
         /// short forms
         typedef symbol_type sym_t;
-        typedef production_builder_type prod_builder_t;
+        typedef symbol_buffer_type sym_buff_t;
         typedef terminal_type term_t;
         typedef variable_type var_t;
         typedef production_type prod_t;
@@ -853,7 +874,7 @@ namespace fltl {
         /// add a production to the grammar from a production builder
         inline const production_type add_production(
             const variable_type _var,
-            production_builder_type &builder
+            symbol_buffer_type &builder
         ) throw() {
             return add_production(_var, builder.symbols());
         }

@@ -36,8 +36,6 @@
 
 #include "fltl/include/helper/BlockAllocator.hpp"
 
-#include "grail/include/cfg/ParseTree.hpp"
-
 #include "grail/include/io/verbose.hpp"
 #include "grail/include/io/UTF8FileTokBuffer.hpp"
 
@@ -50,18 +48,8 @@ namespace grail { namespace algorithm {
 
         // take off the templates!
         typedef fltl::CFG<AlphaT> CFG;
-        typedef typename CFG::alphabet_type alphabet_type;
-        typedef typename CFG::symbol_type symbol_type;
-        typedef typename CFG::traits_type traits_type;
-        typedef typename CFG::variable_type variable_type;
-        typedef typename CFG::pattern_type pattern_type;
-        typedef typename CFG::terminal_type terminal_type;
-        typedef typename CFG::production_type production_type;
-        typedef typename CFG::generator_type generator_type;
-        typedef typename CFG::symbol_string_type symbol_string_type;
-        typedef typename CFG::production_builder_type production_builder_type;
 
-        typedef cfg::ParseTree<AlphaT> parse_tree_type;
+        FLTL_CFG_USE_TYPES(CFG);
 
         class earley_item_type;
 
@@ -168,15 +156,23 @@ namespace grail { namespace algorithm {
             }
         }
 
+        /// allocator type for Earley items
+        typedef fltl::helper::BlockAllocator<
+            earley_item_type, NUM_BLOCKS
+        > earley_item_allocator_type;
+
+        /// allocator type for Earley sets
+        typedef fltl::helper::BlockAllocator<
+            earley_set_type, NUM_BLOCKS
+        > earley_set_allocator_type;
+
         /// check the index for the existence of item, if it's in, return 0,
         /// otherwise return the item and add it to the index
         static earley_item_type *
         indexed_push(
             earley_set_type *set,
             std::vector<earley_item_type *> &index,
-            fltl::helper::BlockAllocator<
-                earley_item_type, NUM_BLOCKS
-            > &allocator,
+            earley_item_allocator_type &allocator,
             earley_item_type *item
         ) throw() {
 
@@ -241,14 +237,10 @@ namespace grail { namespace algorithm {
             const char *token(reader.read());
 
             // allocator for Earley sets
-            static fltl::helper::BlockAllocator<
-                earley_set_type, NUM_BLOCKS
-            > set_allocator;
+            static earley_set_allocator_type set_allocator;
 
             /// allocator for Earley items
-            static fltl::helper::BlockAllocator<
-                earley_item_type, NUM_BLOCKS
-            > item_allocator;
+            static earley_item_allocator_type item_allocator;
 
             // the actual start variable; we will end up adding a fake
             // start variable later

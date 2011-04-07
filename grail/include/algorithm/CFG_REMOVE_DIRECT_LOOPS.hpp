@@ -40,12 +40,8 @@ namespace grail { namespace algorithm {
 
         // take off the templates!
         typedef fltl::CFG<AlphaT> CFG;
-        typedef typename CFG::variable_type variable_type;
-        typedef typename CFG::terminal_type terminal_type;
-        typedef typename CFG::production_type production_type;
-        typedef typename CFG::generator_type generator_type;
-        typedef typename CFG::symbol_string_type symbol_string_type;
-        typedef typename CFG::production_builder_type production_builder_type;
+
+        FLTL_CFG_USE_TYPES(CFG);
 
         static void run(CFG &cfg) throw() {
             variable_type A;

@@ -40,10 +40,8 @@ namespace grail { namespace algorithm {
     private:
 
         typedef fltl::NFA<AlphaT> NFA;
-        typedef typename NFA::state_type state_type;
-        typedef typename NFA::symbol_type symbol_type;
-        typedef typename NFA::transition_type transition_type;
-        typedef typename NFA::generator_type generator_type;
+
+        FLTL_NFA_USE_TYPES(NFA);
 
     public:
 

@@ -48,6 +48,24 @@
 
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
+#define FLTL_PDA_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
+    typedef typename type::state_type func(prefix, state_type); \
+    typedef typename type::symbol_type func(prefix, symbol_type); \
+    typedef typename type::transition_type func(prefix, transition_type); \
+    typedef typename type::generator_type func(prefix, generator_type); \
+    typedef typename type::traits_type func(prefix, traits_type); \
+    typedef typename type::alphabet_type func(prefix, alphabet_type); \
+    typedef typename type::symbol_buffer_type func(prefix, symbol_buffer_type)
+
+#define FLTL_PDA_NO_PREFIX(prefix, str) str
+#define FLTL_PDA_USE_PREFIX(prefix, str) prefix ## _ ## str
+
+#define FLTL_PDA_USE_TYPES(type) \
+    FLTL_PDA_USE_TYPES_PREFIX_FUNC(type, foo, FLTL_PDA_NO_PREFIX)
+
+#define FLTL_PDA_USE_TYPES_PREFIX(type, prefix) \
+    FLTL_PDA_USE_TYPES_PREFIX_FUNC(type, prefix, FLTL_PDA_USE_PREFIX)
+
 namespace fltl {
 
     // forward delarations

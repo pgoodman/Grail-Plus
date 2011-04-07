@@ -48,21 +48,11 @@ namespace grail { namespace algorithm {
         typedef fltl::PDA<AlphaT> PDA;
         typedef fltl::NFA<AlphaT> NFA;
 
-        typedef typename PDA::state_type pda_state_type;
-        typedef typename NFA::state_type nfa_state_type;
-
-        typedef typename PDA::generator_type pda_generator_type;
-        typedef typename NFA::generator_type nfa_generator_type;
-
-        typedef typename PDA::symbol_type pda_symbol_type;
-        typedef typename NFA::symbol_type nfa_symbol_type;
+        FLTL_PDA_USE_TYPES_PREFIX(PDA, pda);
+        FLTL_NFA_USE_TYPES_PREFIX(NFA, nfa);
 
         typedef std::pair<pda_state_type,nfa_state_type> state_pair_type;
-
-        typedef std::map<
-            state_pair_type,
-            pda_state_type
-        > state_pair_map_type;
+        typedef std::map<state_pair_type, pda_state_type> state_pair_map_type;
 
         /// get a state in the constructed automaton
         static pda_state_type get_state(

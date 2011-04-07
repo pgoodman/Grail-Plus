@@ -50,12 +50,8 @@ namespace grail { namespace algorithm {
 
         // take off the templates!
         typedef fltl::CFG<AlphaT> CFG;
-        typedef typename CFG::variable_type variable_type;
-        typedef typename CFG::terminal_type terminal_type;
-        typedef typename CFG::production_type production_type;
-        typedef typename CFG::generator_type generator_type;
-        typedef typename CFG::symbol_string_type symbol_string_type;
-        typedef typename CFG::production_builder_type production_builder_type;
+
+        FLTL_CFG_USE_TYPES(CFG);
 
         static void add_new_start_var(CFG &cfg) throw() {
             variable_type S(cfg.add_variable());
@@ -65,7 +61,7 @@ namespace grail { namespace algorithm {
 
         static bool sub_epsilon_combinations(
             CFG &cfg,
-            production_builder_type &buffer,
+            symbol_buffer_type &buffer,
             symbol_string_type &str,
             std::set<variable_type> &ignore_set,
             variable_type A,
@@ -165,7 +161,7 @@ namespace grail { namespace algorithm {
             ));
 
             // buffer for building productions
-            production_builder_type buffer;
+            symbol_buffer_type buffer;
 
             std::set<variable_type> ignore_set;
 

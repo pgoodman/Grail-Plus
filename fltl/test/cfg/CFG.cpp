@@ -166,7 +166,7 @@ namespace fltl { namespace test { namespace cfg {
         FLTL_TEST_EQUAL(cfg.num_terminals(), 1);
         FLTL_TEST_EQUAL(cfg.num_variables(), 1);
 
-        CFG<char>::prod_builder_t builder;
+        CFG<char>::symbol_buffer_type builder;
 
         FLTL_TEST_DOC(cfg.add_production(S, builder.clear() << a << S));
 

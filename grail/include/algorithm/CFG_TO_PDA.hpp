@@ -43,9 +43,15 @@ namespace grail { namespace algorithm {
     class CFG_TO_PDA {
     public:
 
+        typedef fltl::CFG<AlphaT> CFG;
+        typedef fltl::PDA<AlphaT> PDA;
+
+        FLTL_PDA_USE_TYPES_PREFIX(PDA, pda);
+        FLTL_CFG_USE_TYPES_PREFIX(CFG, cfg);
+
         static void run(
-            const fltl::CFG<AlphaT> &cfg,
-            fltl::PDA<AlphaT> &pda
+            const CFG &cfg,
+            PDA &pda
         ) throw() {
 
             if(0 == cfg.num_variables()
@@ -54,40 +60,31 @@ namespace grail { namespace algorithm {
                 return;
             }
 
-            typedef fltl::CFG<AlphaT> CFG;
-            typedef fltl::PDA<AlphaT> PDA;
-
             // make the initial symbols needed in the construction
-            typename PDA::symbol_type bottom_of_stack(pda.add_stack_symbol());
-            typename PDA::state_type q_start(pda.get_start_state());
-            typename PDA::state_type q_loop(pda.add_state());
-            typename PDA::state_type q_accept(pda.add_state());
+            pda_symbol_type bottom_of_stack(pda.add_stack_symbol());
+            pda_state_type q_start(pda.get_start_state());
+            pda_state_type q_loop(pda.add_state());
+            pda_state_type q_accept(pda.add_state());
 
-            typename PDA::symbol_buffer_type buffer;
+            pda_symbol_buffer_type buffer;
 
             // create a mapping between CFG variables and PDA symbols
-            std::map<
-                typename CFG::variable_type,
-                typename PDA::symbol_type
-            > var_symbols;
+            std::map<cfg_variable_type, pda_symbol_type> var_symbols;
 
             // fill the mapping
-            typename CFG::variable_type V;
-            typename CFG::generator_type vars(cfg.search(~V));
+            cfg_variable_type V;
+            cfg_generator_type vars(cfg.search(~V));
             for(; vars.match_next(); ) {
                 var_symbols[V] = pda.get_stack_symbol(cfg.get_name(V));
             }
 
             // creating a mapping between CFG terminals and PDA symbols
-            std::map<
-                typename CFG::terminal_type,
-                typename PDA::symbol_type
-            > term_symbols;
+            std::map<cfg_terminal_type, pda_symbol_type> term_symbols;
 
             // fill the mapping
-            typename CFG::terminal_type T;
-            typename PDA::symbol_type sym;
-            typename CFG::generator_type terms(cfg.search(~T));
+            cfg_terminal_type T;
+            pda_symbol_type sym;
+            cfg_generator_type terms(cfg.search(~T));
             for(; terms.match_next(); ) {
                 sym = pda.get_alphabet_symbol(cfg.get_alpha(T));
                 term_symbols[T] = sym;
@@ -107,9 +104,9 @@ namespace grail { namespace algorithm {
             );
 
             // add in productions
-            typename CFG::symbol_string_type str;
-            typename CFG::symbol_type cfg_sym;
-            typename CFG::generator_type prods(cfg.search((~V) --->* ~str));
+            cfg_symbol_string_type str;
+            cfg_symbol_type cfg_sym;
+            cfg_generator_type prods(cfg.search((~V) --->* ~str));
 
             // handle the case where a variable is on the top of the
             // stack
@@ -121,11 +118,11 @@ namespace grail { namespace algorithm {
                     cfg_sym = str.at(i);
 
                     if(cfg_sym.is_variable()) {
-                        typename CFG::variable_type cfg_var(cfg_sym);
+                        cfg_variable_type cfg_var(cfg_sym);
                         buffer.append(var_symbols[cfg_var]);
 
                     } else if(cfg_sym.is_terminal()) {
-                        typename CFG::terminal_type cfg_term(cfg_sym);
+                        cfg_terminal_type cfg_term(cfg_sym);
                         buffer.append(term_symbols[cfg_term]);
                     }
                 }
