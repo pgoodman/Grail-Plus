@@ -18,6 +18,10 @@
   so that it works on non-files. Right now two passes are needed over most
   things, which means *NIX pipes are out of the question.
 
+- Make input mmap files, and read stdin into memory, possibly using a similar
+  mechanism to the buffered text in the ContPEG project. Then allow one to
+  use pointer arithmetic to iterate over the bytes of a file.
+
 - Add an option to cfg-parse to split characters by whitespace or some
   other delimiter.
 
