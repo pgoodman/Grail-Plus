@@ -200,7 +200,7 @@ namespace grail { namespace io {
 
             offset = static_cast<size_t>(first_char - argv[i]);
 
-            // empty argv slot
+            // empty arrgv slot
             if(0 == first_char || '\0' == *first_char) {
                 first_char = &(argv[++i][0]);
                 continue;

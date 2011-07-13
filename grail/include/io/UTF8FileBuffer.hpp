@@ -86,12 +86,18 @@ namespace grail { namespace io {
     public:
 
         UTF8FileBuffer(FILE *fp_) throw()
-            : fp(fp_)
+            : peek(0)
+            , fp(fp_)
         {
+            memset(peek_column, 0, sizeof(unsigned) * 2);
+            memset(peek_line, 0, sizeof(unsigned) * 2);
+
             reset();
         }
 
         void reset(void) throw() {
+
+            const bool did_read(line() > 0 || column() > 0);
 
             memset(buffer, 0, sizeof(char) * (WINDOW_SIZE + 1));
             memset(scratch, 0, sizeof(char) * SCRATCH_SIZE);
@@ -108,7 +114,7 @@ namespace grail { namespace io {
             done_reading = false;
 
             if(0 != fp) {
-                if(stdin != fp && 0 != fseek(fp, 0, SEEK_SET)) {
+                if(did_read && 0 != fseek(fp, 0, SEEK_SET)) {
                     at_end = true;
                 } else {
                     at_end = false;

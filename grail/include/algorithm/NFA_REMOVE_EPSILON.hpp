@@ -52,12 +52,13 @@ namespace grail { namespace algorithm {
             symbol_type read;
             const symbol_type epsilon(nfa.epsilon());
 
-            state_type A;
-            generator_type states(nfa.search(~A));
-
-            // epsilon transitions on A
+            // all epsilon transitions leaving state A and
+            // going to state B, store the actual transition
+            // to epsilon_transition
             transition_type epsilon_transition;
+            state_type A;
             state_type B;
+            generator_type all_states(nfa.search(~A));
             generator_type epsilon_transitions(nfa.search(
                 ~epsilon_transition,
                 A,
@@ -65,7 +66,7 @@ namespace grail { namespace algorithm {
                 ~B
             ));
 
-            // all transitions on B
+            // all transitions leaving state B
             transition_type reachable_transition;
             generator_type reachable_transitions(nfa.search(
                 ~reachable_transition,
@@ -74,7 +75,7 @@ namespace grail { namespace algorithm {
                 nfa._
             ));
 
-            for(bool updated(false); states.match_next(); ) {
+            for(bool updated(false); all_states.match_next(); ) {
                 reached_states.clear();
                 reached_states.insert(A);
 

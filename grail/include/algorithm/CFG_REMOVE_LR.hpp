@@ -56,6 +56,7 @@ namespace grail { namespace algorithm {
             CFG &cfg,
             variable_type A
         ) throw() {
+
             symbol_string_type alpha;
             symbol_string_type beta;
             production_type LR_prod;

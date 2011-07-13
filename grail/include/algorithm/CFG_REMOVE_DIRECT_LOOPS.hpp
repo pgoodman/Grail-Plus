@@ -47,7 +47,7 @@ namespace grail { namespace algorithm {
             variable_type A;
             production_type P;
 
-            // remove self-loops
+            // remove direct self-loops
             generator_type self_loops(cfg.search(~P, (~A) --->* A));
             for(; self_loops.match_next(); ) {
                 cfg.remove_production(P);
