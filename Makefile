@@ -67,9 +67,22 @@ bin/lib/printer/%.o: grail/lib/io/%.cpp
 bin/test/%.o: fltl/test/%.cpp
 	${CXX} ${CXX_FLAGS} -c $< -o $@
 
+install:
+	-mkdir bin
+	-mkdir bin/test
+	-mkdir bin/test/cfg
+	-mkdir bin/lib
+	-mkdir bin/lib/printer
+	-mkdir bin/lib/io
+	-mkdir bin/lib/helper
+
 clean:
 	-rm ${OUT}
 	-rm -rf bin/*.dSYM
 	-rm -rf bin/*.o
+	-rm -rf bin/lib/*.o
+	-rm -rf bin/lib/printer/*.o
+	-rm -rf bin/lib/helper/*.o
+	-rm -rf bin/lib/io/*.o
 	-rm -rf bin/test/*.o
 	-rm -rf bin/test/cfg/*.o
