@@ -33,6 +33,8 @@
 #include <set>
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
+#include <cstdio>
 
 #include "fltl/include/helper/Array.hpp"
 #include "fltl/include/helper/BlockAllocator.hpp"

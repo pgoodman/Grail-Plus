@@ -32,6 +32,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 #include <cctype>
 #include <map>
 #include <list>
@@ -80,7 +81,8 @@
     typedef typename type::production_type func(prefix, production_type); \
     typedef typename type::symbol_string_type func(prefix, symbol_string_type); \
     typedef typename type::generator_type func(prefix, generator_type); \
-    typedef typename type::pattern_type func(prefix, pattern_type)
+    typedef typename type::pattern_type func(prefix, pattern_type); \
+    typedef type func(prefix, cfg_type)
 
 #define FLTL_CFG_NO_PREFIX(prefix, str) str
 #define FLTL_CFG_USE_PREFIX(prefix, str) prefix ## _ ## str

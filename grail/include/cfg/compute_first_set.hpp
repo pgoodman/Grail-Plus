@@ -49,7 +49,7 @@ namespace grail { namespace cfg {
             }
         }
 
-        bool union_into(std::vector<bool> *dest, std::vector<bool> *sub) throw() {
+        bool union_into(std::vector<bool> *dest, const std::vector<bool> *sub) throw() {
             if(0 == dest || 0 == sub) {
                 return false;
             }
@@ -79,11 +79,7 @@ namespace grail { namespace cfg {
         std::vector<std::vector<bool> *> &first
     ) throw() {
 
-        typedef typename fltl::CFG<AlphaT>::variable_type variable_type;
-        typedef typename fltl::CFG<AlphaT>::production_type production_type;
-        typedef typename fltl::CFG<AlphaT>::terminal_type terminal_type;
-        typedef typename fltl::CFG<AlphaT>::generator_type generator_type;
-        typedef typename fltl::CFG<AlphaT>::symbol_string_type symbol_string_type;
+        FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
 
         typedef std::vector<bool> terminal_set_type;
 
