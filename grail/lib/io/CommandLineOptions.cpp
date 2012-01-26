@@ -482,7 +482,7 @@ namespace grail { namespace io {
                 "note",
                 FLTL_F_BLUE,
                 diag,
-                argv_offset,
+                static_cast<int>(argv_offset),
                 offset
             );
         }

@@ -33,9 +33,11 @@ namespace fltl { namespace pda {
 
     template <typename AlphaT>
     class OpaqueState {
-    private:
+    public:
 
         typedef OpaqueState<AlphaT> self_type;
+
+    private:
 
         friend class PDA<AlphaT>;
         friend class StateGenerator<AlphaT>;
