@@ -64,25 +64,23 @@ namespace grail { namespace cli {
 
         static void add_to_table(
             cfg_type &cfg,
-            std::map<production_type, unsigned> &production_ids,
-            std::vector<production_type> &ids_to_productions,
-            std::map<std::pair<unsigned, unsigned>, unsigned> &table,
+            std::map<std::pair<unsigned, unsigned>, production_type> &table,
             variable_type V, terminal_type a, production_type p
         ) throw() {
             std::pair<unsigned, unsigned> cell(V.number(), a.number());
 
+            const char *term;
+            if(cfg.is_variable_terminal(a)) {
+                term = cfg.get_name(a);
+            } else {
+                term = cfg.get_alpha(a);
+            }
+
             if(table.count(cell)) {
-                production_type conflict(ids_to_productions[table[cell]]);
+                production_type conflict(table[cell]);
 
                 if(p == conflict) {
                     return;
-                }
-
-                const char *term;
-                if(cfg.is_variable_terminal(a)) {
-                    term = cfg.get_name(a);
-                } else {
-                    term = cfg.get_alpha(a);
                 }
 
                 io::warning(
@@ -93,19 +91,25 @@ namespace grail { namespace cli {
                     term
                 );
 
-                fprintf(stdout, "         ");
-                io::fprint(stdout, cfg, p);
+                fprintf(stderr, "         ");
+                io::fprint(stderr, cfg, p);
 
-                fprintf(stdout, "         ");
-                io::fprint(stdout, cfg, conflict);
-                fprintf(stdout, "\n");
+                fprintf(stderr, "         ");
+                io::fprint(stderr, cfg, conflict);
+                fprintf(stderr, "\n");
 
             } else {
-                table[cell] = production_ids[p];
+                //fprintf(stdout, "terminal '%s' for '%s' goes to (%u, %u): ", term, cfg.get_name(V), V.number(), a.number());
+                //io::fprint(stdout, cfg, p);
+                table[cell] = p;
+                //printf("   new size = %lu\n", table.size());
             }
         }
 
-        static bool all_nullable(std::vector<bool> &nullable, symbol_string_type ss) throw() {
+        static bool all_nullable(
+            std::vector<bool> &nullable,
+            symbol_string_type ss
+        ) throw() {
             for(unsigned i(0); i < ss.length(); ++i) {
                 if(ss.at(i).is_terminal()) {
                     return false;
@@ -118,6 +122,7 @@ namespace grail { namespace cli {
             }
             return true;
         }
+
 
         static int main(io::CommandLineOptions &options) throw() {
 
@@ -143,9 +148,7 @@ namespace grail { namespace cli {
             int ret(0);
             cfg_type cfg;
 
-            std::map<production_type, unsigned> production_ids;
-            std::vector<production_type> ids_to_productions;
-            std::map<std::pair<unsigned, unsigned>, unsigned> table;
+            std::map<std::pair<unsigned, unsigned>, production_type> table;
 
             std::vector<bool> nullable;
             std::vector<std::vector<bool> *> first;
@@ -175,13 +178,7 @@ namespace grail { namespace cli {
 
             grail::cfg::compute_null_set(cfg, nullable);
             grail::cfg::compute_first_set(cfg, nullable, first);
-            grail::cfg::compute_follow_set(cfg, first, follow);
-
-            // map productions to integers
-            for(unsigned prod_id(0); productions.match_next(); ++prod_id) {
-                production_ids[prod] = prod_id;
-                ids_to_productions.push_back(prod);
-            }
+            grail::cfg::compute_follow_set(cfg, nullable, first, follow);
 
             for(; As.match_next(); ) {
                 for(as.rewind(); as.match_next(); ) {
@@ -190,7 +187,7 @@ namespace grail { namespace cli {
                         // easy case
                         if(w.is_empty()) {
                             if(in_follow(follow, A, a)) {
-                                add_to_table(cfg, production_ids, ids_to_productions, table, A, a, prod);
+                                add_to_table(cfg, table, A, a, prod);
                             }
 
                         // tricky case, need to check nullability
@@ -208,15 +205,36 @@ namespace grail { namespace cli {
                             }
 
                             if(check_set->at(a.number())) {
-                                add_to_table(cfg, production_ids, ids_to_productions, table, A, a, prod);
+                                add_to_table(cfg, table, A, a, prod);
                             }
 
                         // terminal, only care about if it's the one we want
                         } else if(w.at(0) == a) {
-                            add_to_table(cfg, production_ids, ids_to_productions, table, A, a, prod);
+                            add_to_table(cfg, table, A, a, prod);
                         }
                     }
                 }
+            }
+
+            {
+
+                FILE *outfile(stdout);
+
+                // output the table
+                fprintf(outfile, "{\n");
+                for(unsigned v(0); v < cfg.num_variables_capacity(); ++v) {
+                    fprintf(outfile, "    {");
+                    for(unsigned a(1); a < cfg.num_terminals() + 1U; ++a) {
+                        std::pair<unsigned, unsigned> cell(v, a);
+                        if(table.count(cell)) {
+                            fprintf(outfile, "P(%5llu),", table[cell].number());
+                        } else {
+                            fprintf(outfile, "P(error),");
+                        }
+                    }
+                    fprintf(outfile, "},\n");
+                }
+                fprintf(outfile, "},\n");
             }
 
         done:
@@ -224,9 +242,7 @@ namespace grail { namespace cli {
 
             // clean up
 
-            production_ids.clear();
-            ids_to_productions.clear();
-            ids_to_productions.resize(0);
+            table.clear();
 
             for(unsigned i(0); i < first.size(); ++i) {
                 delete first[i];

@@ -29,6 +29,8 @@
 #ifndef FLTL_OPAQUEPRODUCTION_HPP_
 #define FLTL_OPAQUEPRODUCTION_HPP_
 
+#include <functional>
+
 namespace fltl { namespace cfg {
 
     /// the production type that is exposed to users
@@ -183,8 +185,32 @@ namespace fltl { namespace cfg {
                 return production->is_less_than(*(that.production));
             }
         }
+
+        uint64_t number(void) const throw() {
+            if(0 == production) {
+                return 0UL;
+            }
+
+            uint64_t number(0UL);
+            number |= production->var->id;
+            number <<= 16U;
+            number <<= 16U;
+
+            number |= production->symbols.symbols[str::HASH].value;
+
+            return number;
+        }
     };
 
 }}
+
+namespace std {
+    template <typename  AlphaT>
+    struct less<fltl::cfg::OpaqueProduction<AlphaT> > : binary_function <fltl::cfg::OpaqueProduction<AlphaT>, fltl::cfg::OpaqueProduction<AlphaT>, bool> {
+        bool operator() (const fltl::cfg::OpaqueProduction<AlphaT> &x, const fltl::cfg::OpaqueProduction<AlphaT> &y) const {
+            return x.number() < y.number();
+        }
+    };
+}
 
 #endif /* FLTL_OPAQUEPRODUCTION_HPP_ */
