@@ -604,11 +604,11 @@ namespace fltl {
         }
 
         unsigned num_accept_states(void) const throw() {
-            return final_states.size();
+            return static_cast<unsigned>(final_states.size());
         }
 
         unsigned num_symbols(void) const throw() {
-            return symbol_map.size() - 1;
+            return static_cast<unsigned>(symbol_map.size()) - 1U;
         }
 
         unsigned num_transitions(void) const throw() {

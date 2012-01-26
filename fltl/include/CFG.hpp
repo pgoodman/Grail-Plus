@@ -950,7 +950,7 @@ namespace fltl {
         /// get the number of variable terminals; these are terminals that
         /// are left undefined in the grammar.
         inline unsigned num_variable_terminals(void) const throw() {
-            return variable_terminal_map.size();
+            return static_cast<unsigned>(variable_terminal_map.size());
         }
 
         /// create a variable generator

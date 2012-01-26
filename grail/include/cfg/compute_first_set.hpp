@@ -58,7 +58,7 @@ namespace grail { namespace cfg {
 
             bool updated(false);
 
-            for(unsigned i(0), len(dest->size()); i < len; ++i) {
+            for(size_t i(0), len(dest->size()); i < len; ++i) {
                 std::vector<bool>::reference ith(dest->operator[](i));
                 if(sub->operator[](i) && !ith) {
                     ith = true;
@@ -122,7 +122,7 @@ namespace grail { namespace cfg {
             for(variables.rewind(); variables.match_next(); ) {
 
                 curr_set = first[V.number()];
-                old_len = curr_set->size();
+                old_len = static_cast<unsigned>(curr_set->size());
 
                 for(next_subsets.rewind(); next_subsets.match_next(); ) {
 

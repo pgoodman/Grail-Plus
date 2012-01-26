@@ -67,8 +67,8 @@ namespace grail {
     static void help_footer(void) throw() {
         printf(
         //  "                                   |                                             |"
-            "  Grail+ is Copyright (C) 2011, Peter Goodman.\n\n"
-            "  Bug reports, feedback, etc. to: peter.goodman@gmail.com\n\n"
+            "  Grail+ is Copyright (C) 2011, 2012 Peter Goodman.\n\n"
+            "  Bug reports, feedback, etc. to: pag@cs.toronto.edu\n\n"
         );
     }
 
@@ -160,7 +160,7 @@ int main(const int argc, const char **argv) throw() {
         if(version.is_valid()) {
 
             printf(
-                "Grail+, version %u.%u, Copyright (C) 2011, Peter Goodman.\n",
+                "Grail+, version %u.%u, Copyright (C) 2011, 2012, Peter Goodman.\n",
                 GRAIL_MAJOR_VERSION, GRAIL_MINOR_VERSION
             );
 
