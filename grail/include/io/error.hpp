@@ -40,6 +40,8 @@ namespace grail { namespace io {
 
     void error(const char *str, ...) FLTL_VARG_CHECK_FORMAT(1,2);
 
+    void warning(const char *str, ...) FLTL_VARG_CHECK_FORMAT(1,2);
+
     void error(
         const char * const file_name,
         const unsigned line,

@@ -42,9 +42,7 @@ namespace grail { namespace cfg {
         std::vector<bool> &nullable
     ) throw() {
 
-        typedef typename fltl::CFG<AlphaT>::variable_type variable_type;
-        typedef typename fltl::CFG<AlphaT>::generator_type generator_type;
-        typedef typename fltl::CFG<AlphaT>::symbol_string_type symbol_string_type;
+        FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
 
         variable_type V;
         variable_type Q;

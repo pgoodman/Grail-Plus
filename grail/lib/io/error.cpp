@@ -219,5 +219,15 @@ namespace grail { namespace io {
         va_end(args);
     }
 
+    void warning(const char *str, ...) {
+        if(0 == str) {
+            return;
+        }
+        va_list args;
+        va_start(args, str);
+        message(stderr, FLTL_F_PINK, "warning", str, args, 0);
+        va_end(args);
+    }
+
 }}
 

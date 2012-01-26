@@ -26,18 +26,7 @@ namespace grail { namespace cfg {
     ) throw() {
         FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
 
-        follow.reserve(first.size());
-
-        // initialize each follow bitset as the empty set of the appropriate
-        // size.
-        for(size_t i(0); i < follow.size(); ++i) {
-            const bool no_follow(false);
-            std::vector<bool> *follow_var(new std::vector<bool>(
-                first[i]->size(), no_follow
-            ));
-
-            follow[i] = follow_var;
-        }
+        follow.assign(cfg.num_variables_capacity() + 2, 0);
 
         variable_type V;
         symbol_type s;
@@ -45,12 +34,18 @@ namespace grail { namespace cfg {
         generator_type variables(cfg.search(~V));
         generator_type syms_following_V(cfg.search(cfg._ --->* cfg.__ + V + ~s + cfg.__));
 
+        // initialize each follow bitset as the empty set of the appropriate
+        // size.
         for(; variables.match_next(); ) {
+            follow[V.number()] = new std::vector<bool>(cfg.num_terminals() + 2U, false);
+        }
+
+        for(variables.rewind(); variables.match_next(); ) {
 
             for(syms_following_V.rewind(); syms_following_V.match_next(); ) {
                 if(s.is_variable()) {
                     variable_type U(s);
-                    detail::union_into(follow[V.number()], follow[U.number()]);
+                    detail::union_into(follow[V.number()], first[U.number()]);
                 } else {
                     terminal_type u(s);
                     (*(follow[V.number()]))[u.number()] = true;

@@ -80,6 +80,21 @@ namespace grail { namespace io {
         return num;
     }
 
+    /// print out a production
+    template <typename AlphaT>
+    int fprint(FILE *ff, fltl::CFG<AlphaT> &cfg, typename fltl::CFG<AlphaT>::production_type &prod) throw() {
+        int num(fprintf(ff, "%s : ", cfg.get_name(prod.variable())));
+        const char sep[] = {'\0', '\0'};
+        num += fprint_production(
+            ff,
+            cfg,
+            prod.symbols(),
+            &(sep[0])
+        );
+        num += fprintf(ff, ";\n");
+        return num;
+    }
+
     /// print out a context-free grammar
     template <typename AlphaT>
     int fprint(FILE *ff, fltl::CFG<AlphaT> &cfg) throw() {
