@@ -74,19 +74,31 @@ namespace grail { namespace cli {
             if(table.count(cell)) {
                 production_type conflict(ids_to_productions[table[cell]]);
 
+                if(p == conflict) {
+                    return;
+                }
+
+                const char *term;
+                if(cfg.is_variable_terminal(a)) {
+                    term = cfg.get_name(a);
+                } else {
+                    term = cfg.get_alpha(a);
+                }
+
                 io::warning(
                     "The following two productions conflict when trying to decide "
-                    "which production of %s to parse on input %s. The latter production "
+                    "which production of '%s' to parse on input '%s'. The latter production "
                     "has been chosen.\n",
                     cfg.get_name(V),
-                    cfg.get_name(a)
+                    term
                 );
 
-                fprintf(stdout, "    ");
+                fprintf(stdout, "         ");
                 io::fprint(stdout, cfg, p);
 
-                fprintf(stdout, "    ");
+                fprintf(stdout, "         ");
                 io::fprint(stdout, cfg, conflict);
+                fprintf(stdout, "\n");
 
             } else {
                 table[cell] = production_ids[p];
@@ -199,6 +211,7 @@ namespace grail { namespace cli {
                                 add_to_table(cfg, production_ids, ids_to_productions, table, A, a, prod);
                             }
 
+                        // terminal, only care about if it's the one we want
                         } else if(w.at(0) == a) {
                             add_to_table(cfg, production_ids, ids_to_productions, table, A, a, prod);
                         }

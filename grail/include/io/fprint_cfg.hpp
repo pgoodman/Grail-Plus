@@ -83,7 +83,7 @@ namespace grail { namespace io {
     /// print out a production
     template <typename AlphaT>
     int fprint(FILE *ff, fltl::CFG<AlphaT> &cfg, typename fltl::CFG<AlphaT>::production_type &prod) throw() {
-        int num(fprintf(ff, "%s : ", cfg.get_name(prod.variable())));
+        int num(fprintf(ff, "%s ->", cfg.get_name(prod.variable())));
         const char sep[] = {'\0', '\0'};
         num += fprint_production(
             ff,
@@ -91,7 +91,6 @@ namespace grail { namespace io {
             prod.symbols(),
             &(sep[0])
         );
-        num += fprintf(ff, ";\n");
         return num;
     }
 
