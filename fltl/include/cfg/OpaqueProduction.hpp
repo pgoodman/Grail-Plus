@@ -196,7 +196,9 @@ namespace fltl { namespace cfg {
             number <<= 16U;
             number <<= 16U;
 
-            number |= production->symbols.symbols[str::HASH].value;
+            if(0 != production->symbols.symbols) {
+                number |= production->symbols.symbols[str::HASH].value;
+            }
 
             return number;
         }
