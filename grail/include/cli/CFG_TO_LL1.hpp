@@ -181,15 +181,16 @@ namespace grail { namespace cli {
             generator_type As(cfg.search(~A));
             generator_type as(cfg.search(~a));
             generator_type A_related(cfg.search(~prod, A --->* ~w));
-
-            // empty set of all terminals
-            std::vector<bool> empty_set(cfg.num_terminals() + 2, false);
+            std::vector<bool> empty_set;
 
             // can't bring in the cfg :(
             if(!io::fread(fp, cfg, file_name)) {
                 ret = 1;
                 goto done;
             }
+
+            // empty set of all terminals
+            empty_set.assign(cfg.num_terminals() + 2, false);
 
             grail::cfg::compute_null_set(cfg, nullable);
             grail::cfg::compute_first_set(cfg, nullable, first);
