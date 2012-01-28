@@ -234,15 +234,27 @@ namespace grail { namespace cli {
             // output the file header
             fprintf(outfile,
                 "// LL(1) parser, outputted by Grail+ (http://www.grailplus.org)\n"
-                "#include <stack>\n"
+                "#include <vector>\n"
                 "#include <cassert>\n\n"
                 "#define P(f) &p ## f\n"
                 "#define NT(v) s.push_back(stack_symbol_type::non_terminal(v))\n"
                 "#define T(t) s.push_back(stack_symbol_type::terminal(t))\n"
-                "#define A(a) s.push_back(stack_symbol_type::action(a))\n\n"
-                "typedef std::stack<stack_symbol_type> stack_type;\n"
+                "#define A(a) s.push_back(stack_symbol_type::action(a))\n"
+                "\n"
+                "// terminal id | terminal\n"
+            );
+
+            // print out all of the terminal mappings
+            for(as.rewind(); as.match_next(); ) {
+                fprintf(outfile,
+                    "// %11u | %s\n",
+                    a.number(), terminal_rep(cfg, a)
+                );
+            }
+
+            fprintf(outfile,
+                "\n"
                 "typedef bool (action_type)(void);\n"
-                "typedef bool (transition_type)(stack_type &);\n"
                 "struct stack_symbol_type {\n"
                 "    union {\n"
                 "        unsigned t;\n"
@@ -254,8 +266,7 @@ namespace grail { namespace cli {
                 "        ACTION,\n"
                 "        NON_TERMINAL\n"
                 "    };\n"
-                "    const stack_symbol_kind k;"
-                "\n"
+                "    stack_symbol_kind k;\n"
                 "    static stack_symbol_type terminal(unsigned t) throw() {\n"
                 "        stack_symbol_type ss;\n"
                 "        ss.k = TERMINAL;\n"
@@ -275,6 +286,8 @@ namespace grail { namespace cli {
                 "        return ss;\n"
                 "    }\n"
                 "};\n\n"
+                "typedef std::vector<stack_symbol_type> stack_type;\n"
+                "typedef bool (transition_type)(stack_type &);\n"
                 ""
                 "static bool perror(stack_type &) throw() {\n"
                 "    return false;\n"
@@ -353,30 +366,30 @@ namespace grail { namespace cli {
             fprintf(outfile, "};\n\n");
 
             fprintf(outfile,
-                "// parse some input stream"
+                "// parse some input stream\n"
                 "template <typename token_stream_type, typename token_type>\n"
                 "bool parse(token_stream_type &stream) throw() {\n"
                 "    token_type tok;\n"
                 "    stack_symbol_type sym;\n"
-                "    stack_type stack;\n"
-                "    unsigned term;"
+                "    stack_type s;\n"
+                "    unsigned term;\n"
                 "    NT(%u);\n"
                 "    for(; stream.good(); ) {\n"
-                "        assert(!stack.empty());\n"
+                "        assert(!s.empty());\n"
                 "        stream >> tok;\n"
                 "        term = (unsigned) tok;\n"
-                "        sym = stack.back();\n"
-                "        stack.pop_back();\n"
-                "        if(TERMINAL == sym.t) {\n"
+                "        sym = s.back();\n"
+                "        s.pop_back();\n"
+                "        if(stack_symbol_type::TERMINAL == sym.k) {\n"
                 "            if(term != sym.u.t) {\n"
                 "                return false;\n"
                 "            }\n"
-                "        } else if(ACTION == sym.t) {\n"
+                "        } else if(stack_symbol_type::ACTION == sym.k) {\n"
                 "            if(!sym.u.a()) {\n"
                 "                return false;\n"
                 "            }\n"
                 "        } else {\n"
-                "            trans[sym.u.nt][term](stack);\n"
+                "            trans[sym.u.nt][term](s);\n"
                 "        }\n"
                 "    }\n"
                 "    return true;\n"
