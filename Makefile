@@ -9,7 +9,7 @@ CXX = ${DEFAULT_CXX}
 CXX_FEATURES = -fno-rtti -fno-exceptions -fstrict-aliasing
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
 CXX_WARN_FLAGS += -Wcast-qual
-CXX_FLAGS = -O2 -g -ansi -I${ROOT_DIR}
+CXX_FLAGS = -O0 -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 GNU_COMPATIBLE_FLAGS = -pedantic -pedantic-errors -Wextra -Wcast-align -Wno-long-long 
