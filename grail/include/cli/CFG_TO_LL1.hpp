@@ -13,6 +13,8 @@
 #include <utility>
 #include <map>
 #include <inttypes.h>
+#include <stdint.h>
+#include <climits>
 
 #include "fltl/include/CFG.hpp"
 
@@ -23,6 +25,14 @@
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_cfg.hpp"
 #include "grail/include/io/error.hpp"
+
+#ifndef PRIu64
+#   if UINT64_MAX == ULONG_MAX
+#       define PRIu64 "lu"
+#   else
+#       define PRIu64 "llu"
+#   endif
+#endif
 
 namespace grail { namespace cli {
 
