@@ -81,10 +81,80 @@ namespace grail { namespace cli {
             }
         }
 
+        // try to make a meaningful report on how the issue came about.
+        static void report_issue(
+            cfg_type &cfg,
+            production_type prod,
+            terminal_type term,
+            const std::vector<bool> &nullable,
+            const std::vector<std::vector<bool> *> &first,
+            const std::vector<std::vector<bool> *> &follow
+        ) throw() {
+
+            const char *prefix(0);
+
+            // check to see if term is in the first set of prod
+            symbol_string_type w(prod.symbols());
+            for(unsigned i(0); i < w.length(); ++i) {
+                if(w.at(i).is_variable()) {
+                    variable_type v(w.at(i));
+
+                    if(first[v.number()]->at(term.number())) {
+                        fprintf(stderr,
+                            "'%s' is in the first set of the variable '%s'.",
+                            terminal_rep(cfg, term),
+                            cfg.get_name(v)
+                        );
+                        prefix = cfg.get_name(v);
+
+                        goto found;
+                    }
+
+                    // must be in the follow set
+                    if(!nullable[v.number()]) {
+                        break;
+                    }
+
+                } else if(w.at(i) == term) {
+                    prefix = terminal_rep(cfg, term);
+                    fprintf(stderr,
+                        "'%s' appears in the production's right-hand side.",
+                        prefix
+                    );
+
+                    goto found;
+                }
+
+                continue;
+
+            found:
+                if(i > 0) {
+                    fprintf(stderr,
+                        " The symbols before '%s' in the production's right-hand side are all nullable.",
+                        prefix
+                    );
+                }
+
+                fprintf(stderr, "\n");
+                return;
+            }
+
+            // it's not in the first set, it must be in the follow set
+            (void) follow;
+            fprintf(stderr,
+                "'%s' appears in follow set of '%s'.\n",
+                terminal_rep(cfg, term),
+                cfg.get_name(prod.variable())
+            );
+        }
+
         static void add_to_table(
             cfg_type &cfg,
             std::map<std::pair<unsigned, unsigned>, production_type> &table,
-            variable_type V, terminal_type a, production_type p
+            variable_type V, terminal_type a, production_type p,
+            const std::vector<bool> &nullable,
+            const std::vector<std::vector<bool> *> &first,
+            const std::vector<std::vector<bool> *> &follow
         ) throw() {
             std::pair<unsigned, unsigned> cell(V.number(), a.number());
 
@@ -97,18 +167,23 @@ namespace grail { namespace cli {
 
                 io::warning(
                     "The following two productions conflict when trying to decide "
-                    "which production of '%s' to parse on input '%s'. The latter production "
-                    "has been chosen.\n",
+                    "which production of '%s' to parse on input '%s'. Production "
+                    "#1 has been chosen.",
                     cfg.get_name(V),
                     terminal_rep(cfg, a)
                 );
 
-                fprintf(stderr, "         ");
+                fprintf(stderr, "         #0: ");
                 io::fprint(stderr, cfg, p);
-
-                fprintf(stderr, "         ");
+                fprintf(stderr, "         #1: ");
                 io::fprint(stderr, cfg, conflict);
+
+                fprintf(stderr, "\n         #0: ");
+                report_issue(cfg, p, a, nullable, first, follow);
+                fprintf(stderr, "         #1: ");
+                report_issue(cfg, conflict, a, nullable, first, follow);
                 fprintf(stderr, "\n");
+
 
             } else {
                 //fprintf(stdout, "terminal '%s' for '%s' goes to (%u, %u): ", term, cfg.get_name(V), V.number(), a.number());
@@ -203,7 +278,7 @@ namespace grail { namespace cli {
                         // easy case
                         if(w.is_empty()) {
                             if(in_follow(follow, A, a)) {
-                                add_to_table(cfg, table, A, a, prod);
+                                add_to_table(cfg, table, A, a, prod, nullable, first, follow);
                             }
 
                         // tricky case, need to check nullability
@@ -221,12 +296,12 @@ namespace grail { namespace cli {
                             }
 
                             if(check_set->at(a.number())) {
-                                add_to_table(cfg, table, A, a, prod);
+                                add_to_table(cfg, table, A, a, prod, nullable, first, follow);
                             }
 
                         // terminal, only care about if it's the one we want
                         } else if(w.at(0) == a) {
-                            add_to_table(cfg, table, A, a, prod);
+                            add_to_table(cfg, table, A, a, prod, nullable, first, follow);
                         }
                     }
                 }
@@ -262,7 +337,7 @@ namespace grail { namespace cli {
                 "        unsigned nt;\n"
                 "        action_type *a;\n"
                 "    } u;\n"
-                "    enum stack_symbol_kind {"
+                "    enum stack_symbol_kind {\n"
                 "        TERMINAL,\n"
                 "        ACTION,\n"
                 "        NON_TERMINAL\n"
