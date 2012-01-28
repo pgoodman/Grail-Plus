@@ -27,10 +27,10 @@
 #include "grail/include/io/error.hpp"
 
 #ifndef PRIu64
-#   if UINT64_MAX == ULONG_MAX
-#       define PRIu64 "lu"
-#   else
+#   if UINT64_MAX > ULONG_MAX
 #       define PRIu64 "llu"
+#   else
+#       define PRIu64 "lu"
 #   endif
 #endif
 
