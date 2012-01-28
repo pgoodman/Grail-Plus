@@ -12,6 +12,7 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <inttypes.h>
 
 #include "fltl/include/CFG.hpp"
 
@@ -279,7 +280,7 @@ namespace grail { namespace cli {
                 fprintf(outfile, "// ");
                 io::fprint(outfile, cfg, prod);
                 fprintf(outfile,
-                    "static bool p%llu(stack_type &s) throw() {\n",
+                    "static bool p%" PRIu64 "(stack_type &s) throw() {\n",
                     prod.number()
                 );
 
@@ -332,7 +333,7 @@ namespace grail { namespace cli {
                 for(unsigned a(1), j(1); a < cfg.num_terminals() + 1U; ++a, j = 0) {
                     std::pair<unsigned, unsigned> cell(v, a);
                     if(table.count(cell)) {
-                        fprintf(outfile, "%sP(%5llu)", &(sep[j]), table[cell].number());
+                        fprintf(outfile, "%sP(%5" PRIu64 ")", &(sep[j]), table[cell].number());
                     } else {
                         fprintf(outfile, "%sP(error)", &(sep[j]));
                     }
