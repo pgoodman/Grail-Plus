@@ -62,19 +62,20 @@ namespace grail { namespace cli {
             return (follow[V.number()])->at(a.number());
         }
 
+        static const char *terminal_rep(cfg_type &cfg, terminal_type a) throw() {
+            if(cfg.is_variable_terminal(a)) {
+                return cfg.get_name(a);
+            } else {
+                return cfg.get_alpha(a);
+            }
+        }
+
         static void add_to_table(
             cfg_type &cfg,
             std::map<std::pair<unsigned, unsigned>, production_type> &table,
             variable_type V, terminal_type a, production_type p
         ) throw() {
             std::pair<unsigned, unsigned> cell(V.number(), a.number());
-
-            const char *term;
-            if(cfg.is_variable_terminal(a)) {
-                term = cfg.get_name(a);
-            } else {
-                term = cfg.get_alpha(a);
-            }
 
             if(table.count(cell)) {
                 production_type conflict(table[cell]);
@@ -88,7 +89,7 @@ namespace grail { namespace cli {
                     "which production of '%s' to parse on input '%s'. The latter production "
                     "has been chosen.\n",
                     cfg.get_name(V),
-                    term
+                    terminal_rep(cfg, a)
                 );
 
                 fprintf(stderr, "         ");
@@ -123,13 +124,14 @@ namespace grail { namespace cli {
             return true;
         }
 
-
         static int main(io::CommandLineOptions &options) throw() {
 
             using fltl::CFG;
 
-            // run the tool
             FILE *fp(0);
+            FILE *outfile(stdout);
+
+            // run the tool
             io::option_type file(options[0U]);
             const char *file_name(file.value());
             fp = fopen(file_name, "r");
@@ -144,6 +146,8 @@ namespace grail { namespace cli {
 
                 return 1;
             }
+
+            char sep[] = {',', '\0', '\0'};
 
             int ret(0);
             cfg_type cfg;
@@ -216,29 +220,162 @@ namespace grail { namespace cli {
                 }
             }
 
-            {
+            // output the file header
+            fprintf(outfile,
+                "// LL(1) parser, outputted by Grail+ (http://www.grailplus.org)\n"
+                "#include <stack>\n"
+                "#include <cassert>\n\n"
+                "#define P(f) &p ## f\n"
+                "#define NT(v) s.push_back(stack_symbol_type::non_terminal(v))\n"
+                "#define T(t) s.push_back(stack_symbol_type::terminal(t))\n"
+                "#define A(a) s.push_back(stack_symbol_type::action(a))\n\n"
+                "typedef std::stack<stack_symbol_type> stack_type;\n"
+                "typedef bool (action_type)(void);\n"
+                "typedef bool (transition_type)(stack_type &);\n"
+                "struct stack_symbol_type {\n"
+                "    union {\n"
+                "        unsigned t;\n"
+                "        unsigned nt;\n"
+                "        action_type *a;\n"
+                "    } u;\n"
+                "    enum stack_symbol_kind {"
+                "        TERMINAL,\n"
+                "        ACTION,\n"
+                "        NON_TERMINAL\n"
+                "    };\n"
+                "    const stack_symbol_kind k;"
+                "\n"
+                "    static stack_symbol_type terminal(unsigned t) throw() {\n"
+                "        stack_symbol_type ss;\n"
+                "        ss.k = TERMINAL;\n"
+                "        ss.u.t = t;\n"
+                "        return ss;\n"
+                "    }\n"
+                "    static stack_symbol_type non_terminal(unsigned nt) throw() {\n"
+                "        stack_symbol_type ss;\n"
+                "        ss.k = NON_TERMINAL;\n"
+                "        ss.u.nt = nt;\n"
+                "        return ss;\n"
+                "    }\n"
+                "    static stack_symbol_type action(action_type *a) throw() {\n"
+                "        stack_symbol_type ss;\n"
+                "        ss.k = ACTION;\n"
+                "        ss.u.a = a;\n"
+                "        return ss;\n"
+                "    }\n"
+                "};\n\n"
+                ""
+                "static bool perror(stack_type &) throw() {\n"
+                "    return false;\n"
+                "}\n\n"
+            );
 
-                FILE *outfile(stdout);
+            // output all productions
+            for(generator_type prods(cfg.search(~prod));
+                prods.match_next(); ) {
 
-                // output the table
-                fprintf(outfile, "{\n");
-                for(unsigned v(0); v < cfg.num_variables_capacity(); ++v) {
-                    fprintf(outfile, "    {");
-                    for(unsigned a(1); a < cfg.num_terminals() + 1U; ++a) {
-                        std::pair<unsigned, unsigned> cell(v, a);
-                        if(table.count(cell)) {
-                            fprintf(outfile, "P(%5llu),", table[cell].number());
-                        } else {
-                            fprintf(outfile, "P(error),");
-                        }
+                w = prod.symbols();
+
+                fprintf(outfile, "// ");
+                io::fprint(outfile, cfg, prod);
+                fprintf(outfile,
+                    "static bool p%llu(stack_type &s) throw() {\n",
+                    prod.number()
+                );
+
+                // in case we're adding nothing to the stack
+                if(0U == w.length()) {
+                    fprintf(outfile, "    (void) s;\n");
+                } else {
+                    fprintf(outfile,
+                        "    s.reserve(s.size() + %uU);\n",
+                        w.length()
+                    );
+                }
+
+                // add stuff to the stack in the reverse order that we're matching
+                // so that the first thing to be matched is at the top of the
+                // stack
+                for(unsigned i(w.length()); i-- > 0U; ) {
+                    if(w.at(i).is_variable()) {
+                        A = w.at(i);
+                        fprintf(outfile,
+                            "    NT(%u); // %s\n",
+                            A.number(),
+                            cfg.get_name(A)
+                        );
+                    } else {
+                        a = w.at(i);
+                        fprintf(outfile,
+                            "    T(%u); // %s\n",
+                            a.number(),
+                            terminal_rep(cfg, a)
+                        );
                     }
-                    fprintf(outfile, "},\n");
+                }
+
+                fprintf(outfile,
+                    "    return true;\n"
+                    "}\n\n"
+                );
+            }
+
+            fprintf(outfile,
+                "static transition_type *trans[%u][%u] = {\n",
+                cfg.num_variables_capacity(),
+                cfg.num_terminals() + 1U
+            );
+
+            // transition table
+            for(unsigned v(0); v < cfg.num_variables_capacity(); ++v) {
+                fprintf(outfile, "    {");
+                for(unsigned a(1), j(1); a < cfg.num_terminals() + 1U; ++a, j = 0) {
+                    std::pair<unsigned, unsigned> cell(v, a);
+                    if(table.count(cell)) {
+                        fprintf(outfile, "%sP(%5llu)", &(sep[j]), table[cell].number());
+                    } else {
+                        fprintf(outfile, "%sP(error)", &(sep[j]));
+                    }
                 }
                 fprintf(outfile, "},\n");
             }
+            fprintf(outfile, "};\n\n");
+
+            fprintf(outfile,
+                "// parse some input stream"
+                "template <typename token_stream_type, typename token_type>\n"
+                "bool parse(token_stream_type &stream) throw() {\n"
+                "    token_type tok;\n"
+                "    stack_symbol_type sym;\n"
+                "    stack_type stack;\n"
+                "    unsigned term;"
+                "    NT(%u);\n"
+                "    for(; stream.good(); ) {\n"
+                "        assert(!stack.empty());\n"
+                "        stream >> tok;\n"
+                "        term = (unsigned) tok;\n"
+                "        sym = stack.back();\n"
+                "        stack.pop_back();\n"
+                "        if(TERMINAL == sym.t) {\n"
+                "            if(term != sym.u.t) {\n"
+                "                return false;\n"
+                "            }\n"
+                "        } else if(ACTION == sym.t) {\n"
+                "            if(!sym.u.a()) {\n"
+                "                return false;\n"
+                "            }\n"
+                "        } else {\n"
+                "            trans[sym.u.nt][term](stack);\n"
+                "        }\n"
+                "    }\n"
+                "    return true;\n"
+                "}\n\n",
+                cfg.get_start_variable().number()
+            );
 
         done:
             fclose(fp);
+            fclose(outfile);
 
             // clean up
 
