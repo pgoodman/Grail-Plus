@@ -51,6 +51,7 @@
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
 #define FLTL_PDA_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
+    typedef type func(prefix, pda_type); \
     typedef typename type::state_type func(prefix, state_type); \
     typedef typename type::symbol_type func(prefix, symbol_type); \
     typedef typename type::transition_type func(prefix, transition_type); \

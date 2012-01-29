@@ -34,6 +34,7 @@
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 
 #include "fltl/include/helper/UnsafeCast.hpp"
+#include "fltl/include/trait/Alphabet.hpp"
 
 namespace fltl {
 
@@ -47,6 +48,7 @@ namespace fltl {
 #include "fltl/include/nfa/OpaqueTransition.hpp"
 
 #define FLTL_NFA_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
+    typedef type func(prefix, nfa_type); \
     typedef typename type::state_type func(prefix, state_type); \
     typedef typename type::symbol_type func(prefix, symbol_type); \
     typedef typename type::transition_type func(prefix, transition_type); \
@@ -126,7 +128,7 @@ namespace fltl {
         }
 
         void remove_transition(transition_type trans) throw() {
-            return PDA<AlphaT>::remove_transition(*helper::unsafe_cast<
+            PDA<AlphaT>::remove_transition(*helper::unsafe_cast<
                 typename PDA<AlphaT>::transition_type *
             >(&trans));
         }
