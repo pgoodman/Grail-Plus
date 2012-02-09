@@ -37,6 +37,8 @@
 
 #include "fltl/include/PDA.hpp"
 
+#include "grail/include/helper/CStringMap.hpp"
+
 #include "grail/include/io/error.hpp"
 #include "grail/include/io/fread.hpp"
 #include "grail/include/io/UTF8FileBuffer.hpp"
@@ -60,8 +62,9 @@ namespace grail { namespace io {
             T_NEW_LINE = 6,
             T_INPUT_SYMBOL = 7,
             T_STACK_SYMBOL = 8,
-            T_STATE = 9,
-            T_END = 10,
+            T_STATE_SYMBOL = 9,
+            T_STATE = 10,
+            T_END = 11,
             T_ERROR
         } token_type;
 
@@ -353,18 +356,26 @@ namespace grail { namespace io {
                     // the start symbol
                     } else if(is_symbol_codepoint(codepoint)) {
 
+                        token_type type(T_STACK_SYMBOL);
+                        unsigned scratch_offset(buffer.byte_length());
+
                         if(LOOK_FOR_ERRORS) {
                             temp_line = buffer.line();
                             temp_col = buffer.column();
                         }
 
-                        strcpy(scratch, codepoint);
+                        if('@' == ch) {
+                            type = T_STATE_SYMBOL;
+                            scratch_offset = 0U;
+                        } else {
+                            strcpy(scratch, codepoint);
+                        }
                         sym_state = detail::find_symbol<
                             BUFFER_SIZE,
                             LOOK_FOR_ERRORS
                         >(
                             buffer,
-                            scratch + buffer.byte_length(),
+                            scratch + scratch_offset,
                             scratch_end,
                             is_symbol_codepoint
                         );
@@ -397,7 +408,7 @@ namespace grail { namespace io {
                             }
                         }
 
-                        return T_STACK_SYMBOL;
+                        return type;
 
                     // unacceptable thing
                     } else if(LOOK_FOR_ERRORS) {
@@ -436,6 +447,7 @@ namespace grail { namespace io {
 
         // extra space is given to the scratch space to allow short overruns
         char scratch[pda::SCRATCH_SIZE + 20] = {'\0'};
+        char start_state_name[pda::SCRATCH_SIZE + 20] = {'\0'};
         char *scratch_end(&(scratch[pda::SCRATCH_SIZE - 1]));
 
         unsigned num_start_states(0);
@@ -455,8 +467,10 @@ namespace grail { namespace io {
             state = pda::next_state(state, tt);
 
             // looking at the start state
-            if(pda::T_STATE == tt && pda::STATE_SEEN_START_SET == prev_state) {
-                if(1 == ++num_start_states) {
+            if(pda::STATE_SEEN_START_SET == prev_state
+            && 1 == ++num_start_states) {
+                strcpy(start_state_name, scratch);
+                if(pda::T_STATE == tt) {
                     start_state_val = strtoul(scratch, 0, 10);
                 }
             }
@@ -494,6 +508,7 @@ namespace grail { namespace io {
 
                 case pda::T_INPUT_SYMBOL:
                 case pda::T_STACK_SYMBOL:
+                case pda::T_STATE_SYMBOL:
                 case pda::T_STATE:
                 case pda::T_ERROR:
                 default:
@@ -512,11 +527,11 @@ namespace grail { namespace io {
 
     checked_syntax:
 
+        FLTL_PDA_USE_TYPES(fltl::PDA<AlphaT>);
+
         // map unsigned longs to states
-        std::map<
-            unsigned long,
-            typename fltl::PDA<AlphaT>::state_type
-        > state_map;
+        std::map<unsigned long, state_type> state_map;
+        helper::CStringMap<state_type> named_state_map;
 
         // special case so we don't add in needless epsilon transitions
         if(1 == num_start_states) {
@@ -528,16 +543,11 @@ namespace grail { namespace io {
         prev_state = pda::STATE_SINK;
         uint8_t prev_prev_state(pda::STATE_SINK);
 
-        typename fltl::PDA<AlphaT>::state_type seen_states[2];
-        typename fltl::PDA<AlphaT>::state_type *next_seen_state(
-            &(seen_states[0])
-        );
-        typename fltl::PDA<AlphaT>::symbol_type seen_symbols[3];
-        typename fltl::PDA<AlphaT>::symbol_type *next_seen_symbol(
-            &(seen_symbols[0])
-        );
-
-        typename fltl::PDA<AlphaT>::alphabet_type sym;
+        state_type seen_states[2];
+        state_type *next_seen_state(&(seen_states[0]));
+        symbol_type seen_symbols[3];
+        symbol_type *next_seen_symbol(&(seen_symbols[0]));
+        alphabet_type sym;
 
         unsigned long state_id;
 
@@ -552,7 +562,7 @@ namespace grail { namespace io {
             switch(tt) {
 
             case pda::T_INPUT_SYMBOL:
-                fltl::PDA<AlphaT>::traits_type::unserialize(scratch, sym);
+                traits_type::unserialize(scratch, sym);
                 *next_seen_symbol = PDA.get_alphabet_symbol(sym);
                 ++next_seen_symbol;
                 break;
@@ -566,14 +576,47 @@ namespace grail { namespace io {
                 ++next_seen_symbol;
                 break;
 
-            case pda::T_STATE:
+            case pda::T_STATE: {
+                state_type state;
                 state_id = strtoul(scratch, 0, 10);
-                if(0 == state_map.count(state_id)) {
-                    state_map[state_id] = PDA.add_state();
+                if(1 == num_start_states && start_state_val == state_id) {
+                    state = PDA.get_start_state();
+                } else  if(0 == state_map.count(state_id)) {
+                    state = PDA.add_state();
+                    state_map[state_id] = state;
+                } else {
+                    state = state_map[state_id];
                 }
-                *next_seen_state = state_map[state_id];
+
+                *next_seen_state = state;
                 ++next_seen_state;
                 break;
+            }
+
+            case pda::T_STATE_SYMBOL: {
+                state_type state;
+                bool has_state(false);
+
+                if(1 == num_start_states
+                && 0 == strcmp(scratch, start_state_name)) {
+                    state = PDA.get_start_state();
+                    has_state = true;
+                }
+
+                if(!named_state_map.contains(scratch)) {
+                    if(!has_state) {
+                        state = PDA.add_state();
+                    }
+                    PDA.set_name(state, scratch);
+                    named_state_map.set(PDA.get_name(state), state);
+                } else {
+                    state = named_state_map.get(scratch);
+                }
+
+                *next_seen_state = state;
+                ++next_seen_state;
+                break;
+            }
 
             case pda::T_ERROR:
             case pda::T_END:

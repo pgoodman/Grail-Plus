@@ -76,6 +76,8 @@ namespace grail { namespace cli {
 
         static void print(FILE *outfile, nfa_type &nfa) throw() {
 
+            char name_buff[1024] = {'\0'};
+
             state_type from, to;
             symbol_type condition;
             generator_type transitions(nfa.search(~from, ~condition, ~to));
@@ -93,33 +95,42 @@ namespace grail { namespace cli {
 
             // print out the accept states
             for(; states.match_next(); ) {
+
+                // how should we label the state?
+                const char *state_name(nfa.get_name(from));
+                if('\0' == state_name[0]) {
+                    sprintf(name_buff, "%u", from.number());
+                } else {
+                    sprintf(name_buff, "%s", state_name);
+                }
+
                 if(nfa.is_accept_state(from)) {
                     fprintf(outfile,
-                        "    %u [shape=doublecircle label=\"%u %s\"]\n",
+                        "    %u [shape=doublecircle label=\"%s\"]\n",
                         from.number(),
-                        from.number(),
-                        nfa.get_name(from)
+                        name_buff
                     );
                 } else {
                     fprintf(outfile,
-                        "    %u [label=\"%u %s\"]\n",
+                        "    %u [label=\"%s\"]\n",
                         from.number(),
-                        from.number(),
-                        nfa.get_name(from)
+                        name_buff
                     );
                 }
             }
 
             // print out the transitions
             for(; transitions.match_next(); ) {
-                const char *cond_str(0);
-                const char *alpha("");
+                const char *cond_str("&epsilon;");
                 if(nfa.epsilon() != condition) {
-                    alpha = nfa.get_alpha(condition);
+                    traits_type::unserialize(
+                        nfa.get_alpha(condition),
+                        cond_str
+                    );
                 }
-                traits_type::unserialize(alpha, cond_str);
 
-                fprintf(outfile, "    %u -> %u [label=\"%s\"]\n",
+
+                fprintf(outfile, "    %u -> %u [label=<%s>]\n",
                     from.number(),
                     to.number(),
                     cond_str

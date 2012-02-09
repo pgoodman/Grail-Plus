@@ -55,11 +55,29 @@ namespace grail { namespace io {
         return num;
     }
 
+    /// print out either a state's symbolic name or its number if no name
+    /// exists
+    template <typename AlphaT>
+    static char *sprint_state(
+        char *buffer,
+        const fltl::PDA<AlphaT> &pda,
+        typename fltl::PDA<AlphaT>::state_type state
+    ) throw() {
+        const char *state_name(pda.get_name(state));
+        if('\0' != state_name[0]) {
+            sprintf(buffer, "@%s", state_name);
+        } else {
+            sprintf(buffer, "%u", state.number());
+        }
+        return buffer;
+    }
+
     /// print out a context-free grammar
     template <typename AlphaT>
     int fprint(FILE *ff, const fltl::PDA<AlphaT> &pda) throw() {
+        char state_buffer[1024] = {'\0'};
 
-        typedef fltl::PDA<AlphaT> PDA;
+        FLTL_PDA_USE_TYPES(fltl::PDA<AlphaT>);
 
         int num(0);
         if(0 == pda.num_accept_states()) {
@@ -67,24 +85,24 @@ namespace grail { namespace io {
         }
 
         // start state
-        num += fprintf(ff, "(START) |- %u\n", pda.get_start_state().number());
+        state_type state(pda.get_start_state());
+        num += fprintf(ff, "(START) |- %s\n", sprint_state(state_buffer, pda, state));
 
         // accept states
-        typename PDA::state_type state;
-        typename PDA::generator_type accept_states(pda.search(~state));
+        generator_type accept_states(pda.search(~state));
         for(; accept_states.match_next(); ) {
             if(pda.is_accept_state(state)) {
-                num += fprintf(ff, "%u -| (FINAL)\n", state.number());
+                num += fprintf(ff, "%s -| (FINAL)\n", sprint_state(state_buffer, pda, state));
             }
         }
 
         // transitions
-        typename PDA::transition_type trans;
-        typename PDA::generator_type transitions(pda.search(~trans));
+        transition_type trans;
+        generator_type transitions(pda.search(~trans));
         for(; transitions.match_next(); ) {
-            num += fprintf(ff, "%u ", trans.source().number());
+            num += fprintf(ff, "%s ", sprint_state(state_buffer, pda, trans.source()));
             num += fprint_symbol(ff, pda, trans.read());
-            num += fprintf(ff, " %u, ", trans.sink().number());
+            num += fprintf(ff, " %s, ", sprint_state(state_buffer, pda, trans.sink()));
             num += fprint_symbol(ff, pda, trans.pop());
             num += fprintf(ff, " / ");
             num += fprint_symbol(ff, pda, trans.push());

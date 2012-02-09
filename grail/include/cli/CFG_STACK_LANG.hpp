@@ -29,6 +29,11 @@
 #ifndef Grail_Plus_CFG_STACK_LANG_HPP_
 #define Grail_Plus_CFG_STACK_LANG_HPP_
 
+#include <cstdio>
+#include <map>
+#include <set>
+#include <utility>
+
 #include "fltl/include/CFG.hpp"
 #include "fltl/include/NFA.hpp"
 
@@ -37,10 +42,6 @@
 #include "grail/include/io/verbose.hpp"
 
 #include "grail/include/cli/NFA_TO_DOT.hpp"
-
-#include <map>
-#include <set>
-#include <utility>
 
 namespace grail { namespace cli {
 
@@ -56,6 +57,7 @@ namespace grail { namespace cli {
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
             opt.declare("partition", io::opt::OPTIONAL, io::opt::NO_VAL);
             opt.declare("dot", io::opt::OPTIONAL, io::opt::NO_VAL);
+            opt.declare("label-states", io::opt::OPTIONAL, io::opt::NO_VAL);
             if(!in_help) {
                 opt.declare_min_num_positional(1);
                 opt.declare_max_num_positional(1);
@@ -74,11 +76,14 @@ namespace grail { namespace cli {
                 "                                   pairs where L --> * R * in the grammar, \n"
                 "                                   instead of just mapping each variable to a\n"
                 "                                   state in the NFA.\n"
-                "    --dot                          output the NFA as a DOT digraph.\n\n",
+                "    --dot                          output the NFA as a DOT digraph.\n"
+                "    --label-states                 label the states instead of the transitions.\n\n",
                 TOOL_NAME, TOOL_NAME
             );
         }
 
+        /// represents a pair of variables, e.g. If A --> \alpha B \Beta then
+        /// context=A and var=B.
         struct variable_context {
 
             cfg_variable_type context;
@@ -95,12 +100,137 @@ namespace grail { namespace cli {
             }
         };
 
+        /// extract the stack language from the CFG
+        static void extract(
+            cfg_cfg_type &cfg,
+            nfa_nfa_type &nfa,
+            bool partition,
+            bool label_states
+        ) throw() {
+            char name_buff[1024] = {'\0'};
+
+            std::map<variable_context, nfa_state_type> state_map;
+            std::map<cfg_variable_type, std::set<variable_context> > contexts;
+
+            cfg_variable_type L, R;
+            cfg_symbol_string_type syms;
+            cfg_generator_type cfg_vars(cfg.search((~L) --->* ~syms));
+
+            // if we're not partitioning then the pre-emptively set the start
+            // state to refer to the start variable of the grammar.
+            if(!partition) {
+                nfa_state_type start_state(nfa.get_start_state());
+
+            }
+
+            // go make all states
+            for(; cfg_vars.match_next(); ) {
+                for(unsigned i(0); i < syms.length(); ++i) {
+                    if(!syms.at(i).is_variable()) {
+                        continue;
+                    }
+
+                    R = syms.at(i);
+
+                    variable_context ctx_var;
+                    ctx_var.var = R;
+                    if(partition) {
+                        ctx_var.context = L;
+                    }
+
+                    nfa_state_type state;
+
+                    // create the state
+                    if(0U == state_map.count(ctx_var)) {
+                        io::verbose("Added state for %s to %s\n", cfg.get_name(L), cfg.get_name(R));
+                        state = nfa.add_state();
+                        state_map[ctx_var] = state;
+
+                        if(label_states) {
+                            if(partition) {
+                                sprintf(name_buff, "%s:%s", cfg.get_name(L), cfg.get_name(R));
+                                nfa.set_name(state, name_buff);
+                            } else {
+                                nfa.set_name(state, cfg.get_name(R));
+                            }
+                        }
+
+                    // we've already created this state
+                    } else {
+                        state = state_map[ctx_var];
+                    }
+
+                    contexts[L].insert(ctx_var);
+                }
+            }
+
+            // go add all transitions
+            for(cfg_vars.rewind(); cfg_vars.match_next(); ) {
+                for(unsigned i(0); i < syms.length(); ++i) {
+                    if(!syms.at(i).is_variable()) {
+                        continue;
+                    }
+
+                    R = syms.at(i);
+
+                    variable_context ctx_var;
+                    ctx_var.var = R;
+                    if(partition) {
+                        ctx_var.context = L;
+                    }
+
+                    std::set<variable_context> &related(contexts[R]);
+                    typename std::set<variable_context>::iterator it(related.begin());
+
+                    for(; it != related.end(); ++it) {
+                        io::verbose("Added transition from %s to %s\n", cfg.get_name(R), cfg.get_name(it->var));
+
+                        nfa_state_type from_state(state_map[ctx_var]);
+                        nfa_state_type to_state(state_map[*it]);
+
+                        nfa.add_transition(
+                            from_state,
+                            label_states ? nfa.epsilon() : nfa.get_symbol(cfg.get_name(it->var)),
+                            to_state
+                        );
+                    }
+                }
+            }
+
+            io::verbose("Adding in start state and transitions.\n");
+
+            // add in a start state
+            nfa_state_type start_state(nfa.get_start_state());
+            cfg_variable_type start_var(cfg.get_start_variable());
+
+            nfa.set_start_state(start_state);
+            nfa.add_accept_state(start_state);
+
+            if(label_states) {
+                nfa.set_name(start_state, cfg.get_name(start_var));
+            }
+
+            std::set<variable_context> &related(contexts[start_var]);
+            typename std::set<variable_context>::iterator it(related.begin());
+
+            for(; it != related.end(); ++it) {
+                nfa_state_type to_state(state_map[*it]);
+                nfa.add_transition(
+                    start_state,
+                    label_states ? nfa.epsilon() : nfa.get_symbol(cfg.get_name(it->var)),
+                    to_state
+                );
+            }
+        }
+
         static int main(io::CommandLineOptions &options) throw() {
 
             // run the tool
             io::option_type file(options[0U]);
             io::option_type partition(options["partition"]);
             io::option_type dot(options["dot"]);
+            io::option_type label_states(options["label-states"]);
+
             const char *file_name(file.value());
 
             FILE *fp(fopen(file_name, "r"));
@@ -130,80 +260,7 @@ namespace grail { namespace cli {
 
             io::verbose("Opened '%s'\n", file_name);
 
-            std::map<variable_context, nfa_state_type> state_map;
-            std::map<cfg_variable_type, std::set<variable_context> > contexts;
-
-            cfg_variable_type L, R;
-            cfg_symbol_string_type syms;
-            cfg_generator_type cfg_vars(cfg.search((~L) --->* ~syms));
-
-            // go make all states
-            for(; cfg_vars.match_next(); ) {
-                for(unsigned i(0); i < syms.length(); ++i) {
-                    if(!syms.at(i).is_variable()) {
-                        continue;
-                    }
-
-                    R = syms.at(i);
-
-                    variable_context ctx_var;
-                    ctx_var.var = R;
-                    if(partition.is_valid()) {
-                        ctx_var.context = L;
-                    }
-
-                    io::verbose("Added state for %s to %s\n", cfg.get_name(L), cfg.get_name(R));
-                    nfa_state_type state(nfa.add_state());
-                    state_map[ctx_var] = state;
-                    contexts[L].insert(ctx_var);
-
-                    nfa.set_name(state, cfg.get_name(R));
-                }
-            }
-
-            // go add all transitions
-            for(cfg_vars.rewind(); cfg_vars.match_next(); ) {
-                for(unsigned i(0); i < syms.length(); ++i) {
-                    if(!syms.at(i).is_variable()) {
-                        continue;
-                    }
-
-                    R = syms.at(i);
-
-                    variable_context ctx_var;
-                    ctx_var.var = R;
-                    if(partition.is_valid()) {
-                        ctx_var.context = L;
-                    }
-
-                    std::set<variable_context> &related(contexts[R]);
-                    typename std::set<variable_context>::iterator it(related.begin());
-
-                    for(; it != related.end(); ++it) {
-                        io::verbose("Added transition from %s to %s\n", cfg.get_name(R), cfg.get_name(it->var));
-
-                        nfa_state_type from_state(state_map[ctx_var]);
-                        nfa_state_type to_state(state_map[*it]);
-
-                        nfa.add_transition(from_state, nfa.epsilon(), to_state);
-                    }
-                }
-            }
-
-            io::verbose("Adding in start state and transitions.\n");
-
-            // add in a start state
-            nfa_state_type start_state(nfa.add_state());
-            nfa.set_start_state(start_state);
-            nfa.add_accept_state(start_state);
-
-            std::set<variable_context> &related(contexts[cfg.get_start_variable()]);
-            typename std::set<variable_context>::iterator it(related.begin());
-
-            for(; it != related.end(); ++it) {
-                nfa_state_type to_state(state_map[*it]);
-                nfa.add_transition(start_state, nfa.epsilon(), to_state);
-            }
+            extract(cfg, nfa, partition.is_valid(), label_states.is_valid());
 
             // output
             io::verbose("Outputting...\n");
