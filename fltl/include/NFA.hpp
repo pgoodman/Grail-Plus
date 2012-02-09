@@ -143,6 +143,9 @@ namespace fltl {
         using PDA<AlphaT>::num_accept_states;
         using PDA<AlphaT>::num_symbols;
         using PDA<AlphaT>::num_transitions;
+        using PDA<AlphaT>::is_in_input_alphabet;
+        using PDA<AlphaT>::get_name;
+        using PDA<AlphaT>::set_name;
 
         /// generate all symbols
         FLTL_FORCE_INLINE generator_type

@@ -207,6 +207,9 @@ namespace fltl {
             typename trait::Alphabet<const char *>::less_type
         > named_symbol_map_inv_type;
 
+        /// maps states to their names. uniqueness of names is not enforced.
+        mutable std::map<unsigned, const char *> state_names;
+
         /// bijective mapping between the
         named_symbol_map_inv_type named_symbol_map_inv;
 
@@ -310,6 +313,15 @@ namespace fltl {
                 traits_type::destroy(pp.first);
                 trait::Alphabet<const char *>::destroy(pp.second);
             }
+
+            // clean up state names
+            std::map<unsigned, const char *>::iterator name_it(state_names.begin());
+            for(; name_it != state_names.end(); ++name_it) {
+                delete [] name_it->second;
+                name_it->second = 0;
+            }
+
+            state_names.clear();
         }
 
         /// get the symbol representation for an element of the alphabet
@@ -594,6 +606,25 @@ namespace fltl {
         const char *get_name(symbol_type sym) const throw() {
             assert(!is_in_input_alphabet(sym));
             return symbol_map.get(sym.id).second;
+        }
+
+        /// get the name of a state. The empty string is returned if there
+        /// is no known name
+        const char *get_name(state_type state) const throw() {
+            static const char *no_name("");
+            if(0U != state_names.count(state.id)) {
+                return state_names[state.id];
+            }
+            return no_name;
+        }
+
+        /// set the name of a state. the name is copied into storage.
+        void set_name(state_type state, const char *name) throw() {
+            if(0U != state_names.count(state.id)) {
+                delete [] state_names[state.id];
+            }
+
+            state_names[state.id] = trait::Alphabet<const char *>::copy(name);
         }
 
         unsigned num_states(void) const throw() {

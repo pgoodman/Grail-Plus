@@ -4,6 +4,26 @@
  *  Created on: Jan 29, 2012
  *      Author: petergoodman
  *     Version: $Id$
+ *
+ * Copyright 2011 Peter Goodman, all rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 #ifndef Grail_Plus_NFA_TO_DOT_HPP_
@@ -54,6 +74,61 @@ namespace grail { namespace cli {
             );
         }
 
+        static void print(FILE *outfile, nfa_type &nfa) throw() {
+
+            state_type from, to;
+            symbol_type condition;
+            generator_type transitions(nfa.search(~from, ~condition, ~to));
+            generator_type states(nfa.search(~from));
+
+            fprintf(outfile, "digraph {\n");
+
+            // add in a pseudo start state to make the entry arrow into the
+            // NFA
+            fprintf(outfile,
+                "    S [label=\"\" color=\"white\"]\n"
+                "    S -> %u\n",
+                nfa.get_start_state().number()
+            );
+
+            // print out the accept states
+            for(; states.match_next(); ) {
+                if(nfa.is_accept_state(from)) {
+                    fprintf(outfile,
+                        "    %u [shape=doublecircle label=\"%u %s\"]\n",
+                        from.number(),
+                        from.number(),
+                        nfa.get_name(from)
+                    );
+                } else {
+                    fprintf(outfile,
+                        "    %u [label=\"%u %s\"]\n",
+                        from.number(),
+                        from.number(),
+                        nfa.get_name(from)
+                    );
+                }
+            }
+
+            // print out the transitions
+            for(; transitions.match_next(); ) {
+                const char *cond_str(0);
+                const char *alpha("");
+                if(nfa.epsilon() != condition) {
+                    alpha = nfa.get_alpha(condition);
+                }
+                traits_type::unserialize(alpha, cond_str);
+
+                fprintf(outfile, "    %u -> %u [label=\"%s\"]\n",
+                    from.number(),
+                    to.number(),
+                    cond_str
+                );
+            }
+
+            fprintf(outfile, "}\n");
+        }
+
         static int main(io::CommandLineOptions &options) throw() {
 
             // run the tool
@@ -89,41 +164,7 @@ namespace grail { namespace cli {
 
             if(io::fread(fp, nfa, file_name)) {
 
-                state_type from, to;
-                symbol_type condition;
-                generator_type transitions(nfa.search(~from, ~condition, ~to));
-                generator_type states(nfa.search(~from));
-
-                fprintf(outfile, "digraph {\n");
-
-                // add in a pseudo start state to make the entry arrow into the
-                // NFA
-                fprintf(outfile,
-                    "    S [label=\"\" color=\"white\"]\n"
-                    "    S -> %u\n",
-                    nfa.get_start_state().number()
-                );
-
-                // print out the accept states
-                for(; states.match_next(); ) {
-                    if(nfa.is_accept_state(from)) {
-                        fprintf(outfile, "    %u [shape=doublecircle]\n", from.number());
-                    }
-                }
-
-                // print out the transitions
-                for(; transitions.match_next(); ) {
-                    const char *cond_str(0);
-                    traits_type::unserialize(nfa.get_alpha(condition), cond_str);
-
-                    fprintf(outfile, "    %u -> %u [label=\"%s\"]\n",
-                        from.number(),
-                        to.number(),
-                        cond_str
-                    );
-                }
-
-                fprintf(outfile, "}\n");
+                print(outfile, nfa);
 
             } else {
                 ret = 1;

@@ -417,7 +417,7 @@ namespace grail { namespace io {
         }
     }
 
-    /// read in a context free grammar from a file
+    /// read in a PDA from a file
     template <typename AlphaT>
     bool fread(
         FILE *ff,
