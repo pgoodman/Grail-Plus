@@ -449,8 +449,8 @@ namespace grail { namespace cli {
             // transition table
             for(unsigned v(0); v < cfg.num_variables_capacity(); ++v) {
                 fprintf(outfile, "    {");
-                for(unsigned a(1), j(1); a < cfg.num_terminals() + 1U; ++a, j = 0) {
-                    std::pair<unsigned, unsigned> cell(v, a);
+                for(unsigned t(1), j(1); t < cfg.num_terminals() + 1U; ++t, j = 0) {
+                    std::pair<unsigned, unsigned> cell(v, t);
                     if(table.count(cell)) {
                         fprintf(outfile, "%sP(%5" PRIu64 ")", &(sep[j]), table[cell].number());
                     } else {

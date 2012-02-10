@@ -191,16 +191,16 @@ namespace fltl { namespace cfg {
                 return 0UL;
             }
 
-            uint64_t number(0UL);
-            number |= production->var->id;
-            number <<= 16U;
-            number <<= 16U;
+            uint64_t num(0UL);
+            num |= production->var->id;
+            num <<= 16U;
+            num <<= 16U;
 
             if(0 != production->symbols.symbols) {
-                number |= production->symbols.symbols[str::HASH].value;
+                num |= production->symbols.symbols[str::HASH].value;
             }
 
-            return number;
+            return num;
         }
     };
 

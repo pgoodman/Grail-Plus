@@ -577,43 +577,43 @@ namespace grail { namespace io {
                 break;
 
             case pda::T_STATE: {
-                state_type state;
+                state_type curr_state;
                 state_id = strtoul(scratch, 0, 10);
                 if(1 == num_start_states && start_state_val == state_id) {
-                    state = PDA.get_start_state();
+                    curr_state = PDA.get_start_state();
                 } else  if(0 == state_map.count(state_id)) {
-                    state = PDA.add_state();
-                    state_map[state_id] = state;
+                    curr_state = PDA.add_state();
+                    state_map[state_id] = curr_state;
                 } else {
-                    state = state_map[state_id];
+                    curr_state = state_map[state_id];
                 }
 
-                *next_seen_state = state;
+                *next_seen_state = curr_state;
                 ++next_seen_state;
                 break;
             }
 
             case pda::T_STATE_SYMBOL: {
-                state_type state;
+                state_type curr_state;
                 bool has_state(false);
 
                 if(1 == num_start_states
                 && 0 == strcmp(scratch, start_state_name)) {
-                    state = PDA.get_start_state();
+                    curr_state = PDA.get_start_state();
                     has_state = true;
                 }
 
                 if(!named_state_map.contains(scratch)) {
                     if(!has_state) {
-                        state = PDA.add_state();
+                        curr_state = PDA.add_state();
                     }
-                    PDA.set_name(state, scratch);
-                    named_state_map.set(PDA.get_name(state), state);
+                    PDA.set_name(curr_state, scratch);
+                    named_state_map.set(PDA.get_name(curr_state), curr_state);
                 } else {
-                    state = named_state_map.get(scratch);
+                    curr_state = named_state_map.get(scratch);
                 }
 
-                *next_seen_state = state;
+                *next_seen_state = curr_state;
                 ++next_seen_state;
                 break;
             }

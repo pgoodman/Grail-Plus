@@ -9,7 +9,8 @@ CXX = ${DEFAULT_CXX}
 CXX_FEATURES = -fno-rtti -fno-exceptions -fstrict-aliasing
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
 CXX_WARN_FLAGS += -Wcast-qual
-CXX_FLAGS = -O0 -g -ansi -I${ROOT_DIR}
+OPTIMIZATION_LEVEL = -O0
+CXX_FLAGS = ${OPTIMIZATION_LEVEL} -g -ansi -I${ROOT_DIR}
 LD_FLAGS =
 
 GNU_COMPATIBLE_FLAGS = -pedantic -pedantic-errors -Wextra -Wcast-align -Wno-long-long 
@@ -25,8 +26,11 @@ ifeq (${CXX}, g++)
     				  -Wvolatile-register-var \
     				  -Wstack-protector \
     				  -Wstrict-aliasing=2 \
-    				  -Wold-style-cast \
-    				  -Wuninitialized
+    				  -Wold-style-cast
+	
+	ifneq (${OPTIMIZATION_LEVEL}, -O0)
+    	CXX_WARN_FLAGS += -Wuninitialized
+	endif
 endif
 
 # are we compiling with icc?

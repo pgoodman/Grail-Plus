@@ -120,7 +120,17 @@ namespace grail { namespace cli {
             // state to refer to the start variable of the grammar.
             if(!partition) {
                 nfa_state_type start_state(nfa.get_start_state());
+                cfg_variable_type start_var(cfg.get_start_variable());
+                variable_context start_state_context;
 
+                start_state_context.var = start_var;
+                state_map[start_state_context] = start_state;
+
+                if(label_states) {
+                    nfa.set_name(start_state, cfg.get_name(start_var));
+                }
+
+                nfa.add_accept_state(start_state);
             }
 
             // go make all states
@@ -199,27 +209,32 @@ namespace grail { namespace cli {
 
             io::verbose("Adding in start state and transitions.\n");
 
-            // add in a start state
-            nfa_state_type start_state(nfa.get_start_state());
-            cfg_variable_type start_var(cfg.get_start_variable());
+            // if we art partitioning, then we need to use the start state
+            // to signal that parsing is being started
+            if(partition) {
 
-            nfa.set_start_state(start_state);
-            nfa.add_accept_state(start_state);
+                nfa_state_type start_state(nfa.get_start_state());
+                cfg_variable_type start_var(cfg.get_start_variable());
 
-            if(label_states) {
-                nfa.set_name(start_state, cfg.get_name(start_var));
-            }
+                nfa.set_start_state(start_state);
+                nfa.add_accept_state(start_state);
 
-            std::set<variable_context> &related(contexts[start_var]);
-            typename std::set<variable_context>::iterator it(related.begin());
+                if(label_states) {
+                    sprintf(name_buff, ":%s", cfg.get_name(start_var));
+                    nfa.set_name(start_state, name_buff);
+                }
 
-            for(; it != related.end(); ++it) {
-                nfa_state_type to_state(state_map[*it]);
-                nfa.add_transition(
-                    start_state,
-                    label_states ? nfa.epsilon() : nfa.get_symbol(cfg.get_name(it->var)),
-                    to_state
-                );
+                std::set<variable_context> &related(contexts[start_var]);
+                typename std::set<variable_context>::iterator it(related.begin());
+
+                for(; it != related.end(); ++it) {
+                    nfa_state_type to_state(state_map[*it]);
+                    nfa.add_transition(
+                        start_state,
+                        label_states ? nfa.epsilon() : nfa.get_symbol(cfg.get_name(it->var)),
+                        to_state
+                    );
+                }
             }
         }
 
