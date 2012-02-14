@@ -100,6 +100,8 @@ namespace grail { namespace cli {
             }
         };
 
+        typedef std::set<variable_context> context_set;
+
         /// extract the stack language from the CFG
         static void extract(
             cfg_cfg_type &cfg,
@@ -110,7 +112,7 @@ namespace grail { namespace cli {
             char name_buff[1024] = {'\0'};
 
             std::map<variable_context, nfa_state_type> state_map;
-            std::map<cfg_variable_type, std::set<variable_context> > contexts;
+            std::map<cfg_variable_type, context_set> contexts;
 
             cfg_variable_type L, R;
             cfg_symbol_string_type syms;
@@ -189,8 +191,8 @@ namespace grail { namespace cli {
                         ctx_var.context = L;
                     }
 
-                    std::set<variable_context> &related(contexts[R]);
-                    typename std::set<variable_context>::iterator it(related.begin());
+                    context_set &related(contexts[R]);
+                    typename context_set::iterator it(related.begin());
 
                     for(; it != related.end(); ++it) {
                         io::verbose("Added transition from %s to %s\n", cfg.get_name(R), cfg.get_name(it->var));
@@ -205,11 +207,39 @@ namespace grail { namespace cli {
                         );
                     }
                 }
+
+                // there are transitions from L to R, but there are no transitions
+                // from L to R to something else.
+                context_set &related(contexts[L]);
+                if(!partition && 0U != related.size()) {
+
+                    variable_context ctx_var;
+                    ctx_var.var = L;
+
+                    nfa_state_type from_state(state_map[ctx_var]);
+                    typename context_set::iterator it(related.begin());
+
+                    if(0U != nfa.num_transitions(from_state)) {
+                        continue;
+                    }
+
+                    for(; it != related.end(); ++it) {
+                        io::verbose("Added transition from %s to %s\n", cfg.get_name(R), cfg.get_name(it->var));
+
+                        nfa_state_type to_state(state_map[*it]);
+
+                        nfa.add_transition(
+                            from_state,
+                            label_states ? nfa.epsilon() : nfa.get_symbol(cfg.get_name(it->var)),
+                            to_state
+                        );
+                    }
+                }
             }
 
             io::verbose("Adding in start state and transitions.\n");
 
-            // if we art partitioning, then we need to use the start state
+            // if we are partitioning, then we need to use the start state
             // to signal that parsing is being started
             if(partition) {
 

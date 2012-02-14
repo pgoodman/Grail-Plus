@@ -101,7 +101,7 @@ namespace fltl { namespace helper {
         }
 
         /// access an element in a slot of the Array
-        inline reference_type get(const unsigned offset) throw() {
+        inline reference_type get(const unsigned offset) const throw() {
             assert(offset < num_slots && "Out-of-bounds get() to Array.");
             assert(0 != slots && "Array slots not allocated.");
 
