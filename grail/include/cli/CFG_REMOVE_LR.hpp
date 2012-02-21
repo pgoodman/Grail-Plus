@@ -24,6 +24,8 @@ namespace grail { namespace cli {
     class CFG_REMOVE_LR {
     public:
 
+        FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
+
         static const char * const TOOL_NAME;
 
         static void declare(io::CommandLineOptions &opt, bool in_help) throw() {
@@ -58,8 +60,6 @@ namespace grail { namespace cli {
 
         static int main(io::CommandLineOptions &options) throw() {
 
-            using fltl::CFG;
-
             // run the tool
             io::option_type file;
             const char *file_name(0);
@@ -85,7 +85,7 @@ namespace grail { namespace cli {
                 return 1;
             }
 
-            CFG<AlphaT> cfg;
+            cfg_type cfg;
             int ret(0);
 
             if(io::fread(fp, cfg, file_name)) {

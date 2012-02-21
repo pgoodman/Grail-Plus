@@ -204,7 +204,7 @@ namespace grail { namespace cli {
                 if(options["predict"].is_valid()) {
                     io::verbose("Computing FIRST set of variables...\n");
                     use_first_sets = true;
-                    cfg::compute_first_set(cfg, is_nullable, first_terminals);
+                    cfg::compute_first_terminals(cfg, is_nullable, first_terminals);
                 }
 
                 io::verbose("Parsing...\n");

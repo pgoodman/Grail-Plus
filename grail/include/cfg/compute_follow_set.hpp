@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "fltl/include/CFG.hpp"
-#include "grail/include/cfg/compute_first_set.hpp"
 
 namespace grail { namespace cfg {
 

@@ -71,9 +71,9 @@ namespace grail { namespace cfg {
 
     }
 
-    /// compute the first sets for a CFG.
+    /// compute the first sets of termianls for the variables of a CFG.
     template <typename AlphaT>
-    void compute_first_set(
+    void compute_first_terminals(
         const fltl::CFG<AlphaT> &cfg,
         const std::vector<bool> &nullable,
         std::vector<std::vector<bool> *> &first
@@ -116,13 +116,12 @@ namespace grail { namespace cfg {
         terminal_set_type *reached_set(0);
 
         updated = true;
-        for(unsigned old_len(0); updated; ) {
+        for(; updated; ) {
             updated = false;
 
             for(variables.rewind(); variables.match_next(); ) {
 
                 curr_set = first[V.number()];
-                old_len = static_cast<unsigned>(curr_set->size());
 
                 for(next_subsets.rewind(); next_subsets.match_next(); ) {
 
@@ -157,6 +156,70 @@ namespace grail { namespace cfg {
                                 break;
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /// compute the first sets of variables for the variables of a CFG.
+    template <typename AlphaT>
+    void compute_first_variables(
+        fltl::CFG<AlphaT> &cfg,
+        const std::vector<bool> &nullable,
+        std::vector<std::vector<bool> *> &first
+    ) throw() {
+
+        FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
+
+        typedef std::vector<bool> terminal_set_type;
+
+        const unsigned num_vars(cfg.num_variables_capacity() + 2);
+
+        first.assign(num_vars, 0);
+
+        // allocate the sets
+        variable_type V, W;
+        generator_type variables(cfg.search(~V));
+        for(; variables.match_next(); ) {
+            first[V.number()] = new std::vector<bool>(num_vars, false);
+        }
+
+        production_type production;
+        generator_type productions(cfg.search(~production));
+
+        terminal_set_type *source_set(0);
+        terminal_set_type *reached_set(0);
+
+        symbol_string_type str;
+
+        bool updated(true);
+        for(; updated; ) {
+            updated = false;
+
+            for(productions.rewind(); productions.match_next(); ) {
+
+                str = production.symbols();
+                V = production.variable();
+                source_set = first[V.number()];
+
+                for(unsigned i(0); i < str.length(); ++i) {
+
+                    // can't walk past a terminal
+                    if(str.at(i).is_terminal()) {
+                        break;
+                    }
+
+                    W = str.at(i);
+                    reached_set = first[W.number()];
+
+                    updated = detail::insert(source_set, W) || updated;
+                    updated = detail::union_into(source_set, reached_set) || updated;
+
+                    // can't walk past a non-nullable non-terminal
+                    if(!(nullable[W.number()])) {
+                        break;
                     }
                 }
             }

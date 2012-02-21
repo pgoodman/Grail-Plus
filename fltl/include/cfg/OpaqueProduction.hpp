@@ -210,7 +210,15 @@ namespace std {
     template <typename  AlphaT>
     struct less<fltl::cfg::OpaqueProduction<AlphaT> > : binary_function <fltl::cfg::OpaqueProduction<AlphaT>, fltl::cfg::OpaqueProduction<AlphaT>, bool> {
         bool operator() (const fltl::cfg::OpaqueProduction<AlphaT> &x, const fltl::cfg::OpaqueProduction<AlphaT> &y) const {
-            return x.number() < y.number();
+            if(x == y) {
+                return false;
+            }
+
+            if(x.variable() == y.variable()) {
+                return x < y;
+            }
+
+            return x.variable() < y.variable();
         }
     };
 }

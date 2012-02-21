@@ -288,7 +288,7 @@ namespace grail { namespace cli {
             empty_set.assign(cfg.num_terminals() + 2, false);
 
             grail::cfg::compute_null_set(cfg, nullable);
-            grail::cfg::compute_first_set(cfg, nullable, first);
+            grail::cfg::compute_first_terminals(cfg, nullable, first);
             grail::cfg::compute_follow_set(cfg, nullable, first, follow);
 
             for(; As.match_next(); ) {

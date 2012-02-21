@@ -29,6 +29,8 @@
 #ifndef FLTL_FIND_STRING_HPP_
 #define FLTL_FIND_STRING_HPP_
 
+#include <cassert>
+
 #include "grail/include/io/UTF8FileBuffer.hpp"
 
 namespace grail { namespace io { namespace detail {
@@ -85,6 +87,8 @@ namespace grail { namespace io { namespace detail {
 
             if(LOOK_FOR_ERRORS && scratch >= scratch_end) {
                 return STRING_TOO_LONG;
+            } else {
+                assert(scratch < scratch_end);
             }
 
             // looks like an escape sequence
@@ -148,7 +152,7 @@ namespace grail { namespace io { namespace detail {
 
             // error, we got to the end of the file before the end of the
             // string
-            } else if(LOOK_FOR_ERRORS && '\0') {
+            } else if(LOOK_FOR_ERRORS && '\0' == ch) {
                 return STRING_EARLY_EOF;
 
             // copy the codepoint into scratch

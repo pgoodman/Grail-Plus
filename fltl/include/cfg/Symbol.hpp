@@ -202,6 +202,11 @@ namespace fltl { namespace cfg {
             }
         }
 
+        /// comparison for symbols *without* conversion to terminal/non-terminals.
+        bool operator<(const self_type that) const throw() {
+            return value < that.value;
+        }
+
 #if !FLTL_FEATURE_USER_DEFINED_OPERATORS
 
         /// return an "unbound" version of this symbol

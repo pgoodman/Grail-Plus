@@ -277,7 +277,6 @@ namespace grail { namespace cli {
             io::option_type label_states(options["label-states"]);
 
             const char *file_name(file.value());
-
             FILE *fp(fopen(file_name, "r"));
 
             if(0 == fp) {

@@ -26,6 +26,8 @@
  * THE SOFTWARE.
  */
 
+#include <cassert>
+
 #include "grail/include/io/error.hpp"
 
 namespace grail { namespace io {
@@ -147,6 +149,30 @@ namespace grail { namespace io {
                         // character
                         } else if('c' == *str) {
                             col += fprintf(fp, "%c", static_cast<char>(va_arg(args, int)));
+
+                        // pointer
+                        } else if('p' == *str) {
+                            col += fprintf(fp, "%p", va_arg(args, void *));
+
+                        // something long
+                        } else if('l' == *str) {
+                            ++str;
+                            assert('\0' != *str);
+
+                            if('u' == *str) {
+                                col += fprintf(fp, "%lu", va_arg(args, unsigned long));
+                            } else if('d' == *str) {
+                                col += fprintf(fp, "%ld", va_arg(args, long));
+                            } else if('l' == *str) {
+                                ++str;
+                                assert('\0' != *str);
+
+                                if('u' == *str) {
+                                    col += fprintf(fp, "%llu", va_arg(args, unsigned long long));
+                                } else if('d' == *str) {
+                                    col += fprintf(fp, "%lld", va_arg(args, long long));
+                                }
+                            }
                         }
                     }
                 } else if('\n' == *str) {
