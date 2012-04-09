@@ -466,13 +466,13 @@ namespace grail { namespace io {
 
             if(0 == opt.option->opt_begin) {
 
-                argv_offset = opt.option->val_argv;
+                argv_offset = static_cast<size_t>(opt.option->val_argv);
                 offset = static_cast<size_t>(
                     opt.option->val_begin - argv[opt.option->val_argv]
                 );
 
             } else {
-                argv_offset = opt.option->opt_argv;
+                argv_offset = static_cast<size_t>(opt.option->opt_argv);
                 offset = static_cast<size_t>(
                     opt.option->opt_begin - argv[opt.option->opt_argv]
                 );

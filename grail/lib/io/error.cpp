@@ -40,15 +40,15 @@ namespace grail { namespace io {
         FILE *fp,
         const char *str,
         const char *pad,
-        size_t pad_size,
-        size_t *col
+        int pad_size,
+        int *col
     ) {
 
         if(0 == str || '\0' == *str) {
             return;
         }
 
-        size_t i(*col);
+        int i(*col);
         for(; *str != '\0'; ++str, ++i) {
             if(' ' == *str) {
                 if(i >= APPROX_LINE_SPLIT_POINT) {
@@ -91,7 +91,7 @@ namespace grail { namespace io {
         const char *type,
         const char *str,
         va_list args,
-        const size_t start_col
+        const int start_col
     ) {
 
         char pad[64];
@@ -107,10 +107,10 @@ namespace grail { namespace io {
             color, type
         );
 
-        size_t pad_size(strlen(type) + 2);
-        size_t col(pad_size + start_col);
+        int pad_size(static_cast<int>(strlen(type)) + 2);
+        int col(pad_size + start_col);
 
-        memset(pad, ' ', pad_size * sizeof(char));
+        memset(pad, ' ', static_cast<size_t>(pad_size) * sizeof(char));
 
         for(; '\0' != *str; ) {
             for(; curr_buff < end_buff && '\0' != *str; ++str, ++curr_buff) {
@@ -230,7 +230,7 @@ namespace grail { namespace io {
             FLTL_F_RED, "error",
             str,
             args,
-            static_cast<size_t>(num) - strlen(FLTL_F_DEF FLTL_F_BOLD FLTL_F_DEF)
+            num - static_cast<int>(strlen(FLTL_F_DEF FLTL_F_BOLD FLTL_F_DEF))
         );
         va_end(args);
     }

@@ -192,18 +192,19 @@ namespace fltl { namespace cfg {
             }
 
             uint64_t num(0UL);
-            num |= production->var->id;
+            num |= static_cast<uint64_t>(production->var->id);
             num <<= 16U;
             num <<= 16U;
 
             if(0 != production->symbols.symbols) {
-                num |= production->symbols.symbols[str::HASH].value;
+                num |= static_cast<uint64_t>(
+                    production->symbols.symbols[str::HASH].value
+                );
             }
 
             return num;
         }
     };
-
 }}
 
 namespace std {

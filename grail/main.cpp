@@ -29,14 +29,12 @@
 #ifndef FLTL_MAIN_CPP_
 #define FLTL_MAIN_CPP_
 
-#include <string>
-
-#include "fltl/test/Test.hpp"
-#include "fltl/test/cfg/CFG.hpp"
-
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/verbose.hpp"
 
+#ifndef GRAIL_USE_JS
+
+#include <string>
 #include "grail/include/helper/CStringMap.hpp"
 
 namespace grail {
@@ -55,7 +53,7 @@ namespace grail {
             "  basic use options for all Grail+ tools:\n"
             "    --help, -h                     show this message, along with any tool-\n"
             "                                   specific help\n"
-            "    --test                         execute all test cases\n"
+            //"    --test                         execute all test cases\n"
             "    --version                      show the version\n"
             "    --verbose, -v                  print out debugging information to\n"
             "                                   <stderr>.\n"
@@ -107,7 +105,7 @@ namespace grail {
     };
 
 #ifdef GRAIL_DECLARE_TOOL
-#undef GRAIL_DECLARE_TOOL
+#   undef GRAIL_DECLARE_TOOL
 #endif
 
 #define GRAIL_DECLARE_TOOL(tpl) \
@@ -165,9 +163,8 @@ int main(const int argc, const char **argv) throw() {
             );
 
         // run through all test cases
-        } else if(test.is_valid()) {
-
-            fltl::test::run_tests();
+        //} else if(test.is_valid()) {
+        //    fltl::test::run_tests();
 
         // list out all installed tools
         } else if(list_tools.is_valid()) {
@@ -228,5 +225,25 @@ int main(const int argc, const char **argv) throw() {
 
     return 1;
 }
+
+#else
+
+#   ifdef GRAIL_DECLARE_TOOL
+#      undef GRAIL_DECLARE_TOOL
+#   endif
+
+#   define GRAIL_DECLARE_TOOL(tpl)                      \
+        void tpl(int argc, const char **argv) {         \
+            using namespace grail;                      \
+            using namespace grail::io;                  \
+            typedef cli::tpl<const char *> tool;        \
+            CommandLineOptions options(argc, argv);     \
+            tool::declare(options, false);              \
+            tool::main(options);                        \
+        }
+
+#   include "grail/tools.hpp"
+#   undef GRAIL_DECLARE_TOOL
+#endif
 
 #endif /* FLTL_MAIN_CPP_ */
