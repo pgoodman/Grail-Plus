@@ -30,6 +30,7 @@
 #define FLTL_LISTALLOCATOR_HPP_
 
 #include <cassert>
+#include <cstddef>
 #include <new>
 
 #include "fltl/include/helper/UnsafeCast.hpp"
