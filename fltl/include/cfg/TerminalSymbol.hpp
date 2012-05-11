@@ -39,7 +39,6 @@ namespace fltl { namespace cfg {
 
         friend class CFG<AlphaT>;
         friend class detail::PatternData<AlphaT>;
-        friend struct std::less<TerminalSymbol<AlphaT> >;
 
         typedef TerminalSymbol<AlphaT> self_type;
 
@@ -237,16 +236,5 @@ namespace fltl { namespace mpl {
     };
 }}
 #endif
-
-namespace std {
-
-    template <typename AlphaT>
-    struct less<fltl::cfg::TerminalSymbol<AlphaT> > : binary_function <fltl::cfg::TerminalSymbol<AlphaT>,fltl::cfg::TerminalSymbol<AlphaT>,bool> {
-    public:
-        bool operator() (const fltl::cfg::TerminalSymbol<AlphaT> &x, const fltl::cfg::TerminalSymbol<AlphaT> &y) const {
-            return x.value < y.value;
-        }
-    };
-}
 
 #endif /* FLTL_TERMINAL_HPP_ */

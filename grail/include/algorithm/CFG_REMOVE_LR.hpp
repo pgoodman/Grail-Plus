@@ -175,7 +175,8 @@ namespace grail { namespace algorithm {
             CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
 
             // if cfg generates the empty word then lets replace that
-            // by making it mean
+            // by making it use a placeholder. Later we will replace the
+            // placeholder with epsilon.
             if(cfg.search(~prod, start_var --->* cfg.epsilon()).match_next()) {
                 using_epsilon_placeholder = true;
                 epsilon_placeholder = cfg.add_variable_terminal();

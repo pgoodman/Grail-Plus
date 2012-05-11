@@ -40,11 +40,16 @@
 
 namespace grail { namespace io {
 
+    // forward declaration
+    template <typename AlphaT, typename ThingT>
+    int fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg, const ThingT thing) throw();
+
+    /// print out a production
     template <typename AlphaT>
     static int fprint_production(
         FILE *ff,
         const fltl::CFG<AlphaT> &cfg,
-        typename fltl::CFG<AlphaT>::sym_str_t str,
+        const typename fltl::CFG<AlphaT>::sym_str_t &str,
         const char *prefix
     ) throw() {
         int num(0);
@@ -58,21 +63,8 @@ namespace grail { namespace io {
             num += fprintf(ff, " epsilon");
         } else {
             for(unsigned i(0); i < len; ++i) {
-                s = str.at(i);
-
-                if(s.is_variable()) {
-                    typename fltl::CFG<AlphaT>::var_t s_as_var(s);
-                    num += fprintf(ff, " %s", cfg.get_name(s_as_var));
-                } else {
-                    typename fltl::CFG<AlphaT>::term_t s_as_term(s);
-                    if(!cfg.is_variable_terminal(s_as_term)) {
-                        num += fprintf(ff, " \"");
-                        num += fprint(ff, cfg.get_alpha(s_as_term));
-                        num += fprintf(ff, "\"");
-                    } else {
-                        num += fprintf(ff," %s", cfg.get_name(s_as_term));
-                    }
-                }
+                fprintf(ff, " ");
+                num += fprint(ff, cfg, str.at(i));
             }
         }
 
@@ -80,18 +72,81 @@ namespace grail { namespace io {
         return num;
     }
 
-    /// print out a production
+    /// implements printing of various types of CFG objects
     template <typename AlphaT>
-    int fprint(FILE *ff, fltl::CFG<AlphaT> &cfg, typename fltl::CFG<AlphaT>::production_type &prod) throw() {
-        int num(fprintf(ff, "%s ->", cfg.get_name(prod.variable())));
-        const char sep[] = {'\0', '\0'};
-        num += fprint_production(
-            ff,
-            cfg,
-            prod.symbols(),
-            &(sep[0])
-        );
-        return num;
+    class fprint_impl {
+    public:
+
+        typedef fltl::CFG<AlphaT> cfg_type;
+        typedef typename cfg_type::production_type production_type;
+        typedef typename cfg_type::symbol_type symbol_type;
+        typedef typename cfg_type::variable_type variable_type;
+        typedef typename cfg_type::terminal_type terminal_type;
+
+        /// print out a production
+        static int do_print(
+            FILE *ff,
+            const cfg_type &cfg,
+            const production_type &prod
+        ) throw() {
+            int num(fprintf(ff, "%s ->", cfg.get_name(prod.variable())));
+            const char sep[] = {'\0', '\0'};
+            num += fprint_production(
+                ff,
+                cfg,
+                prod.symbols(),
+                &(sep[0])
+            );
+            return num;
+        }
+
+        /// print out a symbol
+        static int do_print(
+            FILE *ff,
+            const fltl::CFG<AlphaT> &cfg,
+            const symbol_type &s
+        ) throw() {
+            if(s.is_variable()) {
+                typename fltl::CFG<AlphaT>::var_t s_as_var(s);
+                return do_print(ff, cfg, s_as_var);
+            } else {
+                typename fltl::CFG<AlphaT>::term_t s_as_term(s);
+                return do_print(ff, cfg, s_as_term);
+            }
+        }
+
+        /// print out a variable
+        static int do_print(
+            FILE *ff,
+            const fltl::CFG<AlphaT> &cfg,
+            const variable_type &v
+        ) throw() {
+            return fprintf(ff, "%s", cfg.get_name(v));
+        }
+
+        /// print out a terminal
+        static int do_print(
+            FILE *ff,
+            const fltl::CFG<AlphaT> &cfg,
+            const terminal_type &t
+        ) throw() {
+
+            int num(0);
+            if(!cfg.is_variable_terminal(t)) {
+                num += fprintf(ff, "\"");
+                num += fprint(ff, cfg.get_alpha(t));
+                num += fprintf(ff, "\"");
+            } else {
+                num += fprintf(ff,"%s", cfg.get_name(t));
+            }
+            return num;
+        }
+    };
+
+    /// print something out of a grammar
+    template <typename AlphaT, typename ThingT>
+    int fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg, const ThingT thing) throw() {
+        return fprint_impl<AlphaT>::do_print(ff, cfg, thing);
     }
 
     /// print out a context-free grammar

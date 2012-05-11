@@ -233,6 +233,7 @@ int main(const int argc, const char **argv) throw() {
 #   endif
 
 #   define GRAIL_DECLARE_TOOL(tpl)                      \
+        __attribute__((used))                           \
         void tpl(int argc, const char **argv) {         \
             using namespace grail;                      \
             using namespace grail::io;                  \

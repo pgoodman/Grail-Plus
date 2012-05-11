@@ -1,37 +1,18 @@
 /*
- * cfg_to_cnf.hpp
+ * CFG_REMOVE_EPSILON.hpp
  *
- *  Created on: Feb 16, 2011
- *      Author: Peter Goodman
+ *  Created on: May 6, 2012
+ *      Author: petergoodman
  *     Version: $Id$
- *
- * Copyright 2011 Peter Goodman, all rights reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
  */
 
-#ifndef FLTL_CLI_CFG_TO_CNF_HPP_
-#define FLTL_CLI_CFG_TO_CNF_HPP_
+#ifndef Grail-Plus_CFG_REMOVE_EPSILON_HPP_
+#define Grail-Plus_CFG_REMOVE_EPSILON_HPP_
+
 
 #include <cstdio>
 
-#include "grail/include/algorithm/CFG_TO_CNF.hpp"
+#include "grail/include/algorithm/CFG_REMOVE_EPSILON.hpp"
 
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_cfg.hpp"
@@ -40,7 +21,7 @@
 namespace grail { namespace cli {
 
     template <typename AlphaT>
-    class CFG_TO_CNF {
+    class CFG_REMOVE_EPSILON {
     public:
 
         FLTL_CFG_USE_TYPES(fltl::CFG<AlphaT>);
@@ -63,9 +44,8 @@ namespace grail { namespace cli {
             //  "  | |                              |                                             |"
             printf(
                 "  %s:\n"
-                "    Converts a context-free grammar (CFG) into Chomsky Normal Form. If the\n"
-                "    CFG generates the empty string then the only epsilon production in the\n"
-                "    CFG will be that of the start variable.\n\n"
+                "    Converts a context-free grammar (CFG) into one that has no epsilon\n"
+                "    productions, except possibly in the starting production.\n\n"
                 "  basic use options for %s:\n"
                 "    --stdin                        Read a CFG from stdin. Typing a new\n"
                 "                                   line followed by Ctrl-D or Ctrl-Z will\n"
@@ -94,13 +74,11 @@ namespace grail { namespace cli {
             }
 
             if(0 == fp) {
-
                 options.error(
                     "Unable to open file containing context-free "
                     "grammar for reading."
                 );
                 options.note("File specified here:", file);
-
                 return 1;
             }
 
@@ -108,7 +86,7 @@ namespace grail { namespace cli {
             int ret(0);
 
             if(io::fread(fp, cfg, file_name)) {
-                algorithm::CFG_TO_CNF<AlphaT>::run(cfg);
+                algorithm::CFG_REMOVE_EPSILON<AlphaT>::run(cfg);
                 io::fprint(stdout, cfg);
             } else {
                 ret = 1;
@@ -121,7 +99,8 @@ namespace grail { namespace cli {
     };
 
     template <typename AlphaT>
-    const char * const CFG_TO_CNF<AlphaT>::TOOL_NAME("cfg-to-cnf");
+    const char * const CFG_REMOVE_EPSILON<AlphaT>::TOOL_NAME("cfg-remove-epsilon");
 }}
 
-#endif /* FLTL_CLI_CFG_TO_CNF_HPP_ */
+
+#endif /* Grail-Plus_CFG_REMOVE_EPSILON_HPP_ */

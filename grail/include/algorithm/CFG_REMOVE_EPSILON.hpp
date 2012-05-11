@@ -195,10 +195,6 @@ namespace grail { namespace algorithm {
                         ) || updated;
                     }
                 }
-
-                if(cfg.num_productions() > 100) {
-                    return;
-                }
             }
 
             CFG_REMOVE_USELESS<AlphaT>::run(cfg);

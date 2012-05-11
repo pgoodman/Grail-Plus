@@ -102,6 +102,15 @@ namespace grail { namespace cli {
 
         typedef std::set<variable_context> context_set;
 
+        static void run(
+            cfg_cfg_type &cfg,
+            nfa_nfa_type &nfa,
+            bool partition=false,
+            bool label_states=true
+        ) throw() {
+            extract(cfg, nfa, partition, label_states);
+        }
+
         /// extract the stack language from the CFG
         static void extract(
             cfg_cfg_type &cfg,

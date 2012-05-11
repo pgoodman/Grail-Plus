@@ -41,7 +41,6 @@ namespace fltl { namespace cfg {
         friend class CFG<AlphaT>;
         friend class OpaqueProduction<AlphaT>;
         friend class detail::PatternData<AlphaT>;
-        friend struct std::less<VariableSymbol<AlphaT> >;
 
         typedef VariableSymbol<AlphaT> self_type;
 
@@ -72,6 +71,11 @@ namespace fltl { namespace cfg {
             return Unbound<AlphaT,variable_tag>(this);
         }
 #endif
+
+        self_type &operator=(const self_type &that) throw() {
+            this->value = that.value;
+            return *this;
+        }
 
         self_type &operator=(const Symbol<AlphaT> &that) throw() {
             assert(that.is_variable());
@@ -244,16 +248,5 @@ namespace fltl { namespace mpl {
     };
 }}
 #endif
-
-namespace std {
-
-    template <typename AlphaT>
-    struct less<fltl::cfg::VariableSymbol<AlphaT> > : binary_function <fltl::cfg::VariableSymbol<AlphaT>,fltl::cfg::VariableSymbol<AlphaT>,bool> {
-    public:
-        bool operator() (const fltl::cfg::VariableSymbol<AlphaT> &x, const fltl::cfg::VariableSymbol<AlphaT> &y) const {
-            return x.value < y.value;
-        }
-    };
-}
 
 #endif /* FLTL_VARIABLESYMBOL_HPP_ */

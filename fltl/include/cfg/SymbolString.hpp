@@ -519,7 +519,19 @@ namespace fltl { namespace cfg {
         }
 
         /// get a slice of symbols. gets a slice of symbols in the range
-        /// [from, from+stride[.
+        /// [start, len[.
+        inline const self_type
+        substring(const unsigned start) const throw() {
+            const unsigned len = length();
+            assert(
+                start <= len &&
+                "Substring of symbol string starts past end of string."
+            );
+            return substring(start, len - start);
+        }
+
+        /// get a slice of symbols. gets a slice of symbols in the range
+        /// [start, start+stride[.
         inline const self_type
         substring(const unsigned start, const unsigned stride) const throw() {
 
@@ -527,7 +539,7 @@ namespace fltl { namespace cfg {
             const unsigned len = length();
 
             assert(
-                start < len &&
+                start <= len &&
                 "Substring of symbol string starts past end of string."
             );
 
@@ -542,20 +554,23 @@ namespace fltl { namespace cfg {
 
             if(len == stride) {
                 return *this;
+            } else if(0 == stride) {
+                ret.symbols = allocate(0);
+            } else {
+
+                ret.symbols = allocate(stride);
+                memcpy(
+                    &(ret.symbols[str::FIRST_SYMBOL]),
+                    &(symbols[str::FIRST_SYMBOL + start]),
+                    stride * sizeof(symbol_type)
+                );
+
+                // hash the substring
+                ret.symbols[str::HASH].value = hash_array(
+                    &(ret.symbols[str::FIRST_SYMBOL]),
+                    stride
+                );
             }
-
-            ret.symbols = allocate(stride);
-            memcpy(
-                &(ret.symbols[str::FIRST_SYMBOL]),
-                &(symbols[str::FIRST_SYMBOL + start]),
-                stride * sizeof(symbol_type)
-            );
-
-            // hash the substring
-            ret.symbols[str::HASH].value = hash_array(
-                &(ret.symbols[str::FIRST_SYMBOL]),
-                stride
-            );
 
             return ret;
         }
@@ -653,6 +668,29 @@ namespace fltl { namespace cfg {
         /// return an "unbound" version of this symbol string
         cfg::Unbound<AlphaT,symbol_string_tag> operator~(void) throw() {
             return cfg::Unbound<AlphaT,symbol_string_tag>(this);
+        }
+
+        /// return true iff this string is lexicographically less than another
+        /// symbol string
+        bool operator<(const self_type &that) const throw() {
+            const bool this_is_shorter(length() < that.length());
+            const unsigned num_syms(this_is_shorter ? length() : that.length());
+
+            const symbol_type *this_sym(&(symbols[str::FIRST_SYMBOL]));
+            const symbol_type *that_sym(&(that.symbols[str::FIRST_SYMBOL]));
+
+            for(unsigned i(0); i < num_syms; ++i) {
+                if(*this_sym < *that_sym) {
+                    return true;
+                } else if(*that_sym < *this_sym) {
+                    return false;
+                } else {
+                    ++this_sym;
+                    ++that_sym;
+                }
+            }
+
+            return this_is_shorter;
         }
     };
 

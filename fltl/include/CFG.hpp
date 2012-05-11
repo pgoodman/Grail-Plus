@@ -170,14 +170,15 @@ namespace fltl {
         }
 
         /// offsets into CFG symbol strings
-        namespace str {
+        class str {
+        public:
             enum {
                 REF_COUNT = 0,
                 HASH = 1,
                 LENGTH = 2,
                 FIRST_SYMBOL = 3
             };
-        }
+        };
     }
 
 }
@@ -1177,7 +1178,6 @@ namespace fltl {
 
             return true;
         }
-
     };
 
     // initialize the static variables

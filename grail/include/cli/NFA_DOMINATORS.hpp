@@ -104,7 +104,7 @@ namespace grail { namespace cli {
         /// compute the dominator relation for an NFA, then remove all of the
         /// NFA transitions and insert transitions consistent with the dominator
         /// tree.
-        static void compute(nfa_type &nfa) throw() {
+        static void run(nfa_type &nfa) throw() {
 
             const unsigned num_states(nfa.num_states());
 
@@ -232,7 +232,7 @@ namespace grail { namespace cli {
                 return 1;
             }
 
-            compute(nfa);
+            run(nfa);
 
             // output
             if(dot.is_valid()) {
