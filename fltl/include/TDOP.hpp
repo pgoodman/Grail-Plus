@@ -60,6 +60,10 @@ namespace fltl {
         template <typename> class OperatorString;
 
         template <typename> class Unbound;
+        template <typename> class Any;
+        template <typename> class AnyOperatorString;
+        template <typename> class AnyOperatorStringOfLength;
+        template <typename> class Pattern;
     }
 }
 
@@ -74,6 +78,7 @@ namespace fltl {
 #include "fltl/include/tdop/OperatorString.hpp"
 
 #include "fltl/include/tdop/Unbound.hpp"
+#include "fltl/include/tdop/Pattern.hpp"
 
 namespace fltl {
 
@@ -117,6 +122,11 @@ namespace fltl {
 
         const symbol_type get_symbol(const alphabet_type sym) throw();
         const symbol_type add_variable_symbol(void) throw();
+
+        const unsigned num_categories(void) const throw();
+        const unsigned num_rules(category_type cat) const throw();
+        const unsigned num_initial_rules(category_type cat) const throw();
+        const unsigned num_extension_rules(category_type cat) const throw();
     };
 
 }

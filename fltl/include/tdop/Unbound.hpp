@@ -21,8 +21,37 @@ namespace fltl { namespace tdop {
         const Unbound<Operator<AlphaT> > operator&(void) const throw() {
             // TODO
         }
+
+        // TODO
     };
 
+    template <typename AlphaT>
+    class Unbound<Operator<AlphaT> > {
+    public:
+
+        // TODO
+    };
+
+    template <typename AlphaT>
+    class Unbound<OperatorString<AlphaT> > {
+    public:
+
+        // TODO
+    };
+
+    template <typename AlphaT>
+    class Unbound<Term<AlphaT> > {
+    public:
+
+        // TODO
+    };
+
+    template <typename AlphaT>
+    class Unbound<OpaqueCategory<AlphaT> > {
+    public:
+
+        // TODO
+    };
 }}
 
 #endif /* Grail_Plus_TDOP_UNBOUND_HPP_ */
