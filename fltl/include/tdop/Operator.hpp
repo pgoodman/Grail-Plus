@@ -16,26 +16,153 @@ namespace fltl { namespace tdop {
     class Operator {
     private:
 
+        template <typename, typename, const unsigned, typename, typename>
+        friend class Match;
+
         friend class OpaqueCategory<AlphaT>;
         friend class Symbol<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
-        enum {
-            BOUND_SYMBOL = 0
-        };
-
         term_type term;
-        uint32_t lower_bound;
+        int32_t lower_bound;
+
+        enum {
+            UNINITIALIZED = -1,
+            IS_UNBOUND = -2,
+            IS_PREDICATE = -3
+        };
 
     public:
 
-        bool match(term_type &) const throw();
-        bool match(category_type &) const throw();
-        bool match(category_type &, unsigned &) const throw();
+        /// constructors
 
-        bool is_predicate(void) const throw();
-        bool is_bound(void) const throw();
+        Operator(void) throw()
+            : term()
+            , lower_bound(UNINITIALIZED)
+        { }
+
+        Operator(const operator_type that) throw()
+            : term(that.term)
+            , lower_bound(that.lower_bound)
+        { }
+
+        Operator(const term_type that) throw()
+            : term(that)
+            , lower_bound(UNINITIALIZED)
+        {
+            if(term.is_category()) {
+                lower_bound = IS_UNBOUND;
+            }
+        }
+
+        Operator(const symbol_type that) throw()
+            : term(that)
+            , lower_bound(UNINITIALIZED)
+        { }
+
+        Operator(const category_type that) throw()
+            : term(that)
+            , lower_bound(IS_UNBOUND)
+        { }
+
+        /// assignment
+
+        operator_type &operator=(const operator_type that) throw() {
+            term = that.term;
+            lower_bound = that.lower_bound;
+            return *this;
+        }
+
+        operator_type &operator=(const term_type that) throw() {
+            term = that;
+            if(term.is_category()) {
+                lower_bound = IS_UNBOUND;
+            } else {
+                lower_bound = UNINITIALIZED;
+            }
+            return *this;
+        }
+
+        operator_type &operator=(const symbol_type that) throw() {
+            term = that;
+            lower_bound = UNINITIALIZED;
+            return *this;
+        }
+
+        operator_type &operator=(const category_type that) throw() {
+            term = that;
+            lower_bound = IS_UNBOUND;
+            return *this;
+        }
+
+        /// destructuring
+
+        bool match(symbol_type &sym) const throw() {
+            if(!term.is_symbol()) {
+                return false;
+            }
+
+            sym.val = term.val;
+
+            return true;
+        }
+
+        bool match(category_type &cat) const throw() {
+            if(!term.is_category()) {
+                return false;
+            }
+
+            cat = term.val;
+
+            return true;
+        }
+
+        bool match(category_type &cat, unsigned &bound) const throw() {
+            if(!term.is_category()) {
+                return false;
+            }
+
+            if(IS_UNBOUND == lower_bound) {
+                return false;
+            }
+
+            cat.val = term.val;
+            bound = static_cast<unsigned>(lower_bound);
+
+            return true;
+        }
+
+        /// type/state checking
+
+        bool is_category(void) const throw() {
+            return term.is_category();
+        }
+
+        bool is_symbol(void) const throw() {
+            return term.is_symbol();
+        }
+
+        bool is_valid(void) const throw() {
+            return term.is_valid();
+        }
+
+        bool is_symbol_predicate(void) const throw() {
+            return term.is_symbol() && IS_PREDICATE == lower_bound;
+        }
+
+        bool is_bound_category(void) const throw() {
+            return term.is_category() && IS_UNBOUND != lower_bound;
+        }
+
+        /// comparison
+
+        bool operator==(const operator_type &that) const throw() {
+            return term == that.term && lower_bound == that.lower_bound;
+        }
+        bool operator!=(const operator_type &that) const throw() {
+            return term != that.term || lower_bound != that.lower_bound;
+        }
     };
 
 }}

@@ -48,6 +48,33 @@ namespace fltl {
 
     namespace tdop {
 
+        class category_tag { };
+        class unbound_category_tag { };
+
+        // (un)bound category, unbound lower bound
+        class category_lb_tag { };
+        class unbound_category_lb_tag { };
+
+        class symbol_tag { };
+        class unbound_symbol_tag { };
+
+        class term_tag { };
+        class unbound_term_tag { };
+
+        class operator_tag { };
+        class unbound_operator_tag { };
+
+        class operator_string_tag { };
+        class unbound_operator_string_tag { };
+
+        class any_operator_tag { };
+        class any_operator_string_tag { };
+        class any_operator_string_of_length_tag { };
+
+        namespace detail {
+            template <typename> class PatternData;
+        }
+
         // forward eclaractions
         template <typename> class Category;
         template <typename> class OpaqueCategory;
@@ -59,21 +86,25 @@ namespace fltl {
         template <typename> class Operator;
         template <typename> class OperatorString;
 
-        template <typename> class Unbound;
-        template <typename> class Any;
+        template <typename, typename> class Unbound;
+        template <typename> class AnyOperator;
         template <typename> class AnyOperatorString;
         template <typename> class AnyOperatorStringOfLength;
         template <typename> class Pattern;
     }
 }
 
-#include "fltl/include/tdop/Category.hpp"
-#include "fltl/include/tdop/Rule.hpp"
-#include "fltl/include/tdop/Symbol.hpp"
 
+
+#include "fltl/include/tdop/Category.hpp"
+
+#include "fltl/include/tdop/Term.hpp"
+#include "fltl/include/tdop/Symbol.hpp"
 #include "fltl/include/tdop/OpaqueCategory.hpp"
 #include "fltl/include/tdop/OpaqueRule.hpp"
-#include "fltl/include/tdop/Term.hpp"
+
+#include "fltl/include/tdop/Rule.hpp"
+
 #include "fltl/include/tdop/Operator.hpp"
 #include "fltl/include/tdop/OperatorString.hpp"
 
@@ -91,6 +122,7 @@ namespace fltl {
         typedef trait::Alphabet<AlphaT> traits_type;
         typedef typename traits_type::alphabet_type alphabet_type;
 
+        /// exposed types
         typedef tdop::OpaqueCategory<AlphaT> category_type;
         typedef tdop::OpaqueRule<AlphaT> rule_type;
         typedef tdop::Symbol<AlphaT> symbol_type;
@@ -100,13 +132,18 @@ namespace fltl {
 
     private:
 
+        /// internal types
         typedef tdop::Category<AlphaT> internal_category_type;
         typedef tdop::Rule<AlphaT> internal_rule_type;
-
         typedef TDOP<AlphaT> self_type;
 
     public:
 
+        /// used for pattern matching
+        tdop::AnyOperator<AlphaT> _;
+        tdop::AnyOperatorString<AlphaT> __;
+
+        /// constructors, destructors
         TDOP(void) throw();
         ~TDOP(void) throw();
 

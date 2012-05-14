@@ -34,17 +34,17 @@
 #endif
 
 #define FLTL_CFG_PRODUCTION_PATTERN_INIT(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, pattern::Factor<tag,0>, state> \
     operator->*(type &expr) throw() { \
         pattern->extend(&expr, 0); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, pattern::Factor<tag,0>, state>( \
             pattern \
         ); \
     } \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, pattern::Factor<tag,0>, state> \
     operator->*(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), 0); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Factor<tag,0>, state>( \
+        return detail::PatternBuilder<AlphaT, VarTagT, pattern::Factor<tag,0>, state>( \
             pattern \
         ); \
     }
@@ -52,22 +52,11 @@
 #define FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_INIT(type, tag, state) \
     FLTL_CFG_PRODUCTION_PATTERN_INIT(_FLTL_CFG_UNBOUND(tag), unbound_ ## tag, state)
 
-
-/*
- *     FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
-    operator+(type &expr) throw() { \
-        pattern->extend(&expr, StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U>( \
-            pattern \
-        ); \
-    } \
- */
-
 #define FLTL_CFG_PRODUCTION_PATTERN_EXTEND(type, tag, state) \
-    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
+    FLTL_FORCE_INLINE detail::PatternBuilder<AlphaT, VarTagT, pattern::Catenation<StringT,pattern::Factor<tag, StringT::NEXT_OFFSET> >, state ## U> \
     operator+(const type &expr) const throw() { \
         pattern->extend(const_cast<type *>(&expr), StringT::NEXT_OFFSET); \
-        return detail::PatternBuilder<AlphaT, VarTagT, detail::Catenation<StringT,Factor<tag, StringT::NEXT_OFFSET> >, state ## U >( \
+        return detail::PatternBuilder<AlphaT, VarTagT, pattern::Catenation<StringT,pattern::Factor<tag, StringT::NEXT_OFFSET> >, state ## U >( \
             pattern \
         ); \
     }
@@ -76,6 +65,7 @@
     FLTL_CFG_PRODUCTION_PATTERN_EXTEND(_FLTL_CFG_UNBOUND(tag),unbound_ ## tag,state)
 
 
+/// pattern part data slots
 namespace fltl { namespace cfg {
 
     namespace detail {
@@ -95,240 +85,187 @@ namespace fltl { namespace cfg {
             symbol_string_type *as_symbol_string;
             unsigned *as_length;
         };
+    }
+}}
 
-        ///
 
-        template <typename T, const unsigned offset>
-        class Factor {
-        public:
-            enum {
-                WIDTH = 1,
-                MIN_NUM_SYMBOLS = 1,
-                OFFSET = offset,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
+/// pattern part sizes
+namespace fltl { namespace pattern {
+
+    template <const unsigned offset>
+    class Factor<cfg::symbol_string_tag,offset> {
+    public:
+        enum {
+            WIDTH = 1,
+            MIN_NUM_SYMBOLS = 0,
+            OFFSET = offset,
+            NEXT_OFFSET = OFFSET + WIDTH
         };
+    };
 
-        template <const unsigned offset>
-        class Factor<symbol_string_tag,offset> {
-        public:
-            enum {
-                WIDTH = 1,
-                MIN_NUM_SYMBOLS = 0,
-                OFFSET = offset,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
+    template <const unsigned offset>
+    class Factor<cfg::any_symbol_string_tag,offset> {
+    public:
+        enum {
+            WIDTH = 1,
+            MIN_NUM_SYMBOLS = 0,
+            OFFSET = offset,
+            NEXT_OFFSET = OFFSET + WIDTH
         };
+    };
 
-        template <const unsigned offset>
-        class Factor<any_symbol_string_tag,offset> {
-        public:
-            enum {
-                WIDTH = 1,
-                MIN_NUM_SYMBOLS = 0,
-                OFFSET = offset,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
+    template <const unsigned offset>
+    class Factor<cfg::any_symbol_string_of_length_tag,offset> {
+    public:
+        enum {
+            WIDTH = 1,
+            MIN_NUM_SYMBOLS = 0,
+            OFFSET = offset,
+            NEXT_OFFSET = OFFSET + WIDTH
         };
+    };
 
-        template <const unsigned offset>
-        class Factor<any_symbol_string_of_length_tag,offset> {
-        public:
-            enum {
-                WIDTH = 1,
-                MIN_NUM_SYMBOLS = 0,
-                OFFSET = offset,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
+    template <const unsigned offset>
+    class Factor<cfg::unbound_symbol_string_tag,offset> {
+    public:
+        enum {
+            WIDTH = 1,
+            MIN_NUM_SYMBOLS = 0,
+            OFFSET = offset,
+            NEXT_OFFSET = OFFSET + WIDTH
         };
+    };
 
-        template <const unsigned offset>
-        class Factor<unbound_symbol_string_tag,offset> {
-        public:
-            enum {
-                WIDTH = 1,
-                MIN_NUM_SYMBOLS = 0,
-                OFFSET = offset,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
-        };
+}}
 
-        /// concatenate facotrs/concatenations together
+/// non-trailing bound pattern parts
+namespace fltl { namespace pattern {
 
-        template <typename T0, typename T1>
-        class Catenation {
-        public:
-            enum {
-                WIDTH = T0::WIDTH + T1::WIDTH,
-                OFFSET = T0::OFFSET,
-                MIN_NUM_SYMBOLS = T0::MIN_NUM_SYMBOLS + T1::MIN_NUM_SYMBOLS,
-                NEXT_OFFSET = OFFSET + WIDTH
-            };
-        };
+    /// match symbols from the pattern
 
-        /// extract out a specific type stored in a factor from the pattern
-        /// type tree that represents the types of the factors in the pattern
-        /// string
-
-        template <typename T, const unsigned offset>
-        class GetFactor {
-        public:
-            typedef void type;
-        };
-
-        template <typename T0, typename T1, const unsigned offset>
-        class GetFactor<Catenation<T0,T1>, offset> {
-        public:
-            typedef typename GetFactor<
-                typename mpl::IfTrue<(offset >= T1::OFFSET),T1,T0>::type,
-                offset
-            >::type type;
-        };
-
-        template <typename T, const unsigned offset>
-        class GetFactor<Factor<T, offset>, offset> {
-        public:
-            typedef T type;
-        };
-
-        /// extract the minimum number of symbols that the pattern must
-        /// match that come after a specific offset
-        template <typename T, const unsigned offset>
-        class GetMinNumSymbolsAfter {
-        public:
-            enum {
-                RESULT = 0
-            };
-        };
-
-        template <typename T0, typename T1, const unsigned offset>
-        class GetMinNumSymbolsAfter<Catenation<T0, T1>, offset> {
-        public:
-            enum {
-                RESULT = (
-                    GetMinNumSymbolsAfter<T0,offset>::RESULT +
-                    GetMinNumSymbolsAfter<T1,offset>::RESULT
-                )
-            };
-            typedef typename GetFactor<
-                typename mpl::IfTrue<(offset > T1::OFFSET),T1,T0>::type,
-                offset
-            >::type type;
-        };
-
-        template <typename T, const unsigned o, const unsigned offset>
-        class GetMinNumSymbolsAfter<Factor<T,o>, offset> {
-        public:
-            enum {
-                RESULT = o > offset ? Factor<T,o>::MIN_NUM_SYMBOLS : 0
-            };
-        };
-
-        /// match symbols from the pattern
-
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T0, typename T1>
-        class Match2;
-
-        /// symbol + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,symbol_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if((1 <= len) && (*symbols == *(slots->as_symbol))) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                } else {
-                    return false;
-                }
-            }
-        };
-
-        /// terminal + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,terminal_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if((1 <= len) && (*symbols == *(slots->as_symbol))) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                } else {
-                    return false;
-                }
-            }
-        };
-
-        /// variable + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,variable_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-
-                if((1 <= len) && (*symbols == *(slots->as_symbol))) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                } else {
-                    return false;
-                }
-            }
-        };
-
-        /// symbol string + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,symbol_string_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                const unsigned str_len(slots->as_symbol_string->length());
-                enum {
-                    MIN_REQUIRED_LEN = 1 + GetMinNumSymbolsAfter<StringT,offset>::RESULT
-                };
-
-                if(str_len > len || MIN_REQUIRED_LEN > (1 + (len - str_len))) {
-                    return false;
-                }
-
-                if(0 != str_len) {
-                    const bool prefix_is_str(SymbolString<AlphaT>::symbol_memcmp(
-                        symbols,
-                        &(slots->as_symbol_string->at(0)),
-                        symbols + str_len - 1
-                    ));
-
-                    if(!prefix_is_str) {
-                        return false;
-                    }
-                }
-
-                return Match2<
+    /// symbol + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::symbol_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if((1 <= len) && (*symbols == *(slots->as_symbol))) {
+                return Match<
                     AlphaT,
                     StringT,
                     offset + 1,
                     T,
                     typename GetFactor<StringT,offset + 2>::type
-                >::bind(slots + 1, symbols + str_len, len - str_len);
+                >::bind(slots + 1, symbols + 1, len - 1);
+            } else {
+                return false;
             }
-        };
+        }
+    };
 
-        /// ignore + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,any_symbol_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                return (len >= 1) && Match2<
+    /// terminal + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::terminal_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if((1 <= len) && (*symbols == *(slots->as_symbol))) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + 1, len - 1);
+            } else {
+                return false;
+            }
+        }
+    };
+
+    /// variable + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::variable_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+            if((1 <= len) && (*symbols == *(slots->as_symbol))) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + 1, len - 1);
+            } else {
+                return false;
+            }
+        }
+    };
+
+    /// symbol string + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::symbol_string_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            const unsigned str_len(slots->as_symbol_string->length());
+            enum {
+                MIN_REQUIRED_LEN = 1 + GetMinNumSymbolsAfter<StringT,offset>::RESULT
+            };
+
+            if(str_len > len || MIN_REQUIRED_LEN > (1 + (len - str_len))) {
+                return false;
+            }
+
+            if(0 != str_len) {
+                const bool prefix_is_str(cfg::SymbolString<AlphaT>::symbol_memcmp(
+                    symbols,
+                    &(slots->as_symbol_string->at(0)),
+                    symbols + str_len - 1
+                ));
+
+                if(!prefix_is_str) {
+                    return false;
+                }
+            }
+
+            return Match<
+                AlphaT,
+                StringT,
+                offset + 1,
+                T,
+                typename GetFactor<StringT,offset + 2>::type
+            >::bind(slots + 1, symbols + str_len, len - str_len);
+        }
+    };
+
+}}
+
+/// non-trailing unbound pattern parts
+namespace fltl { namespace pattern {
+
+    /// ignore + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            return (len >= 1) && Match<
+                AlphaT,
+                StringT,
+                offset + 1,
+                T,
+                typename GetFactor<StringT,offset + 2>::type
+            >::bind(slots + 1, symbols + 1, len - 1);
+        }
+    };
+
+    /// unbound symbol + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::unbound_symbol_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len >= 1) {
+                *(slots->as_symbol) = *symbols;
+
+                return Match<
                     AlphaT,
                     StringT,
                     offset + 1,
@@ -336,510 +273,438 @@ namespace fltl { namespace cfg {
                     typename GetFactor<StringT,offset + 2>::type
                 >::bind(slots + 1, symbols + 1, len - 1);
             }
-        };
+            return false;
+        }
+    };
 
-        /// unbound symbol + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,unbound_symbol_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len >= 1) {
-                    *(slots->as_symbol) = *symbols;
+    /// unbound variable + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::unbound_variable_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len >= 1 && symbols->is_variable()) {
+                *(slots->as_symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
 
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                }
-                return false;
-            }
-        };
-
-        /// unbound variable + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,unbound_variable_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len >= 1 && symbols->is_variable()) {
-                    *(slots->as_symbol) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
-
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                }
-                return false;
-            }
-        };
-
-        /// unbound terminal + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,unbound_terminal_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len >= 1 && symbols->is_terminal()) {
-                    *(slots->as_terminal) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
-
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + 1, len - 1);
-                }
-                return false;
-            }
-        };
-
-        /// unbound symbol string + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,unbound_symbol_string_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-
-                const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
-                for(unsigned i(0); i <= max; ++i) {
-
-                    SymbolString<AlphaT> str(symbols, i);
-                    *(slots->as_symbol_string) = str;
-
-                    const bool matched_next_at_i(Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + i, len - i));
-
-                    if(matched_next_at_i) {
-                        return true;
-                    }
-                }
-
-                // unbind it
-                SymbolString<AlphaT> epsilon;
-                *(slots->as_symbol_string) = epsilon;
-
-                return false;
-            }
-        };
-
-        /// any symbol string + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,any_symbol_string_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-
-                const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
-                for(unsigned i(0); i <= max; ++i) {
-
-                    const bool matched_next_at_i(Match2<
-                        AlphaT,
-                        StringT,
-                        offset + 1,
-                        T,
-                        typename GetFactor<StringT,offset + 2>::type
-                    >::bind(slots + 1, symbols + i, len - i));
-
-                    if(matched_next_at_i) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        };
-
-        /// any symbol string of a specific length + T
-        template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-        class Match2<AlphaT,StringT,offset,any_symbol_string_of_length_tag, T> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-
-                const unsigned min_len(*(slots->as_length));
-
-                if(len < (min_len + GetMinNumSymbolsAfter<StringT,offset>::RESULT)) {
-                    return false;
-                }
-
-                return Match2<
+                return Match<
                     AlphaT,
                     StringT,
                     offset + 1,
                     T,
                     typename GetFactor<StringT,offset + 2>::type
-                >::bind(slots + 1, symbols + min_len, len - min_len);
+                >::bind(slots + 1, symbols + 1, len - 1);
             }
-        };
+            return false;
+        }
+    };
 
-        /// nothing to match, success.
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset, void, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned len) throw() {
-                return 0 == len;
-            }
-        };
-
-        /// trailing symbol
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,symbol_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                return (1 == len) && (*symbols == *(slots->as_symbol));
-            }
-        };
-
-        /// trailing terminal
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,terminal_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                return (1 == len) && (*symbols == *(slots->as_symbol));
-            }
-        };
-
-        /// trailing variable
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,variable_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                return (1 == len) && (*symbols == *(slots->as_symbol));
-            }
-        };
-
-        /// trailing symbol string
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,symbol_string_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-
-                const unsigned str_len(slots->as_symbol_string->length());
-
-                if(str_len != len) {
-                    return false;
-                } else if(0 == str_len) {
-                    return true;
-                }
-
-                return SymbolString<AlphaT>::symbol_memcmp(
-                    symbols,
-                    &(slots->as_symbol_string->at(0)),
-                    symbols + str_len - 1
-                );
-            }
-        };
-
-        /// trailing ignore
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,any_symbol_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned len) throw() {
-                return 1 == len;
-            }
-        };
-
-        /// trailing unbound symbol
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,unbound_symbol_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len > 1) {
-                    return false;
-                }
-
-                *(slots->as_symbol) = *symbols;
-
-                return true;
-            }
-        };
-
-        /// trailing unbound variable
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,unbound_variable_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len > 1 || !symbols->is_variable()) {
-                    return false;
-                }
-
-                *(slots->as_variable) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
-
-                return true;
-            }
-        };
-
-        /// trailing unbound terminal
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,unbound_terminal_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                if(len > 1 || !symbols->is_terminal()) {
-                    return false;
-                }
-
+    /// unbound terminal + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::unbound_terminal_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len >= 1 && symbols->is_terminal()) {
                 *(slots->as_terminal) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
 
-                return true;
+                return Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + 1, len - 1);
             }
-        };
+            return false;
+        }
+    };
 
-        /// trailing unbound symbol string
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,unbound_symbol_string_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *symbols, const unsigned len) throw() {
-                SymbolString<AlphaT> str(symbols, len);
+    /// unbound symbol string + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::unbound_symbol_string_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+            const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
+            for(unsigned i(0); i <= max; ++i) {
+
+                cfg::SymbolString<AlphaT> str(symbols, i);
                 *(slots->as_symbol_string) = str;
+
+                const bool matched_next_at_i(Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + i, len - i));
+
+                if(matched_next_at_i) {
+                    return true;
+                }
+            }
+
+            // unbind it
+            cfg::SymbolString<AlphaT> epsilon;
+            *(slots->as_symbol_string) = epsilon;
+
+            return false;
+        }
+    };
+
+    /// any symbol string + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_string_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+            const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
+            for(unsigned i(0); i <= max; ++i) {
+
+                const bool matched_next_at_i(Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + i, len - i));
+
+                if(matched_next_at_i) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    };
+
+    /// any symbol string of a specific length + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_string_of_length_tag, T> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+            const unsigned min_len(*(slots->as_length));
+
+            if(len < (min_len + GetMinNumSymbolsAfter<StringT,offset>::RESULT)) {
+                return false;
+            }
+
+            return Match<
+                AlphaT,
+                StringT,
+                offset + 1,
+                T,
+                typename GetFactor<StringT,offset + 2>::type
+            >::bind(slots + 1, symbols + min_len, len - min_len);
+        }
+    };
+
+}}
+
+/// trailing bound pattern parts
+namespace fltl { namespace pattern {
+
+    /// nothing to match, success.
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset, void, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *, const cfg::Symbol<AlphaT> *, const unsigned len) throw() {
+            return 0 == len;
+        }
+    };
+
+    /// trailing symbol
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::symbol_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            return (1 == len) && (*symbols == *(slots->as_symbol));
+        }
+    };
+
+    /// trailing terminal
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::terminal_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            return (1 == len) && (*symbols == *(slots->as_symbol));
+        }
+    };
+
+    /// trailing variable
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::variable_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            return (1 == len) && (*symbols == *(slots->as_symbol));
+        }
+    };
+
+    /// trailing symbol string
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::symbol_string_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+
+            const unsigned str_len(slots->as_symbol_string->length());
+
+            if(str_len != len) {
+                return false;
+            } else if(0 == str_len) {
                 return true;
             }
-        };
 
-        /// trailing any symbol string
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,any_symbol_string_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *, const Symbol<AlphaT> *, const unsigned) throw() {
-                return true;
-            }
-        };
+            return cfg::SymbolString<AlphaT>::symbol_memcmp(
+                symbols,
+                &(slots->as_symbol_string->at(0)),
+                symbols + str_len - 1
+            );
+        }
+    };
+}}
 
-        /// trailing any symbol string of a specific length
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class Match2<AlphaT,StringT,offset,any_symbol_string_of_length_tag, void> {
-        public:
-            inline static bool bind(Slot<AlphaT> *slots, const Symbol<AlphaT> *, const unsigned len) throw() {
-                return len == *(slots->as_length);
-            }
-        };
+/// trailing unbound pattern parts
+namespace fltl { namespace pattern {
 
-        /// reset the unbound strings in the pattern
+    /// trailing ignore
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *, const cfg::Symbol<AlphaT> *, const unsigned len) throw() {
+            return 1 == len;
+        }
+    };
 
-        template <typename AlphaT, typename StringT, typename CurrT,const unsigned offset>
-        class ResetPattern {
-        public:
-            inline static void reset(Slot<AlphaT> *slots) throw() {
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,offset + 1>::type,
-                    offset + 1
-                >::reset(slots);
-            }
-        };
-
-        template <typename AlphaT, typename StringT,const unsigned offset>
-        class ResetPattern<AlphaT,StringT,void,offset> {
-        public:
-            inline static void reset(Slot<AlphaT> *) throw() { }
-        };
-
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class ResetPattern<AlphaT,StringT,unbound_symbol_string_tag,offset> {
-        public:
-            inline static void reset(Slot<AlphaT> *slots) throw() {
-
-                // reset the unbound symbol string
-                SymbolString<AlphaT> epsilon;
-                *(slots[offset].as_symbol_string) = epsilon;
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,offset + 1>::type,
-                    offset + 1
-                >::reset(slots);
-            }
-        };
-
-        /// decrease reference counters in the pattern
-        /*
-        template <typename AlphaT, typename StringT, typename CurrT,const unsigned offset>
-        class DecRefCounts {
-        public:
-            inline static void decref(Slot<AlphaT> *slots) throw() {
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,offset + 1>::type,
-                    offset + 1
-                >::reset(slots);
-            }
-        };
-
-        template <typename AlphaT, typename StringT,const unsigned offset>
-        class DecRefCounts<AlphaT,StringT,void,offset> {
-        public:
-            inline static void decref(Slot<AlphaT> *) throw() { }
-        };
-
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class DecRefCounts<AlphaT,StringT,unbound_symbol_string_tag,offset> {
-        public:
-            inline static void decref(Slot<AlphaT> *slots) throw() {
-
-                SymbolString<AlphaT>::decref(slots[offset].as_symbol_string);
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,offset + 1>::type,
-                    offset + 1
-                >::reset(slots);
-            }
-        };
-
-        template <typename AlphaT, typename StringT, const unsigned offset>
-        class DecRefCounts<AlphaT,StringT,symbol_string_tag,offset> {
-        public:
-            inline static void decref(Slot<AlphaT> *slots) throw() {
-
-                SymbolString<AlphaT>::decref(slots[offset].as_symbol_string);
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,offset + 1>::type,
-                    offset + 1
-                >::reset(slots);
-            }
-        };
-        */
-
-        template <typename AlphaT, typename VarTagT, typename StringT>
-        class DestructuringBind;
-
-        /// check the variable of the pattern
-        template <typename AlphaT, typename StringT>
-        class DestructuringBind<AlphaT, variable_tag, StringT> {
-        public:
-
-            typedef typename CFG<AlphaT>::production_type production_type;
-
-            inline static bool bind(
-                PatternData<AlphaT> *pattern,
-                const production_type &prod
-            ) {
-                if(!prod.is_valid()) {
-                    return false;
-                }
-
-                Slot<AlphaT> *slots(&(pattern->slots[0]));
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,0>::type,
-                    0
-                >::reset(slots);
-
-                if(*(pattern->var) != prod.variable()) {
-                    return false;
-                }
-
-                const SymbolString<AlphaT> &str(prod.symbols());
-                const unsigned str_len(str.length());
-
-                if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        0,
-                        typename GetFactor<StringT,0>::type,
-                        typename GetFactor<StringT,1>::type
-                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
-                }
-
+    /// trailing unbound symbol
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::unbound_symbol_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len > 1) {
                 return false;
             }
-        };
 
-        /// bind the variable
-        template <typename AlphaT, typename StringT>
-        class DestructuringBind<AlphaT, unbound_variable_tag, StringT> {
-        public:
+            *(slots->as_symbol) = *symbols;
 
-            typedef typename CFG<AlphaT>::production_type production_type;
+            return true;
+        }
+    };
 
-            inline static bool bind(
-                PatternData<AlphaT> *pattern,
-                const production_type &prod
-            ) {
-                if(!prod.is_valid()) {
-                    return false;
-                }
-
-                Slot<AlphaT> *slots(&(pattern->slots[0]));
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,0>::type,
-                    0
-                >::reset(slots);
-
-                *(pattern->var) = prod.variable();
-
-                const SymbolString<AlphaT> &str(prod.symbols());
-                const unsigned str_len(str.length());
-
-                if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        0,
-                        typename GetFactor<StringT,0>::type,
-                        typename GetFactor<StringT,1>::type
-                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
-                }
-
+    /// trailing unbound variable
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::unbound_variable_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len > 1 || !symbols->is_variable()) {
                 return false;
             }
-        };
 
-        /// ignore the variable
-        template <typename AlphaT, typename StringT>
-        class DestructuringBind<AlphaT, any_symbol_tag, StringT> {
-        public:
+            *(slots->as_variable) = *helper::unsafe_cast<typename CFG<AlphaT>::variable_type *>(symbols);
 
-            typedef typename CFG<AlphaT>::production_type production_type;
+            return true;
+        }
+    };
 
-            inline static bool bind(
-                PatternData<AlphaT> *pattern,
-                const production_type &prod
-            ) {
-                Slot<AlphaT> *slots(&(pattern->slots[0]));
-
-                ResetPattern<
-                    AlphaT,
-                    StringT,
-                    typename GetFactor<StringT,0>::type,
-                    0
-                >::reset(slots);
-
-                const SymbolString<AlphaT> &str(prod.symbols());
-                const unsigned str_len(str.length());
-
-                if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
-                    return Match2<
-                        AlphaT,
-                        StringT,
-                        0,
-                        typename GetFactor<StringT,0>::type,
-                        typename GetFactor<StringT,1>::type
-                    >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
-                }
-
+    /// trailing unbound terminal
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::unbound_terminal_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            if(len > 1 || !symbols->is_terminal()) {
                 return false;
             }
-        };
+
+            *(slots->as_terminal) = *helper::unsafe_cast<typename CFG<AlphaT>::terminal_type *>(symbols);
+
+            return true;
+        }
+    };
+
+    /// trailing unbound symbol string
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::unbound_symbol_string_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *symbols, const unsigned len) throw() {
+            cfg::SymbolString<AlphaT> str(symbols, len);
+            *(slots->as_symbol_string) = str;
+            return true;
+        }
+    };
+
+    /// trailing any symbol string
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_string_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *, const cfg::Symbol<AlphaT> *, const unsigned) throw() {
+            return true;
+        }
+    };
+
+    /// trailing any symbol string of a specific length
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,cfg::any_symbol_string_of_length_tag, void> {
+    public:
+        inline static bool bind(cfg::detail::Slot<AlphaT> *slots, const cfg::Symbol<AlphaT> *, const unsigned len) throw() {
+            return len == *(slots->as_length);
+        }
+    };
+}}
+
+/// reset production patterns
+namespace fltl { namespace pattern {
+
+    /// reset the unbound symbol strings of a pattern
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class ResetPattern<AlphaT,StringT,cfg::unbound_symbol_string_tag,offset> {
+    public:
+        inline static void reset(cfg::detail::Slot<AlphaT> *slots) throw() {
+
+            // reset the unbound symbol string
+            cfg::SymbolString<AlphaT> epsilon;
+            *(slots[offset].as_symbol_string) = epsilon;
+
+            ResetPattern<
+                AlphaT,
+                StringT,
+                typename pattern::GetFactor<StringT,offset + 1>::type,
+                offset + 1
+            >::reset(slots);
+        }
+    };
+}}
+
+/// match production patterns
+namespace fltl { namespace pattern {
+
+    /// check the variable of the pattern
+    template <typename AlphaT, typename StringT>
+    class DestructuringBind<AlphaT, cfg::variable_tag, StringT> {
+    public:
+
+        typedef typename CFG<AlphaT>::production_type production_type;
+
+        inline static bool bind(
+            cfg::detail::PatternData<AlphaT> *pattern,
+            const production_type &prod
+        ) {
+            if(!prod.is_valid()) {
+                return false;
+            }
+
+            cfg::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
+
+            ResetPattern<
+                AlphaT,
+                StringT,
+                typename pattern::GetFactor<StringT,0>::type,
+                0
+            >::reset(slots);
+
+            if(*(pattern->var) != prod.variable()) {
+                return false;
+            }
+
+            const cfg::SymbolString<AlphaT> &str(prod.symbols());
+            const unsigned str_len(str.length());
+
+            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    0,
+                    typename pattern::GetFactor<StringT,0>::type,
+                    typename pattern::GetFactor<StringT,1>::type
+                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
+            }
+
+            return false;
+        }
+    };
+
+    /// bind the variable
+    template <typename AlphaT, typename StringT>
+    class DestructuringBind<AlphaT, cfg::unbound_variable_tag, StringT> {
+    public:
+
+        typedef typename CFG<AlphaT>::production_type production_type;
+
+        inline static bool bind(
+            cfg::detail::PatternData<AlphaT> *pattern,
+            const production_type &prod
+        ) {
+            if(!prod.is_valid()) {
+                return false;
+            }
+
+            cfg::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
+
+            ResetPattern<
+                AlphaT,
+                StringT,
+                typename pattern::GetFactor<StringT,0>::type,
+                0
+            >::reset(slots);
+
+            *(pattern->var) = prod.variable();
+
+            const cfg::SymbolString<AlphaT> &str(prod.symbols());
+            const unsigned str_len(str.length());
+
+            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    0,
+                    typename pattern::GetFactor<StringT,0>::type,
+                    typename pattern::GetFactor<StringT,1>::type
+                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
+            }
+
+            return false;
+        }
+    };
+
+    /// ignore the variable
+    template <typename AlphaT, typename StringT>
+    class DestructuringBind<AlphaT, cfg::any_symbol_tag, StringT> {
+    public:
+
+        typedef typename CFG<AlphaT>::production_type production_type;
+
+        inline static bool bind(
+            cfg::detail::PatternData<AlphaT> *pattern,
+            const production_type &prod
+        ) {
+            cfg::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
+
+            ResetPattern<
+                AlphaT,
+                StringT,
+                typename pattern::GetFactor<StringT,0>::type,
+                0
+            >::reset(slots);
+
+            const cfg::SymbolString<AlphaT> &str(prod.symbols());
+            const unsigned str_len(str.length());
+
+            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    0,
+                    typename pattern::GetFactor<StringT,0>::type,
+                    typename pattern::GetFactor<StringT,1>::type
+                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
+            }
+
+            return false;
+        }
+    };
+
+}}
+
+namespace fltl { namespace cfg {
+
+    namespace detail {
 
         template <typename AlphaT, typename VarTagT, typename StringT>
         class PatternBuilder<AlphaT,VarTagT,StringT,0U> {
@@ -901,7 +766,7 @@ namespace fltl { namespace cfg {
             FLTL_CFG_UNBOUND_PRODUCTION_PATTERN_EXTEND(symbol_string_type, symbol_string_tag, 1)
 
             inline bool match(const production_type &prod) throw() {
-                return DestructuringBind<
+                return pattern::DestructuringBind<
                     AlphaT,
                     VarTagT,
                     StringT
@@ -915,7 +780,7 @@ namespace fltl { namespace cfg {
                 const production_type &prod
             ) throw() {
 
-                return DestructuringBind<
+                return pattern::DestructuringBind<
                     AlphaT,
                     VarTagT,
                     StringT
@@ -981,7 +846,7 @@ namespace fltl { namespace cfg {
             FLTL_CFG_PRODUCTION_PATTERN_EXTEND(AnySymbolStringOfLength<AlphaT>, any_symbol_string_of_length_tag, 0)
 
             inline bool match(const production_type &prod) throw() {
-                return DestructuringBind<
+                return pattern::DestructuringBind<
                     AlphaT,
                     VarTagT,
                     StringT
@@ -994,7 +859,7 @@ namespace fltl { namespace cfg {
                 PatternData<AlphaT> *_pattern,
                 const production_type &prod
             ) throw() {
-                return DestructuringBind<
+                return pattern::DestructuringBind<
                     AlphaT,
                     VarTagT,
                     StringT

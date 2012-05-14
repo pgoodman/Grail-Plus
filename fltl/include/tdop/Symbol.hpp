@@ -14,17 +14,12 @@ namespace fltl { namespace tdop {
     /// represents a symbol/terminal/letter of a string in the language
     /// accepted by the TDOP machine.
     template <typename AlphaT>
-    class Symbol {
+    class Symbol : public Term<AlphaT> {
     private:
 
         friend class TDOP<AlphaT>;
         friend class Term<AlphaT>;
-
-        enum {
-            UNDEFINED_SYMBOL = 0
-        };
-
-        uint32_t number;
+        friend class Operator<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -33,48 +28,28 @@ namespace fltl { namespace tdop {
         /// constructors
 
         Symbol(void) throw()
-            : number(UNDEFINED_SYMBOL)
+            : Term<AlphaT>(Term<AlphaT>::DEFAULT_SYMBOL)
         { }
 
         Symbol(const symbol_type &that) throw()
-            : number(that.number)
+            : Term<AlphaT>(that)
         { }
 
         Symbol(const term_type &that) throw() {
             assert(that.is_symbol());
-            number = that.u.as_symbol.number;
+            this->val = that.val;
         }
 
         /// assignment operators
         symbol_type operator=(const symbol_type &that) throw() {
-            number = that.number;
+            this->val = that.val;
             return *this;
         }
 
         symbol_type operator=(const term_type &that) throw() {
             assert(that.is_symbol());
-            number = that.u.as_symbol.number;
+            this->val = that.val;
             return *this;
-        }
-
-        /// type checking
-
-        bool operator!(void) const throw() {
-            return UNDEFINED_SYMBOL == number;
-        }
-
-        /// comparison operators
-
-        bool operator==(const symbol_type &that) const throw() {
-            return number == that.number;
-        }
-
-        bool operator!=(const symbol_type &that) const throw() {
-            return number != that.number;
-        }
-
-        bool operator<(const symbol_type &that) const throw() {
-            return number < that.number;
         }
 
         /// operator, followed-by

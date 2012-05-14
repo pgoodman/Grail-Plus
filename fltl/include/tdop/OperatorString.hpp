@@ -125,6 +125,8 @@ namespace fltl { namespace tdop {
         friend class Symbol<AlphaT>;
         friend class Operator<AlphaT>;
 
+        template <typename, typename, const unsigned, typename, typename>
+        friend class Match;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -162,6 +164,8 @@ namespace fltl { namespace tdop {
             ptr = 0;
         }
 
+        /// reference counting
+
         static void incref(array_type *ptr) throw() {
             if(0 != ptr) {
                 ++(ptr->ref_count);
@@ -177,6 +181,7 @@ namespace fltl { namespace tdop {
             }
         }
 
+        /// append one operator array onto the end of another
         static uint32_t append(array_type *arr, const array_type *other_arr, uint32_t offset) throw() {
             if(0 == other_arr) {
                 return offset;
@@ -189,9 +194,33 @@ namespace fltl { namespace tdop {
             return offset;
         }
 
+        /// append one operator onto the end of an operator array
         static uint32_t append(array_type *arr, const operator_type op, uint32_t offset) throw() {
             arr->operators[offset] = op;
             return offset + 1;
+        }
+
+        /// compare the internal operators of two operator strings
+        static bool operator_memcmp(
+            const Operator<AlphaT> *a,
+            const Operator<AlphaT> *b,
+            const unsigned len
+        ) throw() {
+            for(const Operator<AlphaT> *last_a(a + len); a < last_a; ++a, ++b) {
+                if(*a != *b) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// constructor, based on a substring of an operator string; usually from
+        /// a pattern match or substring operator.
+        OperatorString(Operator<AlphaT> *src_arr, unsigned len) throw() {
+            arr = allocate(len);
+            for(unsigned i(0); i < len; ++i) {
+                arr->operators[i] = src_arr[i];
+            }
         }
 
     public:
@@ -235,20 +264,22 @@ namespace fltl { namespace tdop {
             }
         }
 
-        operator_type at(const size_t index) const throw() {
+        const operator_type &
+        at(const size_t index) const throw() {
             assert(0 != arr);
             assert(index < arr->length);
             return arr->operators[index];
         }
 
-        FLTL_FORCE_INLINE
-        operator_type operator[](const size_t index) const throw() {
+        FLTL_FORCE_INLINE const operator_type &
+        operator[](const size_t index) const throw() {
             return at(index);
         }
 
         /// concatenation
 
-        operator_string_type operator+(const operator_string_type &that) const throw() {
+        const operator_string_type
+        operator+(const operator_string_type &that) const throw() {
             const uint32_t new_len(length() + that.length());
             array_type *new_arr(allocate(new_len));
             OperatorString str;
@@ -257,7 +288,8 @@ namespace fltl { namespace tdop {
             return str;
         }
 
-        operator_string_type operator+(const operator_type &that) const throw() {
+        const operator_string_type
+        operator+(const operator_type &that) const throw() {
             const uint32_t new_len(length() + 1U);
             array_type *new_arr(allocate(new_len));
             OperatorString str;
@@ -268,7 +300,8 @@ namespace fltl { namespace tdop {
 
         /// patterns
 
-        const Unbound<operator_string_type> operator~(void) throw() {
+        const Unbound<AlphaT, operator_string_tag>
+        operator~(void) throw() {
             // TODO
         }
     };

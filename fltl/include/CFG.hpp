@@ -157,7 +157,7 @@ namespace fltl {
             class PatternLiteral;
 
             template <typename, typename, const unsigned, typename, typename>
-            class Match2;
+            class Match;
 
             template <typename, typename, typename, const unsigned>
             class ResetPattern;
@@ -182,6 +182,8 @@ namespace fltl {
     }
 
 }
+
+#include "fltl/include/helper/Pattern.hpp"
 
 #include "fltl/include/cfg/Symbol.hpp"
 #include "fltl/include/cfg/TerminalSymbol.hpp"

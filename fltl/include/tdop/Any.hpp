@@ -12,18 +12,40 @@
 namespace fltl { namespace tdop {
 
     template <typename AlphaT>
-    class Any {
+    class AnyOperator {
+    public:
         // TODO
     };
 
     template <typename AlphaT>
     class AnyOperatorString {
-        // TODO
+    public:
+
+        AnyOperatorStringOfLength<AlphaT>
+        operator()(unsigned &len) const throw() {
+            return AnyOperatorStringOfLength<AlphaT>(len);
+        }
     };
 
     template <typename AlphaT>
     class AnyOperatorStringOfLength {
-        // TODO
+    private:
+
+        friend class AnyOperatorString<AlphaT>;
+
+        typedef AnyOperatorStringOfLength<AlphaT> self_type;
+
+        unsigned *length;
+
+        AnyOperatorStringOfLength(unsigned *len) throw()
+            : length(len)
+        { }
+
+    public:
+
+        AnyOperatorStringOfLength(const self_type &that) throw()
+            : length(that.length)
+        { }
     };
 }}
 

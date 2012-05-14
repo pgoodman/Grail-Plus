@@ -11,14 +11,20 @@
 
 namespace fltl { namespace tdop {
 
-    template <typename> class Unbound;
+    template <typename, typename> class Unbound;
 
     template <typename AlphaT>
-    class Unbound<Symbol<AlphaT> > {
+    class Unbound<AlphaT, symbol_tag> {
+    private:
+
+        friend class detail::PatternData<AlphaT>;
+
+        Symbol<AlphaT> *expr;
+
     public:
 
         /// unbound predicate symbol
-        const Unbound<Operator<AlphaT> > operator&(void) const throw() {
+        const Unbound<AlphaT, operator_tag> operator&(void) const throw() {
             // TODO
         }
 
@@ -26,28 +32,52 @@ namespace fltl { namespace tdop {
     };
 
     template <typename AlphaT>
-    class Unbound<Operator<AlphaT> > {
+    class Unbound<AlphaT, operator_tag> {
+    private:
+
+            friend class detail::PatternData<AlphaT>;
+
+            Operator<AlphaT> *expr;
+
     public:
 
         // TODO
     };
 
     template <typename AlphaT>
-    class Unbound<OperatorString<AlphaT> > {
+    class Unbound<AlphaT, operator_string_tag> {
+    private:
+
+            friend class detail::PatternData<AlphaT>;
+
+            OperatorString<AlphaT> *expr;
+
     public:
 
         // TODO
     };
 
     template <typename AlphaT>
-    class Unbound<Term<AlphaT> > {
+    class Unbound<AlphaT, term_tag> {
+    private:
+
+            friend class detail::PatternData<AlphaT>;
+
+            Term<AlphaT> *expr;
+
     public:
 
         // TODO
     };
 
     template <typename AlphaT>
-    class Unbound<OpaqueCategory<AlphaT> > {
+    class Unbound<AlphaT, category_tag> {
+    private:
+
+            friend class detail::PatternData<AlphaT>;
+
+            OpaqueCategory<AlphaT> *expr;
+
     public:
 
         // TODO

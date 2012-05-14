@@ -14,74 +14,53 @@ namespace fltl { namespace tdop {
     /// represents either a symbol or a parser in a TDOP machine.
     template <typename AlphaT>
     class Term {
-    private:
+    protected:
 
         friend class Symbol<AlphaT>;
+        friend class OpaqueCategory<AlphaT>;
+        friend class Operator<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
-        union {
-            Category<AlphaT> *as_category;
-            Symbol<AlphaT> as_symbol;
-        } u;
-
         enum {
-            CATEGORY,
-            SYMBOL,
-            UNBOUND
-        } kind;
+            UNBOUND = 0,
+            DEFAULT_CATEGORY = 1,
+            DEFAULT_SYMBOL = -1
+        };
+
+        int32_t val;
+
+        Term(int32_t val_) throw()
+            : val(val_)
+        { }
 
     public:
 
         /// defualt constructor
         Term(void) throw()
-            : kind(UNBOUND)
+            : val(UNBOUND)
         { }
 
         /// copy constructor, another term.
         Term(const term_type &term) throw()
-            : kind(term.kind)
-        {
-            memcpy(&u, &(term.u), sizeof u);
-            if(CATEGORY == kind) {
-                u.as_category->incref();
-            }
-        }
+            : val(term.val)
+        { }
 
         /// copy constructor, a parser category. the parser category is allowed
         /// to be none in this case, but if so then the term will be unbound.
         Term(const category_type cat) throw()
-            : kind(CATEGORY)
-        {
-            if(0 == cat.category) {
-                kind = UNBOUND;
-            } else {
-                u.as_category = cat.category;
-                u.as_category->incref();
-            }
-        }
+            : val(cat.val)
+        { }
 
         /// copy constructor, symbol type. the symbol type is allowed to be
         /// be undefined, but if so, the term will be unbound.
         Term(const symbol_type sym) throw()
-            : kind(SYMBOL)
-        {
-            if(symbol_type::UNDEFINED_SYMBOL == sym) {
-                kind = UNBOUND;
-            } else {
-                u.as_symbol = sym;
-            }
-        }
+            : val(sym.val)
+        { }
 
         /// destructor.
         ~Term(void) throw() {
-            if(CATEGORY == kind) {
-                assert(0 != u.as_category);
-                u.as_category->decref();
-            }
-
-            kind = UNBOUND;
-            memset(&u, 0, sizeof u);
+            val = UNBOUND;
         }
 
         /// copy constructor; this is a bit evil
@@ -91,63 +70,60 @@ namespace fltl { namespace tdop {
             == reinterpret_cast<const void *>(this)) {
                 return *this;
             }
-            this->~Term();
-            new (this) term_type(that);
+            val = that.val;
             return *this;
         }
 
         /// type checking
         bool is_category(void) const throw() {
-            return CATEGORY == kind;
+            return 0 < val;
         }
 
         bool is_symbol(void) const throw() {
-            return SYMBOL == kind;
+            return 0 > val;
         }
 
-        bool is_unbound(void) const throw() {
-            return UNBOUND == kind;
+        bool is_valid(void) const throw() {
+            return UNBOUND != val;
         }
 
         bool operator!(void) const throw() {
-            return UNBOUND == kind;
+            return UNBOUND == val;
         }
 
         /// comparison operators
 
         bool operator<(const term_type &that) const throw() {
-            if(kind < that.kind) {
-                return true;
-            } else if(kind > that.kind) {
-                return false;
-            } else if(UNBOUND == kind) {
-                return false;
-            } else if(SYMBOL == kind) {
-                return u.as_symbol < that.u.as_symbol;
-            } else {
-                return u.as_category < that.u.as_category;
-            }
+            return val < that.val;
         }
 
         bool operator==(const term_type &that) const throw() {
-            if(kind != that.kind) {
-                return false;
-            } else if(UNBOUND == kind) {
-                return true;
-            } else if(SYMBOL == kind) {
-                return u.as_symbol == that.u.as_symbol;
-            } else {
-                return u.as_category == that.u.as_category;
-            }
+            return val == that.val;
         }
 
         bool operator!=(const term_type &that) const throw() {
-            return !(operator==(that));
+            return val != that.val;
+        }
+
+        bool operator==(const category_type &that) const throw() {
+            return val == that.val;
+        }
+
+        bool operator!=(const category_type &that) const throw() {
+            return val != that.val;
+        }
+
+        bool operator==(const symbol_type &that) const throw() {
+            return val == that.val;
+        }
+
+        bool operator!=(const symbol_type &that) const throw() {
+            return val != that.val;
         }
 
         /// pattern matching
 
-        const Unbound<term_type> operator~(void) const throw() {
+        const Unbound<AlphaT, term_tag> operator~(void) const throw() {
             // TODO
         }
     };
