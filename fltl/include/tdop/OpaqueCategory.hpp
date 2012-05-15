@@ -27,6 +27,8 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef category_tag tag_type;
+
         /// constructors, destructors
         OpaqueCategory(void) throw()
             : Term<AlphaT>(Term<AlphaT>::DEFAULT_CATEGORY)
@@ -53,15 +55,28 @@ namespace fltl { namespace tdop {
             return *this;
         }
 
-        /// pattern matching
-        /*
-        const operator_type operator()(void) throw() {
-            // TODO
+        /// for creating operators with definite restrictions
+        const operator_type
+        operator()(const unsigned lower_bound) const throw() {
+            return operator_type(*this, lower_bound);
         }
 
-        const operator_type operator()(const unsigned lower_bound) throw() {
-            // TODO
-        }*/
+        const operator_type
+        operator()(void) const throw() {
+            return operator_type(*this);
+        }
+
+        /// for creating an unbound category
+        const Unbound<AlphaT,category_tag>
+        operator~(void) const throw() {
+            return Unbound<AlphaT,category_tag>(this);
+        }
+
+        /// for creating a bound category, unbound lower bound
+        const Bound<AlphaT,category_lb_tag>
+        operator[](unsigned &lower_bound) const throw() {
+            return Bound<AlphaT,category_lb_tag>(this, &lower_bound);
+        }
     };
 
 }}

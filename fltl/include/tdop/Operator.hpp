@@ -35,6 +35,8 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef operator_tag tag_type;
+
         /// constructors
 
         Operator(void) throw()
@@ -61,9 +63,19 @@ namespace fltl { namespace tdop {
             , lower_bound(UNINITIALIZED)
         { }
 
+        Operator(const symbol_type that, bool) throw()
+            : term(that)
+            , lower_bound(IS_PREDICATE)
+        { }
+
         Operator(const category_type that) throw()
             : term(that)
             , lower_bound(IS_UNBOUND)
+        { }
+
+        Operator(const category_type that, unsigned lb) throw()
+            : term(that)
+            , lower_bound(static_cast<int32_t>(lb))
         { }
 
         /// assignment
@@ -162,6 +174,36 @@ namespace fltl { namespace tdop {
         }
         bool operator!=(const operator_type &that) const throw() {
             return term != that.term || lower_bound != that.lower_bound;
+        }
+
+#define FLTL_TDOP_OPERATOR_CAT(type) \
+    const operator_string_type \
+    operator+(const type that) throw() { \
+        operator_type arr[2] = {*this, operator_type(that)}; \
+        operator_string_type str(&(arr[0]), 2); \
+        return str; \
+    }
+
+        /// extension into a string
+        FLTL_TDOP_OPERATOR_CAT(operator_type)
+        FLTL_TDOP_OPERATOR_CAT(term_type)
+        FLTL_TDOP_OPERATOR_CAT(symbol_type)
+        FLTL_TDOP_OPERATOR_CAT(category_type)
+
+        const operator_string_type
+        operator+(const operator_string_type &that) throw() {
+            operator_type str(1 + that.length());
+            operator_type::append(str.arr, *this, 0);
+            operator_type::append(str.arr, that.arr, 1);
+            return str;
+        }
+
+#undef FLTL_TDOP_OPERATOR_APPEND
+
+        /// unbound operator
+        const Unbound<AlphaT,operator_tag>
+        operator~(void) const throw() {
+            return Unbound<AlphaT,operator_tag>(this);
         }
     };
 

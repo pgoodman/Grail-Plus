@@ -15,11 +15,15 @@ namespace fltl { namespace tdop {
     class AnyOperator {
     public:
         // TODO
+
+        typedef any_operator_tag tag_type;
     };
 
     template <typename AlphaT>
     class AnyOperatorString {
     public:
+
+        typedef any_operator_string_tag tag_type;
 
         AnyOperatorStringOfLength<AlphaT>
         operator()(unsigned &len) const throw() {
@@ -32,6 +36,7 @@ namespace fltl { namespace tdop {
     private:
 
         friend class AnyOperatorString<AlphaT>;
+        friend class detail::PatternData<AlphaT>;
 
         typedef AnyOperatorStringOfLength<AlphaT> self_type;
 
@@ -42,6 +47,8 @@ namespace fltl { namespace tdop {
         { }
 
     public:
+
+        typedef any_operator_string_of_length_tag tag_type;
 
         AnyOperatorStringOfLength(const self_type &that) throw()
             : length(that.length)

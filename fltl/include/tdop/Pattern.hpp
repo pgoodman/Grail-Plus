@@ -375,6 +375,27 @@ namespace fltl { namespace pattern {
         }
     };
 
+    /// unbound symbol predicate + T
+    template <typename AlphaT, typename StringT, const unsigned offset, typename T>
+    class Match<AlphaT,StringT,offset,tdop::ubound_symbol_predicate_tag, T> {
+    public:
+        inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
+            if(len >= 1
+            && symbols->is_symbol_predicate()
+            && symbols->match(*(slots->as_symbol))) {
+
+                return Match<
+                    AlphaT,
+                    StringT,
+                    offset + 1,
+                    T,
+                    typename GetFactor<StringT,offset + 2>::type
+                >::bind(slots + 1, symbols + 1, len - 1);
+            }
+            return false;
+        }
+    };
+
     /// unbound term + T
     template <typename AlphaT, typename StringT, const unsigned offset, typename T>
     class Match<AlphaT,StringT,offset,tdop::unbound_term_tag, T> {
@@ -664,6 +685,20 @@ namespace fltl { namespace pattern {
         }
     };
 
+    /// trailing unbound symbol predicate
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset,tdop::ubound_symbol_predicate_tag, void> {
+    public:
+        inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
+            if(len > 1) {
+                return false;
+            }
+
+            return symbols->is_symbol_predicate()
+                && symbols->match(*(slots->as_symbol));
+        }
+    };
+
     /// trailing unbound term
     template <typename AlphaT, typename StringT, const unsigned offset>
     class Match<AlphaT,StringT,offset,tdop::unbound_term_tag, void> {
@@ -751,9 +786,9 @@ namespace fltl { namespace pattern {
 
 namespace fltl { namespace pattern {
 
-    /// destructuring initial rules
+    /// destructuring initial rules related to a category
     template <typename AlphaT, typename StringT>
-    class DestructuringBind<AlphaT, tdop::symbol_tag, StringT> {
+    class DestructuringBind<AlphaT, tdop::category_tag, StringT> {
     public:
 
         typedef typename TDOP<AlphaT>::rule_type rule_type;
@@ -762,7 +797,7 @@ namespace fltl { namespace pattern {
             tdop::detail::PatternData<AlphaT> *pattern,
             const rule_type &rule
         ) {
-            if(!rule.is_valid()) {
+            if(!rule.is_initial_rule()) {
                 return false;
             }
 
@@ -775,11 +810,11 @@ namespace fltl { namespace pattern {
                 0
             >::reset(slots);
 
-            if(*(pattern->category) != prod.variable()) {
+            if(*(pattern->category) != rule.category()) {
                 return false;
             }
 
-            const SymbolString<AlphaT> &str(prod.symbols());
+            const tdop::OperatorString<AlphaT> &str(rule.operators());
             const unsigned str_len(str.length());
 
             if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
@@ -795,9 +830,277 @@ namespace fltl { namespace pattern {
             return false;
         }
     };
+
+    /// destructuring extension rules related to a category
+    template <typename AlphaT, typename StringT>
+    class DestructuringBind<AlphaT, tdop::category_lb_tag, StringT> {
+    public:
+
+        typedef typename TDOP<AlphaT>::rule_type rule_type;
+
+        inline static bool bind(
+            tdop::detail::PatternData<AlphaT> *pattern,
+            const rule_type &rule
+        ) {
+            if(!rule.is_extension_rule()) {
+                return false;
+            }
+
+            tdop::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
+
+            pattern::ResetPattern<
+                AlphaT,
+                StringT,
+                typename pattern::GetFactor<StringT,0>::type,
+                0
+            >::reset(slots);
+
+            if(*(pattern->category) != rule.category()) {
+                return false;
+            }
+
+            const tdop::OperatorString<AlphaT> &str(rule.operators());
+            const unsigned str_len(str.length());
+
+            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
+                return Match<
+                    AlphaT,
+                    StringT,
+                    0,
+                    typename pattern::GetFactor<StringT,0>::type,
+                    typename pattern::GetFactor<StringT,1>::type
+                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
+            }
+
+            return false;
+        }
+    };
+
+#define FLTL_TDOP_DESTRUCTURE(tag, rule_check, after_reset_check) \
+    template <typename AlphaT, typename StringT> \
+    class DestructuringBind<AlphaT, tag, StringT> { \
+    public: \
+        typedef typename TDOP<AlphaT>::rule_type rule_type; \
+        inline static bool bind( \
+            tdop::detail::PatternData<AlphaT> *pattern, \
+            const rule_type &rule \
+        ) { \
+            rule_check \
+            tdop::detail::Slot<AlphaT> *slots(&(pattern->slots[0])); \
+            pattern::ResetPattern< \
+                AlphaT, \
+                StringT, \
+                typename pattern::GetFactor<StringT,0>::type, \
+                0 \
+            >::reset(slots); \
+            after_reset_check \
+            const tdop::OperatorString<AlphaT> &str(rule.operators()); \
+            const unsigned str_len(str.length()); \
+            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) { \
+                return Match< \
+                    AlphaT, \
+                    StringT, \
+                    0, \
+                    typename pattern::GetFactor<StringT,0>::type, \
+                    typename pattern::GetFactor<StringT,1>::type \
+                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len); \
+            } \
+            return false; \
+        } \
+    };
+
+    /// destructuring initial rules related to a category, where the category
+    /// is unbound
+    FLTL_TDOP_DESTRUCTURE(tdop::unbound_category_tag,
+    {
+        if(!rule.is_initial_rule()) {
+            return false;
+        }
+    },
+    {
+        *(pattern->category) = rule.category();
+        pattern->upper_bound = 0;
+    })
+
+    /// destructuring initial rules related to a category, where the category
+    /// is bound
+    FLTL_TDOP_DESTRUCTURE(tdop::category_tag,
+    {
+        if(!rule.is_initial_rule()) {
+            return false;
+        }
+    },
+    {
+        if(rule.category() != *(pattern->category)) {
+            return false;
+        }
+        pattern->upper_bound = 0;
+    })
+
+    /// destructuring initial rules related to a category, where the category
+    /// is anything and is never bound; operator is meant to signify some fixed,
+    /// "small" left-hand side
+    FLTL_TDOP_DESTRUCTURE(tdop::any_operator_tag,
+    {
+        if(!rule.is_initial_rule()) {
+            return false;
+        }
+    },
+    {
+        pattern->category = 0;
+        pattern->upper_bound = 0;
+    })
+
+    /// destructuring extension rules related to a category, where the category
+    /// is unbound
+    FLTL_TDOP_DESTRUCTURE(tdop::unbound_category_lb_tag,
+    {
+        if(!rule.is_extension_rule()) {
+            return false;
+        }
+    },
+    {
+        tdop::OpaqueCategory<AlphaT> cat;
+        unsigned upper_bound(0);
+
+        if(!rule.match(upper_bound, cat)) {
+            return false;
+        }
+
+        *(pattern->category) = cat;
+        *(pattern->upper_bound) = upper_bound;
+    })
+
+    /// destructuring extension rules related to a category, where the category
+    /// is bound, but the upper bound is unbound.
+    FLTL_TDOP_DESTRUCTURE(tdop::category_lb_tag,
+    {
+        if(!rule.is_extension_rule()) {
+            return false;
+        }
+    },
+    {
+        tdop::OpaqueCategory<AlphaT> cat;
+        unsigned upper_bound(0);
+
+        if(!rule.match(upper_bound, cat)) {
+            return false;
+        }
+
+        if(cat != *(pattern->category)) {
+            return false;
+        }
+
+        *(pattern->upper_bound) = upper_bound;
+    })
+
+    /// destructuring extension rules related to a category, where the category
+    /// is anything; operator string here is meant to signify a "big" left-hand
+    /// side.
+    FLTL_TDOP_DESTRUCTURE(tdop::any_operator_string_tag,
+    {
+        if(!rule.is_extension_rule()) {
+            return false;
+        }
+    },
+    {
+        tdop::OpaqueCategory<AlphaT> cat;
+        unsigned upper_bound(0);
+
+        if(!rule.match(upper_bound, cat)) {
+            return false;
+        }
+
+        *(pattern->category) = cat;
+        *(pattern->upper_bound) = upper_bound;
+    })
+
+#undef FLTL_TDOP_DESTRUCTURE
 }}
 
 namespace fltl { namespace tdop { namespace detail {
+
+    template <
+        typename AlphaT,
+        typename CatTagT,
+        typename StringT,
+        const bool can_append_string // true iff an operator string can be appended
+    >
+    class PatternBuilder {
+    private:
+
+        FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
+        typedef PatternBuilder<AlphaT,CatTagT,StringT,can_append_string> self_type;
+
+        PatternData<AlphaT> *pattern;
+
+        PatternBuilder(PatternData<AlphaT> *_pattern) throw()
+            : pattern(_pattern)
+        {
+            PatternData<AlphaT>::incref(pattern);
+        }
+
+        PatternBuilder(const self_type &that)
+            : pattern(that.pattern)
+        {
+            PatternData<AlphaT>::incref(pattern);
+        }
+
+    public:
+
+        ~PatternBuilder(void) throw() {
+            PatternData<AlphaT>::decref(pattern);
+            pattern = 0;
+        }
+
+        template <typename T>
+        FLTL_FORCE_INLINE
+        PatternBuilder<
+            AlphaT,
+            CatTagT,
+            pattern::Catenation<
+                StringT,
+                pattern::Factor<typename T::tag_type, StringT::NEXT_OFFSET>
+            >,
+            true
+        >
+        operator+(const T &expr) const throw() {
+            pattern->extend(const_cast<T *>(&expr), StringT::NEXT_OFFSET);
+            return PatternBuilder<
+                AlphaT,
+                CatTagT,
+                pattern::Catenation<
+                    StringT,
+                    pattern::Factor<typename T::tag_type, StringT::NEXT_OFFSET>
+                >,
+                true
+            >(pattern);
+        }
+
+        FLTL_FORCE_INLINE
+        PatternBuilder<
+            AlphaT,
+            CatTagT,
+            pattern::Catenation<
+                StringT,
+                pattern::Factor<unbound_operator_string_tag, StringT::NEXT_OFFSET>
+            >,
+            false
+        >
+        operator+(const Unbound<AlphaT,operator_string_tag> &expr) const throw() {
+            FLTL_STATIC_ASSERT(can_append_string);
+            pattern->extend(const_cast<Unbound<AlphaT,operator_string_tag> *>(&expr), StringT::NEXT_OFFSET);
+            return PatternBuilder<
+                AlphaT,
+                CatTagT,
+                pattern::Catenation<
+                    StringT,
+                    pattern::Factor<unbound_operator_string_tag, StringT::NEXT_OFFSET>
+                >,
+                false
+            >(pattern);
+        }
+    };
 
     /// stores the data needed to match patterns in a TDOP parser.
     template <typename AlphaT>
@@ -821,10 +1124,10 @@ namespace fltl { namespace tdop { namespace detail {
         /// be passed around, use the same pattern, etc.
         unsigned ref_count;
 
-        /// lower bound; if non-NULL, then the pattern function looks only
+        /// upper bound; if non-NULL, then the pattern function looks only
         /// at extension rules, and might use this for reading/writing. If
         /// NULL, then initial rules are looked at.
-        unsigned *lower_bound;
+        unsigned *upper_bound;
 
         /// category pointed to by this data; if NULL then we don't care
         /// about the category, if non-NULL then the pattern-matching
@@ -841,7 +1144,7 @@ namespace fltl { namespace tdop { namespace detail {
 
         PatternData(void)
             : ref_count(0U)
-            , lower_bound(0)
+            , upper_bound(0)
             , category(0)
         {
             memset(&(slots[0]), 0, NUM_SLOTS * sizeof(Slot<AlphaT>));
@@ -849,7 +1152,7 @@ namespace fltl { namespace tdop { namespace detail {
 
         ~PatternData(void) {
             category = 0;
-            lower_bound = 0;
+            upper_bound = 0;
             memset(&(slots[0]), 0, NUM_SLOTS * sizeof(Slot<AlphaT>));
         }
 
@@ -868,17 +1171,17 @@ namespace fltl { namespace tdop { namespace detail {
 
         /// allocation for binding/reading from a category, for extension
         /// rules
-        static self_type *allocate(category_type *category, unsigned *lower_bound) throw() {
+        static self_type *allocate(category_type *category, unsigned *upper_bound) throw() {
             self_type *pattern(pattern_allocator.allocate());
             pattern->category = category;
-            pattern->lower_bound = lower_bound;
+            pattern->upper_bound = upper_bound;
             return pattern;
         }
 
         /// allocation for extension rules, ignoring the category
-        static self_type *allocate(unsigned *lower_bound) throw() {
+        static self_type *allocate(unsigned *upper_bound) throw() {
             self_type *pattern(pattern_allocator.allocate());
-            pattern->lower_bound = lower_bound;
+            pattern->upper_bound = upper_bound;
             return pattern;
         }
 
@@ -915,20 +1218,38 @@ namespace fltl { namespace tdop { namespace detail {
 
         /// extension of the pattern with unbound values
 
-        inline void extend(Unbound<AlphaT, symbol_tag> expr, const unsigned slot) throw() {
-            slots[slot].as_symbol = expr.expr;
+        inline void extend(Unbound<AlphaT, symbol_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = expr->expr;
         }
 
-        inline void extend(Unbound<AlphaT, term_tag> expr, const unsigned slot) throw() {
-            slots[slot].as_term = expr.expr;
+        inline void extend(Unbound<AlphaT, ubound_symbol_predicate_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_symbol = expr->expr;
         }
 
-        inline void extend(Unbound<AlphaT, operator_tag> expr, const unsigned slot) throw() {
-            slots[slot].as_operator = expr.expr;
+        inline void extend(Unbound<AlphaT, term_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_term = expr->expr;
         }
 
-        inline void extend(Unbound<AlphaT, operator_string_tag> expr, const unsigned slot) throw() {
-            slots[slot].as_operator_string = expr.expr;
+        inline void extend(Unbound<AlphaT, operator_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_operator = expr->expr;
+        }
+
+        inline void extend(Unbound<AlphaT, category_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_category = expr->expr;
+        }
+
+        inline void extend(Unbound<AlphaT, category_lb_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_category = expr->expr;
+            slots[slot+1].as_lower_bound = expr->lower_bound;
+        }
+
+        inline void extend(Bound<AlphaT, category_lb_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_category = expr->expr;
+            slots[slot+1].as_lower_bound = expr->lower_bound;
+        }
+
+        inline void extend(Unbound<AlphaT, operator_string_tag> *expr, const unsigned slot) throw() {
+            slots[slot].as_operator_string = expr->expr;
         }
 
         /// extension of the pattern with non-binding values

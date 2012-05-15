@@ -25,6 +25,8 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef symbol_tag tag_type;
+
         /// constructors
 
         Symbol(void) throw()
@@ -53,14 +55,16 @@ namespace fltl { namespace tdop {
         }
 
         /// operator, followed-by
-        const operator_type operator&(void) const throw() {
-            // TODO
+        const operator_type
+        operator&(void) const throw() {
+            operator_type op(*this, true);
+            return op;
         }
 
         /// pattern matching
-
-        const Unbound<symbol_type> operator~(void) const throw() {
-            // TODO
+        const Unbound<AlphaT, symbol_tag>
+        operator~(void) const throw() {
+            return Unbound<AlphaT, symbol_tag>(this);
         }
     };
 

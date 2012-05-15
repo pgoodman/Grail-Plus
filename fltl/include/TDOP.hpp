@@ -21,6 +21,8 @@
 #include "fltl/include/helper/StorageChain.hpp"
 #include "fltl/include/helper/UnsafeCast.hpp"
 
+#include "fltl/include/preprocessor/STATIC_ASSERT.hpp"
+
 #define FLTL_TDOP_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
     typedef typename type::alphabet_type func(prefix, alphabet_type); \
     typedef typename type::traits_type func(prefix, traits_type); \
@@ -48,6 +50,8 @@ namespace fltl {
 
     namespace tdop {
 
+        class rule_tag { };
+
         class category_tag { };
         class unbound_category_tag { };
 
@@ -57,6 +61,7 @@ namespace fltl {
 
         class symbol_tag { };
         class unbound_symbol_tag { };
+        class ubound_symbol_predicate_tag { };
 
         class term_tag { };
         class unbound_term_tag { };
@@ -72,6 +77,9 @@ namespace fltl {
         class any_operator_string_of_length_tag { };
 
         namespace detail {
+            template <typename, typename, typename, const bool>
+            class PatternBuilder;
+
             template <typename> class PatternData;
         }
 
@@ -87,6 +95,8 @@ namespace fltl {
         template <typename> class OperatorString;
 
         template <typename, typename> class Unbound;
+        template <typename, typename> class Bound;
+
         template <typename> class AnyOperator;
         template <typename> class AnyOperatorString;
         template <typename> class AnyOperatorStringOfLength;
@@ -164,6 +174,20 @@ namespace fltl {
         const unsigned num_rules(category_type cat) const throw();
         const unsigned num_initial_rules(category_type cat) const throw();
         const unsigned num_extension_rules(category_type cat) const throw();
+
+        /// pattern matching for basics (all of some type of thing)
+        void search(tdop::Unbound<AlphaT,tdop::category_tag>) throw();
+        void search(tdop::Unbound<AlphaT,tdop::symbol_tag>) throw();
+
+        /// pattern matching for initial vs. specific
+        void search(tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+        void search(unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+
+        /// pattern matching for initial vs. specific
+        void search(tdop::Unbound<AlphaT, tdop::category_tag>, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+        void search(tdop::Unbound<AlphaT, tdop::category_tag>, unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+        void search(category_type &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+        void search(category_type &, unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
     };
 
 }

@@ -123,7 +123,9 @@ namespace fltl { namespace tdop {
 
         friend class Term<AlphaT>;
         friend class Symbol<AlphaT>;
+        friend class OpaqueCategory<AlphaT>;
         friend class Operator<AlphaT>;
+        friend class Category<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
         friend class Match;
@@ -216,14 +218,21 @@ namespace fltl { namespace tdop {
 
         /// constructor, based on a substring of an operator string; usually from
         /// a pattern match or substring operator.
-        OperatorString(Operator<AlphaT> *src_arr, unsigned len) throw() {
-            arr = allocate(len);
+        OperatorString(Operator<AlphaT> *src_arr, unsigned len) throw()
+            : arr(allocate(len))
+        {
             for(unsigned i(0); i < len; ++i) {
                 arr->operators[i] = src_arr[i];
             }
         }
 
+        OperatorString(unsigned len) throw()
+            : arr(allocate(len))
+        { }
+
     public:
+
+        typedef operator_string_tag tag_type;
 
         /// constructors
         OperatorString(void) throw()
@@ -288,21 +297,29 @@ namespace fltl { namespace tdop {
             return str;
         }
 
-        const operator_string_type
-        operator+(const operator_type &that) const throw() {
-            const uint32_t new_len(length() + 1U);
-            array_type *new_arr(allocate(new_len));
-            OperatorString str;
-            str.arr = new_arr;
-            append(new_arr, that, append(new_arr, arr, 0));
-            return str;
-        }
+#define FLTL_TDOP_OPERATOR_STRING_CAT(type) \
+    const operator_string_type \
+    operator+(const type that) const throw() { \
+        const uint32_t new_len(length() + 1U); \
+        array_type *new_arr(allocate(new_len)); \
+        OperatorString str; \
+        str.arr = new_arr; \
+        append(new_arr, operator_type(that), append(new_arr, arr, 0)); \
+        return str; \
+    }
+
+        FLTL_TDOP_OPERATOR_STRING_CAT(operator_type)
+        FLTL_TDOP_OPERATOR_STRING_CAT(term_type)
+        FLTL_TDOP_OPERATOR_STRING_CAT(symbol_type)
+        FLTL_TDOP_OPERATOR_STRING_CAT(category_type)
+
+#undef FLTL_TDOP_OPERATOR_STRING_CAT
 
         /// patterns
 
         const Unbound<AlphaT, operator_string_tag>
         operator~(void) throw() {
-            // TODO
+            return Unbound<AlphaT, operator_string_tag>(this);
         }
     };
 

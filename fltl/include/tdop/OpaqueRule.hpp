@@ -57,19 +57,28 @@ namespace fltl { namespace tdop {
             return category_type(rule->category->number);
         }
 
+        const operator_string_type operators(void) const throw() {
+            if(!is_valid()) {
+                operator_string_type epsilon;
+                return epsilon;
+            } else {
+                return rule->str;
+            }
+        }
+
         /// match a continuation rule
-        bool match(int32_t &upper_bound_, operator_string_type &str_) const throw() {
-            if(0 != rule && 0 <= rule->upper_bound) {
-                upper_bound_ = rule->upper_bound;
+        bool match(uint32_t &upper_bound_, operator_string_type &str_) const throw() {
+            if(is_extension_rule()) {
+                upper_bound_ = static_cast<uint32_t>(rule->upper_bound);
                 str_ = rule->str;
                 return true;
             }
             return false;
         }
 
-        bool match(int64_t &upper_bound_, operator_string_type &str_) const throw() {
-            if(0 != rule && 0 <= rule->upper_bound) {
-                upper_bound_ = rule->upper_bound;
+        bool match(uint64_t &upper_bound_, operator_string_type &str_) const throw() {
+            if(is_extension_rule()) {
+                upper_bound_ = static_cast<uint64_t>(rule->upper_bound);
                 str_ = rule->str;
                 return true;
             }
@@ -78,7 +87,7 @@ namespace fltl { namespace tdop {
 
         /// match an initial rule
         bool match(operator_string_type &str_) const throw() {
-            if(0 != rule && Rule<AlphaT>::INITIAL_RULE_UPPER_BOUND == rule->upper_bound) {
+            if(is_initial_rule()) {
                 str_ = rule->str;
                 return true;
             }
@@ -95,6 +104,12 @@ namespace fltl { namespace tdop {
         }
 
         /// status checking
+        bool is_initial_rule(void) const throw() {
+            return 0 != rule && Rule<AlphaT>::INITIAL_RULE_UPPER_BOUND == rule->upper_bound;
+        }
+        bool is_extension_rule(void) const throw() {
+            return 0 != rule && 0 <= rule->upper_bound;
+        }
         bool is_valid(void) const throw() {
             return 0 != rule;
         }

@@ -36,6 +36,8 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef term_tag tag_type;
+
         /// defualt constructor
         Term(void) throw()
             : val(UNBOUND)
@@ -121,10 +123,29 @@ namespace fltl { namespace tdop {
             return val != that.val;
         }
 
+        /// extension to strings
+
+#define FLTL_TDOP_TERM_CAT(type) \
+    const operator_string_type \
+    operator+(const type that) throw() { \
+        operator_type arr[2] = {operator_type(*this), operator_type(that)}; \
+        operator_string_type str(&(arr[0]), 2); \
+        return str; \
+    }
+
+        /// extension into a string
+        FLTL_TDOP_TERM_CAT(operator_type)
+        FLTL_TDOP_TERM_CAT(term_type)
+        FLTL_TDOP_TERM_CAT(symbol_type)
+        FLTL_TDOP_TERM_CAT(category_type)
+
+#undef FLTL_TDOP_TERM_CAT
+
         /// pattern matching
 
-        const Unbound<AlphaT, term_tag> operator~(void) const throw() {
-            // TODO
+        const Unbound<AlphaT, term_tag>
+        operator~(void) const throw() {
+            return Unbound<AlphaT, term_tag>(this);
         }
     };
 
