@@ -49,7 +49,7 @@ namespace fltl { namespace cfg {
         friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class detail::Match;
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
@@ -87,7 +87,7 @@ namespace fltl { namespace cfg {
         friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class detail::Match;
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
@@ -122,7 +122,7 @@ namespace fltl { namespace cfg {
         friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class detail::Match;
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
@@ -161,7 +161,7 @@ namespace fltl { namespace cfg {
         friend class detail::SimpleGenerator<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class detail::Match;
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;
@@ -194,7 +194,7 @@ namespace fltl { namespace cfg {
         friend class detail::PatternData<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class detail::Match;
 
         template <typename, typename, typename>
         friend class detail::DestructuringBind;

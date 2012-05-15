@@ -891,7 +891,7 @@ namespace fltl { namespace cfg {
             friend class detail::PatternBuilder;
 
             template <typename, typename, typename>
-            friend class detail::DestructuringBind;
+            friend class pattern::DestructuringBind;
 
             enum {
                 NUM_SLOTS = 8U

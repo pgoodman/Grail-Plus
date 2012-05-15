@@ -153,7 +153,7 @@ namespace fltl { namespace cfg {
         template <typename,const unsigned> friend class detail::SymbolArray;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class detail::Match2;
+        friend class pattern::Match;
 
         template <typename, typename, typename,const unsigned>
         friend class detail::DecRefCounts;
