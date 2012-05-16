@@ -61,13 +61,13 @@ namespace fltl { namespace tdop {
                 , operators(&(operators_[0]))
             { }
 
-            static dest_type *allocate(const unsigned len) throw() {
+            static dest_type *allocate(const unsigned) throw() {
                 return helper::unsafe_cast<dest_type *>(allocator.allocate());
             }
 
             static void deallocate(OperatorArray<AlphaT> *ptr) throw() {
                 assert(0 != ptr);
-                allocator.deallocate(helper::unsafe_cast<self_type>(ptr));
+                allocator.deallocate(helper::unsafe_cast<self_type *>(ptr));
             }
         };
 
@@ -134,12 +134,12 @@ namespace fltl { namespace tdop {
 
         typedef detail::OperatorArray<AlphaT> array_type;
         typedef array_type *(allocator_func_type)(unsigned);
-        typedef array_type *(deallocator_func_type)(void);
+        typedef void (deallocator_func_type)(array_type *);
 
         array_type *arr;
 
-        static allocator_func_type *allocators[FLTL_OPERATOR_STRING_NUM_ALLOCATORS];
-        static deallocator_func_type *deallocators[FLTL_OPERATOR_STRING_NUM_ALLOCATORS];
+        static allocator_func_type *allocators[];
+        static deallocator_func_type *deallocators[];
 
         /// allocate a new operator string of a certain length
         static array_type *allocate(unsigned len) throw() {
@@ -147,7 +147,7 @@ namespace fltl { namespace tdop {
                 return 0;
             }
 
-            if(FLTL_OPERATOR_STRING_NUM_ALLOCATORS <= len) {
+            if(FLTL_OPERATOR_STRING_NUM_ALLOCATORS < len) {
                 return allocators[0](len);
             } else {
                 return allocators[len](len);
@@ -158,7 +158,7 @@ namespace fltl { namespace tdop {
         static void deallocate(array_type *ptr) throw() {
             assert(0 != ptr);
 
-            if(FLTL_OPERATOR_STRING_NUM_ALLOCATORS <= ptr->length) {
+            if(FLTL_OPERATOR_STRING_NUM_ALLOCATORS < ptr->length) {
                 deallocators[0](ptr);
             } else {
                 deallocators[ptr->length](ptr);

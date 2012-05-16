@@ -83,9 +83,6 @@ namespace fltl { namespace cfg {
             return *this;
         }
 
-#if !FLTL_FEATURE_USER_DEFINED_OPERATORS
-
-
         bool operator<(const self_type &that) const throw() {
             return this->value < that.value;
         }
@@ -101,7 +98,6 @@ namespace fltl { namespace cfg {
         bool operator>=(const self_type &that) const throw() {
             return this->value >= that.value;
         }
-#endif
 
         unsigned number(void) const throw() {
             return static_cast<unsigned>(this->value);
@@ -109,144 +105,9 @@ namespace fltl { namespace cfg {
 
         FLTL_CFG_PRODUCTION_PATTERN(variable_tag)
 
-#if FLTL_FEATURE_USER_DEFINED_OPERATORS
-        FLTL_USER_BITWISE_OPERATORS_UNARY(AlphaT, variable_tag)
-        FLTL_USER_LOGICAL_OPERATORS(AlphaT, variable_tag)
-        FLTL_USER_ARITHMETIC_OPERATORS_BINARY(AlphaT, variable_tag)
-        FLTL_USER_RELATION_OPERATORS(AlphaT, variable_tag)
-#endif
-
     };
 
 }}
 
-#if FLTL_FEATURE_USER_DEFINED_OPERATORS
-namespace fltl { namespace mpl {
-
-    /// unbound symbol used in pattern matching
-    template <typename AlphaT,typename ScopeT>
-    class OpUnaryBitwiseNot<AlphaT, cfg::variable_tag, ScopeT> {
-    public:
-        typedef cfg::Unbound<AlphaT,cfg::variable_tag> return_type;
-
-        inline static return_type
-        run(cfg::VariableSymbol<AlphaT> *self) throw() {
-            return cfg::Unbound<AlphaT,cfg::variable_tag>(self);
-        }
-    };
-
-    /// are two symbols equivalent?
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryEq<AlphaT, cfg::variable_tag, ScopeT, cfg::SymbolString<AlphaT> >
-     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryEq<AlphaT, cfg::variable_tag, ScopeT, cfg::Symbol<AlphaT> >
-     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryEq<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
-     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryEq<AlphaT, cfg::variable_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
-     : public OpBinaryEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryNotEq<AlphaT, cfg::variable_tag, ScopeT, cfg::SymbolString<AlphaT> >
-     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
-    { };
-
-    /// are two symbols different?
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryNotEq<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
-     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryNotEq<AlphaT, cfg::variable_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
-     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryNotEq<AlphaT, cfg::variable_tag, ScopeT, cfg::Symbol<AlphaT> >
-     : public OpBinaryNotEq<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
-    { };
-
-    /// concatenate two symbols into a string
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryPlus<AlphaT, cfg::variable_tag, ScopeT, cfg::Symbol<AlphaT> >
-     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryPlus<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> >
-     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryPlus<AlphaT, cfg::variable_tag, ScopeT, cfg::TerminalSymbol<AlphaT> >
-     : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::Symbol<AlphaT> >
-    { };
-
-    /// concatenate a variable with a symbol string
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryPlus<AlphaT, cfg::variable_tag, ScopeT, cfg::SymbolString<AlphaT> >
-      : public OpBinaryPlus<AlphaT, cfg::symbol_tag, ScopeT, cfg::SymbolString<AlphaT> >
-    { };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryLt<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> > {
-    public:
-        typedef bool return_type;
-        typedef const cfg::VariableSymbol<AlphaT> param_type;
-
-        inline static return_type
-        run(const cfg::VariableSymbol<AlphaT> *self, param_type &that) throw() {
-            return self->number() < that.number();
-        }
-    };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryLtEq<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> > {
-    public:
-        typedef bool return_type;
-        typedef const cfg::VariableSymbol<AlphaT> param_type;
-
-        inline static return_type
-        run(const cfg::VariableSymbol<AlphaT> *self, param_type &that) throw() {
-            return self->number() <= that.number();
-        }
-    };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryGt<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> > {
-    public:
-        typedef bool return_type;
-        typedef const cfg::VariableSymbol<AlphaT> param_type;
-
-        inline static return_type
-        run(const cfg::VariableSymbol<AlphaT> *self, param_type &that) throw() {
-            return self->number() > that.number();
-        }
-    };
-
-    template <typename AlphaT,typename ScopeT>
-    class OpBinaryGtEq<AlphaT, cfg::variable_tag, ScopeT, cfg::VariableSymbol<AlphaT> > {
-    public:
-        typedef bool return_type;
-        typedef const cfg::VariableSymbol<AlphaT> param_type;
-
-        inline static return_type
-        run(const cfg::VariableSymbol<AlphaT> *self, param_type &that) throw() {
-            return self->number() >= that.number();
-        }
-    };
-}}
-#endif
 
 #endif /* FLTL_VARIABLESYMBOL_HPP_ */

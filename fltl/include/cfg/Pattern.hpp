@@ -403,15 +403,6 @@ namespace fltl { namespace pattern {
 /// trailing bound pattern parts
 namespace fltl { namespace pattern {
 
-    /// nothing to match, success.
-    template <typename AlphaT, typename StringT, const unsigned offset>
-    class Match<AlphaT,StringT,offset, void, void> {
-    public:
-        inline static bool bind(cfg::detail::Slot<AlphaT> *, const cfg::Symbol<AlphaT> *, const unsigned len) throw() {
-            return 0 == len;
-        }
-    };
-
     /// trailing symbol
     template <typename AlphaT, typename StringT, const unsigned offset>
     class Match<AlphaT,StringT,offset,cfg::symbol_tag, void> {

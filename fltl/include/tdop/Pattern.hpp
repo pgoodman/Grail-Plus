@@ -33,6 +33,13 @@ namespace fltl { namespace tdop {
             // for category instantiations
             unsigned *as_lower_bound;
 
+            Slot(void) throw() {
+                memset(this, 0, sizeof *this);
+            }
+
+            ~Slot(void) throw() {
+                memset(this, 0, sizeof *this);
+            }
         };
     }
 }}
@@ -145,7 +152,7 @@ namespace fltl { namespace pattern {
 
     /// category + unbound lower bound + T
     template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-    class Match<AlphaT,StringT,offset,tdop::symbol_tag, T> {
+    class Match<AlphaT,StringT,offset,tdop::category_lb_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
 
@@ -176,7 +183,7 @@ namespace fltl { namespace pattern {
 
     /// category + T
     template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-    class Match<AlphaT,StringT,offset,tdop::symbol_tag, T> {
+    class Match<AlphaT,StringT,offset,tdop::category_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
 
@@ -184,6 +191,7 @@ namespace fltl { namespace pattern {
                 tdop::OpaqueCategory<AlphaT> cat;
 
                 return symbols->match(cat)
+                    && !symbols->is_bound_category()
                     && (cat == *(slots->as_category))
                     && Match<
                         AlphaT,
@@ -323,7 +331,9 @@ namespace fltl { namespace pattern {
     class Match<AlphaT,StringT,offset,tdop::unbound_category_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
-            if(len >= 1 && symbols->match(*(slots->as_category))) {
+            if(len >= 1
+            && !symbols->is_bound_category()
+            && symbols->match(*(slots->as_category))) {
 
                 return Match<
                     AlphaT,
@@ -418,7 +428,7 @@ namespace fltl { namespace pattern {
 
     /// unbound operator + T
     template <typename AlphaT, typename StringT, const unsigned offset, typename T>
-    class Match<AlphaT,StringT,offset,tdop::unbound_symbol_tag, T> {
+    class Match<AlphaT,StringT,offset,tdop::unbound_operator_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
             if(len >= 1) {
@@ -522,15 +532,6 @@ namespace fltl { namespace pattern {
 /// bound, trailing pattern parts
 namespace fltl { namespace pattern {
 
-    /// base case, nothing to match.
-    template <typename AlphaT, typename StringT, const unsigned offset>
-    class Match<AlphaT,StringT,offset, void, void> {
-    public:
-        inline static bool bind(tdop::detail::Slot<AlphaT> *, const tdop::Operator<AlphaT> *, const unsigned len) throw() {
-            return 0 == len;
-        }
-    };
-
     /// trailing category, unbound lower bound
     template <typename AlphaT, typename StringT, const unsigned offset>
     class Match<AlphaT,StringT,offset,tdop::category_lb_tag, void> {
@@ -566,7 +567,8 @@ namespace fltl { namespace pattern {
             }
 
             tdop::OpaqueCategory<AlphaT> cat;
-            if(!symbols->match(cat)) {
+            if(!symbols->match(cat)
+            || symbols->is_bound_category()) {
                 return false;
             }
 
@@ -655,7 +657,8 @@ namespace fltl { namespace pattern {
                 return false;
             }
 
-            return symbols->match(*(slots->as_category));
+            return symbols->match(*(slots->as_category))
+                && !symbols->is_bound_category();
         }
     };
 
@@ -785,96 +788,6 @@ namespace fltl { namespace pattern {
 }}
 
 namespace fltl { namespace pattern {
-
-    /// destructuring initial rules related to a category
-    template <typename AlphaT, typename StringT>
-    class DestructuringBind<AlphaT, tdop::category_tag, StringT> {
-    public:
-
-        typedef typename TDOP<AlphaT>::rule_type rule_type;
-
-        inline static bool bind(
-            tdop::detail::PatternData<AlphaT> *pattern,
-            const rule_type &rule
-        ) {
-            if(!rule.is_initial_rule()) {
-                return false;
-            }
-
-            tdop::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
-
-            pattern::ResetPattern<
-                AlphaT,
-                StringT,
-                typename pattern::GetFactor<StringT,0>::type,
-                0
-            >::reset(slots);
-
-            if(*(pattern->category) != rule.category()) {
-                return false;
-            }
-
-            const tdop::OperatorString<AlphaT> &str(rule.operators());
-            const unsigned str_len(str.length());
-
-            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
-                return Match<
-                    AlphaT,
-                    StringT,
-                    0,
-                    typename pattern::GetFactor<StringT,0>::type,
-                    typename pattern::GetFactor<StringT,1>::type
-                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
-            }
-
-            return false;
-        }
-    };
-
-    /// destructuring extension rules related to a category
-    template <typename AlphaT, typename StringT>
-    class DestructuringBind<AlphaT, tdop::category_lb_tag, StringT> {
-    public:
-
-        typedef typename TDOP<AlphaT>::rule_type rule_type;
-
-        inline static bool bind(
-            tdop::detail::PatternData<AlphaT> *pattern,
-            const rule_type &rule
-        ) {
-            if(!rule.is_extension_rule()) {
-                return false;
-            }
-
-            tdop::detail::Slot<AlphaT> *slots(&(pattern->slots[0]));
-
-            pattern::ResetPattern<
-                AlphaT,
-                StringT,
-                typename pattern::GetFactor<StringT,0>::type,
-                0
-            >::reset(slots);
-
-            if(*(pattern->category) != rule.category()) {
-                return false;
-            }
-
-            const tdop::OperatorString<AlphaT> &str(rule.operators());
-            const unsigned str_len(str.length());
-
-            if((1U + str_len) >= (1U + StringT::MIN_NUM_SYMBOLS)) {
-                return Match<
-                    AlphaT,
-                    StringT,
-                    0,
-                    typename pattern::GetFactor<StringT,0>::type,
-                    typename pattern::GetFactor<StringT,1>::type
-                >::bind(slots, 0 == str_len ? 0 : &(str.at(0)), str_len);
-            }
-
-            return false;
-        }
-    };
 
 #define FLTL_TDOP_DESTRUCTURE(tag, rule_check, after_reset_check) \
     template <typename AlphaT, typename StringT> \
@@ -1020,6 +933,13 @@ namespace fltl { namespace pattern {
 
 namespace fltl { namespace tdop { namespace detail {
 
+    class EmptyString {
+    public:
+        enum {
+            NEXT_OFFSET = 0
+        };
+    };
+
     template <
         typename AlphaT,
         typename CatTagT,
@@ -1029,8 +949,123 @@ namespace fltl { namespace tdop { namespace detail {
     class PatternBuilder {
     private:
 
+        friend class AnyOperator<AlphaT>;
+        friend class AnyOperatorString<AlphaT>;
+        friend class OpaqueCategory<AlphaT>;
+        friend class Unbound<AlphaT,category_tag>;
+        friend class Unbound<AlphaT,category_lb_tag>;
+        friend class Bound<AlphaT,category_lb_tag>;
+
+        template <typename, typename, typename, const bool>
+        friend class PatternBuilder;
+
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
         typedef PatternBuilder<AlphaT,CatTagT,StringT,can_append_string> self_type;
+
+        PatternData<AlphaT> *pattern;
+
+        PatternBuilder(PatternData<AlphaT> *_pattern) throw()
+            : pattern(_pattern)
+        {
+            PatternData<AlphaT>::incref(pattern);
+        }
+
+        PatternBuilder(const self_type &that)
+            : pattern(that.pattern)
+        {
+            PatternData<AlphaT>::incref(pattern);
+        }
+
+    public:
+
+        ~PatternBuilder(void) throw() {
+            PatternData<AlphaT>::decref(pattern);
+            pattern = 0;
+        }
+
+        enum {
+            NEXT_OFFSET = mpl::IfEqual<
+                StringT,void,EmptyString,StringT
+            >::type::NEXT_OFFSET
+        };
+
+        template <typename T>
+        FLTL_FORCE_INLINE
+        PatternBuilder<
+            AlphaT,
+            CatTagT,
+            pattern::Catenation<
+                StringT,
+                pattern::Factor<typename T::tag_type, NEXT_OFFSET>
+            >,
+            true
+        >
+        operator+(const T &expr) const throw() {
+            pattern->extend(const_cast<T *>(&expr), NEXT_OFFSET);
+            return PatternBuilder<
+                AlphaT,
+                CatTagT,
+                pattern::Catenation<
+                    StringT,
+                    pattern::Factor<typename T::tag_type, NEXT_OFFSET>
+                >,
+                true
+            >(pattern);
+        }
+
+        FLTL_FORCE_INLINE
+        PatternBuilder<
+            AlphaT,
+            CatTagT,
+            pattern::Catenation<
+                StringT,
+                pattern::Factor<unbound_operator_string_tag, NEXT_OFFSET>
+            >,
+            false
+        >
+        operator+(const Unbound<AlphaT,operator_string_tag> &expr) const throw() {
+            FLTL_STATIC_ASSERT(can_append_string);
+            pattern->extend(const_cast<Unbound<AlphaT,operator_string_tag> *>(&expr), StringT::NEXT_OFFSET);
+            return PatternBuilder<
+                AlphaT,
+                CatTagT,
+                pattern::Catenation<
+                    StringT,
+                    pattern::Factor<unbound_operator_string_tag, NEXT_OFFSET>
+                >,
+                false
+            >(pattern);
+        }
+
+        /// perform an in-line match according to a pattern
+        inline bool match(const rule_type &rule) const throw() {
+            if(!rule.is_valid()) {
+                return false;
+            }
+            return pattern::DestructuringBind<
+                AlphaT,
+                CatTagT,
+                StringT
+            >::bind(pattern, rule);
+        }
+    };
+
+    template <
+        typename AlphaT,
+        typename CatTagT
+    >
+    class PatternBuilder<AlphaT,CatTagT,void,true> {
+    private:
+
+        friend class AnyOperator<AlphaT>;
+        friend class AnyOperatorString<AlphaT>;
+        friend class OpaqueCategory<AlphaT>;
+        friend class Unbound<AlphaT,category_tag>;
+        friend class Unbound<AlphaT,category_lb_tag>;
+        friend class Bound<AlphaT,category_lb_tag>;
+
+        FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
+        typedef PatternBuilder<AlphaT,CatTagT,void,true> self_type;
 
         PatternData<AlphaT> *pattern;
 
@@ -1058,21 +1093,15 @@ namespace fltl { namespace tdop { namespace detail {
         PatternBuilder<
             AlphaT,
             CatTagT,
-            pattern::Catenation<
-                StringT,
-                pattern::Factor<typename T::tag_type, StringT::NEXT_OFFSET>
-            >,
+            pattern::Factor<typename T::tag_type, 0>,
             true
         >
-        operator+(const T &expr) const throw() {
-            pattern->extend(const_cast<T *>(&expr), StringT::NEXT_OFFSET);
+        operator->*(const T &expr) const throw() {
+            pattern->extend(const_cast<T *>(&expr), 0);
             return PatternBuilder<
                 AlphaT,
                 CatTagT,
-                pattern::Catenation<
-                    StringT,
-                    pattern::Factor<typename T::tag_type, StringT::NEXT_OFFSET>
-                >,
+                pattern::Factor<typename T::tag_type, 0>,
                 true
             >(pattern);
         }
@@ -1081,22 +1110,15 @@ namespace fltl { namespace tdop { namespace detail {
         PatternBuilder<
             AlphaT,
             CatTagT,
-            pattern::Catenation<
-                StringT,
-                pattern::Factor<unbound_operator_string_tag, StringT::NEXT_OFFSET>
-            >,
+            pattern::Factor<unbound_operator_string_tag, 0>,
             false
         >
-        operator+(const Unbound<AlphaT,operator_string_tag> &expr) const throw() {
-            FLTL_STATIC_ASSERT(can_append_string);
-            pattern->extend(const_cast<Unbound<AlphaT,operator_string_tag> *>(&expr), StringT::NEXT_OFFSET);
+        operator->*(const Unbound<AlphaT,operator_string_tag> &expr) const throw() {
+            pattern->extend(const_cast<Unbound<AlphaT,operator_string_tag> *>(&expr), 0);
             return PatternBuilder<
                 AlphaT,
                 CatTagT,
-                pattern::Catenation<
-                    StringT,
-                    pattern::Factor<unbound_operator_string_tag, StringT::NEXT_OFFSET>
-                >,
+                pattern::Factor<unbound_operator_string_tag, 0>,
                 false
             >(pattern);
         }
@@ -1117,6 +1139,17 @@ namespace fltl { namespace tdop { namespace detail {
 
         friend class helper::BlockAllocator<self_type, ALLOC_GROUP_SIZE>;
         friend class Pattern<AlphaT>;
+        friend class Operator<AlphaT>;
+
+        friend class AnyOperator<AlphaT>;
+        friend class AnyOperatorString<AlphaT>;
+        friend class OpaqueCategory<AlphaT>;
+        friend class Unbound<AlphaT,category_tag>;
+        friend class Unbound<AlphaT,category_lb_tag>;
+        friend class Bound<AlphaT,category_lb_tag>;
+
+        template <typename, typename, typename, const bool>
+        friend class PatternBuilder;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -1140,15 +1173,16 @@ namespace fltl { namespace tdop { namespace detail {
         /// allocator for pattern data
         static allocator_type pattern_allocator;
 
+    public:
+
         /// constructor / destructor
 
         PatternData(void)
             : ref_count(0U)
             , upper_bound(0)
             , category(0)
-        {
-            memset(&(slots[0]), 0, NUM_SLOTS * sizeof(Slot<AlphaT>));
-        }
+            , slots()
+        { }
 
         ~PatternData(void) {
             category = 0;
@@ -1156,32 +1190,59 @@ namespace fltl { namespace tdop { namespace detail {
             memset(&(slots[0]), 0, NUM_SLOTS * sizeof(Slot<AlphaT>));
         }
 
+    private:
+
         /// allocation for binding/reading from a category, for initial
         /// rules
         static self_type *allocate(category_type *category) throw() {
             self_type *pattern(pattern_allocator.allocate());
             pattern->category = category;
+            pattern->upper_bound = 0;
             return pattern;
         }
 
-        /// allocation for initial rules, ignoring the category
-        static self_type *allocate(void) throw() {
-            return pattern_allocator.allocate();
+        /// allocation for binding/reading from a category, for initial
+        /// rules; the category is unbound
+        static self_type *allocate(Unbound<AlphaT,category_tag> *expr) throw() {
+            self_type *pattern(pattern_allocator.allocate());
+            pattern->category = expr->expr;
+            pattern->upper_bound = 0;
+            return pattern;
         }
 
         /// allocation for binding/reading from a category, for extension
-        /// rules
-        static self_type *allocate(category_type *category, unsigned *upper_bound) throw() {
+        /// rules; the category is unbound
+        static self_type *allocate(Unbound<AlphaT,category_lb_tag> *expr) throw() {
             self_type *pattern(pattern_allocator.allocate());
-            pattern->category = category;
-            pattern->upper_bound = upper_bound;
+            pattern->category = expr->expr;
+            pattern->upper_bound = expr->lower_bound;
             return pattern;
         }
 
-        /// allocation for extension rules, ignoring the category
-        static self_type *allocate(unsigned *upper_bound) throw() {
+        /// allocation for binding/reading from a category, for extension
+        /// rules; the category is bound
+        static self_type *allocate(Bound<AlphaT,category_lb_tag> *expr) throw() {
             self_type *pattern(pattern_allocator.allocate());
-            pattern->upper_bound = upper_bound;
+            pattern->category = expr->expr;
+            pattern->upper_bound = expr->lower_bound;
+            return pattern;
+        }
+
+        /// allocation for binding/reading from a category, for initial
+        /// rules; the category is ignored
+        static self_type *allocate(AnyOperator<AlphaT> *) throw() {
+            self_type *pattern(pattern_allocator.allocate());
+            pattern->category = 0;
+            pattern->upper_bound = 0;
+            return pattern;
+        }
+
+        /// allocation for binding/reading from a category, for extension
+        /// rules; the category is ignored
+        static self_type *allocate(AnyOperatorString<AlphaT> *) throw() {
+            self_type *pattern(pattern_allocator.allocate());
+            pattern->category = 0;
+            pattern->upper_bound = 0;
             return pattern;
         }
 
@@ -1262,12 +1323,10 @@ namespace fltl { namespace tdop { namespace detail {
         }
     };
 
-    /// static allocator for patterns
+    /// initialize static allocator for patterns
     template <typename AlphaT>
-    helper::BlockAllocator<
-        PatternData<AlphaT>,
-        PatternData<AlphaT>::ALLOC_GROUP_SIZE
-    > PatternData<AlphaT>::pattern_allocator;
+    typename PatternData<AlphaT>::allocator_type
+    PatternData<AlphaT>::pattern_allocator;
 }}}
 
 #endif /* Grail_Plus_TDOP_PATTERN_HPP_ */

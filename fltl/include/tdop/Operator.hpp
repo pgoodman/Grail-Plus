@@ -44,12 +44,12 @@ namespace fltl { namespace tdop {
             , lower_bound(UNINITIALIZED)
         { }
 
-        Operator(const operator_type that) throw()
+        Operator(const operator_type &that) throw()
             : term(that.term)
             , lower_bound(that.lower_bound)
         { }
 
-        Operator(const term_type that) throw()
+        Operator(const term_type &that) throw()
             : term(that)
             , lower_bound(UNINITIALIZED)
         {
@@ -58,22 +58,22 @@ namespace fltl { namespace tdop {
             }
         }
 
-        Operator(const symbol_type that) throw()
+        Operator(const symbol_type &that) throw()
             : term(that)
             , lower_bound(UNINITIALIZED)
         { }
 
-        Operator(const symbol_type that, bool) throw()
+        Operator(const symbol_type &that, bool) throw()
             : term(that)
             , lower_bound(IS_PREDICATE)
         { }
 
-        Operator(const category_type that) throw()
+        Operator(const category_type &that) throw()
             : term(that)
             , lower_bound(IS_UNBOUND)
         { }
 
-        Operator(const category_type that, unsigned lb) throw()
+        Operator(const category_type &that, unsigned lb) throw()
             : term(that)
             , lower_bound(static_cast<int32_t>(lb))
         { }
@@ -178,8 +178,9 @@ namespace fltl { namespace tdop {
 
 #define FLTL_TDOP_OPERATOR_CAT(type) \
     const operator_string_type \
-    operator+(const type that) throw() { \
-        operator_type arr[2] = {*this, operator_type(that)}; \
+    operator+(const type that) const throw() { \
+        operator_type that_(that); \
+        operator_type arr[2] = {*this, that_}; \
         operator_string_type str(&(arr[0]), 2); \
         return str; \
     }
@@ -192,9 +193,9 @@ namespace fltl { namespace tdop {
 
         const operator_string_type
         operator+(const operator_string_type &that) throw() {
-            operator_type str(1 + that.length());
-            operator_type::append(str.arr, *this, 0);
-            operator_type::append(str.arr, that.arr, 1);
+            operator_string_type str(1 + that.length());
+            operator_string_type::append(str.arr, *this, 0);
+            operator_string_type::append(str.arr, that.arr, 1);
             return str;
         }
 

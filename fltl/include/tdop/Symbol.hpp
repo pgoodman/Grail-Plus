@@ -56,7 +56,7 @@ namespace fltl { namespace tdop {
 
         /// operator, followed-by
         const operator_type
-        operator&(void) const throw() {
+        operator*(void) const throw() {
             operator_type op(*this, true);
             return op;
         }

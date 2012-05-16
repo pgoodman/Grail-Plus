@@ -28,7 +28,7 @@ namespace fltl { namespace tdop {
 
         enum {
             INITIAL_RULE_UPPER_BOUND = -1,
-            UNINITIALIZED = -2,
+            UNINITIALIZED = -2
         };
 
         uint32_t ref_count;
@@ -78,6 +78,8 @@ namespace fltl { namespace tdop {
             , upper_bound(UNINITIALIZED)
             , str()
         { }
+
+    public:
 
         /// destructor
         ~Rule(void) throw() {

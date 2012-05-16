@@ -27,6 +27,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef category_type self_type;
         typedef category_tag tag_type;
 
         /// constructors, destructors
@@ -77,6 +78,9 @@ namespace fltl { namespace tdop {
         operator[](unsigned &lower_bound) const throw() {
             return Bound<AlphaT,category_lb_tag>(this, &lower_bound);
         }
+
+        // an initial rule, with a definite category
+        FLTL_TDOP_RULE_PATTERN(category_tag)
     };
 
 }}

@@ -30,11 +30,12 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, symbol_tag> self_type;
         typedef unbound_symbol_tag tag_type;
 
         /// unbound predicate symbol, e.g. &(~s), where 's' is a symbol.
         const Unbound<AlphaT, ubound_symbol_predicate_tag>
-        operator&(void) const throw() {
+        operator*(void) const throw() {
             return Unbound<AlphaT, ubound_symbol_predicate_tag>(expr);
         }
 
@@ -57,6 +58,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, ubound_symbol_predicate_tag> self_type;
         typedef ubound_symbol_predicate_tag tag_type;
 
         // TODO
@@ -78,6 +80,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, operator_tag> self_type;
         typedef unbound_operator_tag tag_type;
 
         // TODO
@@ -99,6 +102,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, operator_string_tag> self_type;
         typedef unbound_operator_string_tag tag_type;
 
         // TODO
@@ -120,6 +124,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, term_tag> self_type;
         typedef unbound_term_tag tag_type;
 
         // TODO
@@ -141,6 +146,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, category_tag> self_type;
         typedef unbound_category_tag tag_type;
 
         /// (~c)[n], unbound category, unbound lower bound
@@ -149,7 +155,8 @@ namespace fltl { namespace tdop {
             return Unbound<AlphaT, category_lb_tag>(expr, &lower_bound);
         }
 
-        // TODO
+        // an initial rule, with an unbound category
+        FLTL_TDOP_RULE_PATTERN(unbound_category_tag)
     };
 
     /// unbound category, unbound lower bound
@@ -170,12 +177,14 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Unbound<AlphaT, category_lb_tag> self_type;
         typedef unbound_category_lb_tag tag_type;
 
-        // TODO
+        // an extension rule, with an unbound category and upper bound
+        FLTL_TDOP_RULE_PATTERN(unbound_category_lb_tag)
     };
 
-    /// unbound category, unbound lower bound
+    /// bound category, unbound lower bound
     template <typename AlphaT>
     class Bound<AlphaT, category_lb_tag> {
     private:
@@ -193,9 +202,12 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef Bound<AlphaT, category_lb_tag> self_type;
         typedef category_lb_tag tag_type;
 
-        // TODO
+        // an extension rule, with an unbound upper bound, and a definite
+        // category
+        FLTL_TDOP_RULE_PATTERN(category_lb_tag)
     };
 }}
 

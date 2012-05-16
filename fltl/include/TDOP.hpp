@@ -21,6 +21,7 @@
 #include "fltl/include/helper/StorageChain.hpp"
 #include "fltl/include/helper/UnsafeCast.hpp"
 
+#include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 #include "fltl/include/preprocessor/STATIC_ASSERT.hpp"
 
 #define FLTL_TDOP_USE_TYPES_PREFIX_FUNC(type, prefix, func) \
@@ -42,6 +43,16 @@
 
 #define FLTL_TDOP_USE_TYPES_PREFIX(type, prefix) \
     FLTL_TDOP_USE_TYPES_PREFIX_FUNC(type, prefix, FLTL_TDOP_USE_PREFIX)
+
+#define FLTL_TDOP_RULE_PATTERN(tag) \
+    FLTL_FORCE_INLINE tdop::detail::PatternBuilder<AlphaT,tag,void,true> \
+    operator--(int) const throw() { \
+        return tdop::detail::PatternBuilder<AlphaT,tag,void,true>( \
+            tdop::detail::PatternData<AlphaT>::allocate( \
+                const_cast<self_type *>(this)\
+            ) \
+        ); \
+    }
 
 namespace fltl {
 
@@ -104,7 +115,7 @@ namespace fltl {
     }
 }
 
-
+#include "fltl/include/tdop/Any.hpp"
 
 #include "fltl/include/tdop/Category.hpp"
 
@@ -154,8 +165,15 @@ namespace fltl {
         tdop::AnyOperatorString<AlphaT> __;
 
         /// constructors, destructors
-        TDOP(void) throw();
-        ~TDOP(void) throw();
+        TDOP(void) throw()
+            : trait::Uncopyable()
+            , _()
+            , __()
+        { }
+
+        ~TDOP(void) throw() {
+
+        }
 
         /// set the initial category
         void set_initial_category(const category_type) throw();
@@ -170,10 +188,10 @@ namespace fltl {
         const symbol_type get_symbol(const alphabet_type sym) throw();
         const symbol_type add_variable_symbol(void) throw();
 
-        const unsigned num_categories(void) const throw();
-        const unsigned num_rules(category_type cat) const throw();
-        const unsigned num_initial_rules(category_type cat) const throw();
-        const unsigned num_extension_rules(category_type cat) const throw();
+        unsigned num_categories(void) const throw();
+        unsigned num_rules(category_type cat) const throw();
+        unsigned num_initial_rules(category_type cat) const throw();
+        unsigned num_extension_rules(category_type cat) const throw();
 
         /// pattern matching for basics (all of some type of thing)
         void search(tdop::Unbound<AlphaT,tdop::category_tag>) throw();

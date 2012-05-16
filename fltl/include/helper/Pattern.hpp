@@ -24,6 +24,17 @@ namespace fltl { namespace pattern {
         };
     };
 
+    template <const unsigned offset>
+    class Factor<void, offset> {
+    public:
+        enum {
+            WIDTH = 0,
+            MIN_NUM_SYMBOLS = 0,
+            OFFSET = offset,
+            NEXT_OFFSET = OFFSET + WIDTH
+        };
+    };
+
     /// concatenate facotrs/concatenations together
 
     template <typename T0, typename T1>
@@ -33,6 +44,17 @@ namespace fltl { namespace pattern {
             WIDTH = T0::WIDTH + T1::WIDTH,
             OFFSET = T0::OFFSET,
             MIN_NUM_SYMBOLS = T0::MIN_NUM_SYMBOLS + T1::MIN_NUM_SYMBOLS,
+            NEXT_OFFSET = OFFSET + WIDTH
+        };
+    };
+
+    template <typename T1>
+    class Catenation<void,T1> {
+    public:
+        enum {
+            WIDTH = T1::WIDTH,
+            OFFSET = 0,
+            MIN_NUM_SYMBOLS = T1::MIN_NUM_SYMBOLS,
             NEXT_OFFSET = OFFSET + WIDTH
         };
     };
@@ -52,6 +74,15 @@ namespace fltl { namespace pattern {
     public:
         typedef typename GetFactor<
             typename mpl::IfTrue<(offset >= T1::OFFSET),T1,T0>::type,
+            offset
+        >::type type;
+    };
+
+    template <typename T1, const unsigned offset>
+    class GetFactor<Catenation<void,T1>, offset> {
+    public:
+        typedef typename GetFactor<
+            T1,
             offset
         >::type type;
     };
@@ -97,6 +128,17 @@ namespace fltl { namespace pattern {
 
     template <typename AlphaT, typename StringT, const unsigned offset, typename T0, typename T1>
     class Match;
+
+    /// base case, nothing to match.
+    template <typename AlphaT, typename StringT, const unsigned offset>
+    class Match<AlphaT,StringT,offset, void, void> {
+    public:
+
+        template <typename SlotT, typename SymbolT>
+        inline static bool bind(SlotT *, const SymbolT *, const unsigned len) throw() {
+            return 0 == len;
+        }
+    };
 
     /// pattern reset default case
     template <typename AlphaT, typename StringT, typename CurrT,const unsigned offset>

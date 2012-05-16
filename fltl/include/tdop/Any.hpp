@@ -14,21 +14,28 @@ namespace fltl { namespace tdop {
     template <typename AlphaT>
     class AnyOperator {
     public:
-        // TODO
 
+        typedef AnyOperator<AlphaT> self_type;
         typedef any_operator_tag tag_type;
+
+        // any initial rule, regardless of category
+        FLTL_TDOP_RULE_PATTERN(any_operator_tag)
     };
 
     template <typename AlphaT>
     class AnyOperatorString {
     public:
 
+        typedef AnyOperatorString<AlphaT> self_type;
         typedef any_operator_string_tag tag_type;
 
-        AnyOperatorStringOfLength<AlphaT>
+        const AnyOperatorStringOfLength<AlphaT>
         operator()(unsigned &len) const throw() {
-            return AnyOperatorStringOfLength<AlphaT>(len);
+            return AnyOperatorStringOfLength<AlphaT>(&len);
         }
+
+        // any extension rule, regardless of category
+        FLTL_TDOP_RULE_PATTERN(any_operator_string_tag)
     };
 
     template <typename AlphaT>
@@ -38,8 +45,6 @@ namespace fltl { namespace tdop {
         friend class AnyOperatorString<AlphaT>;
         friend class detail::PatternData<AlphaT>;
 
-        typedef AnyOperatorStringOfLength<AlphaT> self_type;
-
         unsigned *length;
 
         AnyOperatorStringOfLength(unsigned *len) throw()
@@ -48,6 +53,7 @@ namespace fltl { namespace tdop {
 
     public:
 
+        typedef AnyOperatorStringOfLength<AlphaT> self_type;
         typedef any_operator_string_of_length_tag tag_type;
 
         AnyOperatorStringOfLength(const self_type &that) throw()

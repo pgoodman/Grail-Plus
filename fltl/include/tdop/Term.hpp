@@ -50,13 +50,13 @@ namespace fltl { namespace tdop {
 
         /// copy constructor, a parser category. the parser category is allowed
         /// to be none in this case, but if so then the term will be unbound.
-        Term(const category_type cat) throw()
+        Term(const category_type &cat) throw()
             : val(cat.val)
         { }
 
         /// copy constructor, symbol type. the symbol type is allowed to be
         /// be undefined, but if so, the term will be unbound.
-        Term(const symbol_type sym) throw()
+        Term(const symbol_type &sym) throw()
             : val(sym.val)
         { }
 
@@ -127,8 +127,10 @@ namespace fltl { namespace tdop {
 
 #define FLTL_TDOP_TERM_CAT(type) \
     const operator_string_type \
-    operator+(const type that) throw() { \
-        operator_type arr[2] = {operator_type(*this), operator_type(that)}; \
+    operator+(const type that) const throw() { \
+        operator_type this_(*this); \
+        operator_type that_(that); \
+        operator_type arr[2] = {this_, that_}; \
         operator_string_type str(&(arr[0]), 2); \
         return str; \
     }
@@ -140,6 +142,15 @@ namespace fltl { namespace tdop {
         FLTL_TDOP_TERM_CAT(category_type)
 
 #undef FLTL_TDOP_TERM_CAT
+
+        const operator_string_type
+        operator+(const operator_string_type &that) throw() {
+            operator_string_type str(1 + that.length());
+            operator_type this_(*this);
+            operator_string_type::append(str.arr, this_, 0);
+            operator_string_type::append(str.arr, that.arr, 1);
+            return str;
+        }
 
         /// pattern matching
 
