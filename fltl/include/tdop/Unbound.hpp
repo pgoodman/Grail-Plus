@@ -33,7 +33,7 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, symbol_tag> self_type;
         typedef unbound_symbol_tag tag_type;
 
-        /// unbound predicate symbol, e.g. &(~s), where 's' is a symbol.
+        /// unbound predicate symbol, e.g. *(~s), where 's' is a symbol.
         const Unbound<AlphaT, ubound_symbol_predicate_tag>
         operator*(void) const throw() {
             return Unbound<AlphaT, ubound_symbol_predicate_tag>(expr);

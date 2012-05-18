@@ -16,6 +16,7 @@ namespace fltl { namespace tdop {
     class Category {
     private:
 
+        friend class TDOP<AlphaT>;
         friend class Term<AlphaT>;
         friend class OpaqueCategory<AlphaT>;
         friend class OpaqueRule<AlphaT>;
@@ -32,14 +33,24 @@ namespace fltl { namespace tdop {
 
         /// first initial and extension rules
         Rule<AlphaT> *first_initial_rule;
-        Rule<AlphaT> *last_extension_rule;
+        Rule<AlphaT> *first_extension_rule;
 
         unsigned num_initial_rules;
         unsigned num_extension_rules;
 
+        const char *name;
+
     public:
 
-        // TODO
+        ~Category(void) throw() {
+            if(0 != name) {
+                trait::Alphabet<const char *>::destroy(name);
+                name = 0;
+            }
+
+            num_initial_rules = 0;
+            num_extension_rules = 0;
+        }
     };
 
 }}

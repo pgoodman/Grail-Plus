@@ -69,17 +69,53 @@ namespace fltl { namespace tdop {
             return rule_allocator.allocate();
         }
 
+        /// lexicograpgically compare two rules
+        bool is_less_than(const self_type *that) const throw() {
+            if(that == this) {
+                return false;
+            }
+
+            // both extension rules
+            if(0 <= upper_bound
+            && 0 <= that->upper_bound) {
+
+                if(str < that->str) {
+                    return true;
+
+                } else if(that->str < str) {
+                    return false;
+
+                } else {
+                    return upper_bound < that->upper_bound;
+                }
+
+            // both initial rules
+            } else if(INITIAL_RULE_UPPER_BOUND == upper_bound
+                   && INITIAL_RULE_UPPER_BOUND == that->upper_bound) {
+
+                return str < that->str;
+
+            // 'that' is an initial rule
+            } else if(0 <= upper_bound) {
+                return false;
+
+            // 'this' is an initial rule
+            } else {
+                return true;
+            }
+        }
+
+    public:
+
         /// constructor
         Rule(void) throw()
-            : ref_count(1U)
+            : ref_count(0U)
             , category(0)
             , prev(0)
             , next(0)
             , upper_bound(UNINITIALIZED)
             , str()
         { }
-
-    public:
 
         /// destructor
         ~Rule(void) throw() {

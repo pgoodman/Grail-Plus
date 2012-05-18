@@ -23,6 +23,10 @@ namespace fltl { namespace tdop {
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
+        Symbol(unsigned id) throw()
+            : Term<AlphaT>(static_cast<int32_t>(id) * -1)
+        { }
+
     public:
 
         typedef symbol_tag tag_type;

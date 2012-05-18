@@ -15,9 +15,17 @@ namespace fltl { namespace tdop {
     class OpaqueRule {
     private:
 
+        friend class TDOP<AlphaT>;
+
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
         Rule<AlphaT> *rule;
+
+        OpaqueRule(Rule<AlphaT> *rule_) throw()
+            : rule(rule_)
+        {
+            Rule<AlphaT>::incref(rule_);
+        }
 
     public:
 

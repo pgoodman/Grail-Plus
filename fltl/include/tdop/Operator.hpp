@@ -168,12 +168,27 @@ namespace fltl { namespace tdop {
         }
 
         /// comparison
-
+        bool operator==(const operator_string_type &that) const throw() {
+            return 1U == that.length() && *this == that[0];
+        }
         bool operator==(const operator_type &that) const throw() {
             return term == that.term && lower_bound == that.lower_bound;
         }
         bool operator!=(const operator_type &that) const throw() {
             return term != that.term || lower_bound != that.lower_bound;
+        }
+        bool operator<(const operator_type &that) const throw() {
+            if(term < that.term) {
+                return true;
+            } else if(that.term < term) {
+                return false;
+            }
+
+            // the terms are the same; could have the case where we are
+            // dealing with (predicate) symbols, or un/bound categories.
+            // order by lower_bound ascending.
+
+            return lower_bound < that.lower_bound;
         }
 
 #define FLTL_TDOP_OPERATOR_CAT(type) \

@@ -128,7 +128,7 @@ namespace fltl { namespace tdop {
         friend class Category<AlphaT>;
 
         template <typename, typename, const unsigned, typename, typename>
-        friend class Match;
+        friend class pattern::Match;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -218,7 +218,7 @@ namespace fltl { namespace tdop {
 
         /// constructor, based on a substring of an operator string; usually from
         /// a pattern match or substring operator.
-        OperatorString(Operator<AlphaT> *src_arr, unsigned len) throw()
+        OperatorString(const Operator<AlphaT> *src_arr, unsigned len) throw()
             : arr(allocate(len))
         {
             for(unsigned i(0); i < len; ++i) {
@@ -283,6 +283,67 @@ namespace fltl { namespace tdop {
         FLTL_FORCE_INLINE const operator_type &
         operator[](const size_t index) const throw() {
             return at(index);
+        }
+
+        /// comparison
+        bool operator==(const operator_type &that) const throw() {
+            return 1U == length() && arr->operators[0] == that;
+        }
+        bool operator==(const operator_string_type &that) const throw() {
+            if(that.arr == arr) {
+                return true;
+
+            } else if(length() != that.length()) {
+                return false;
+            }
+
+            operator_type *a(arr->operators);
+            operator_type *b(that.arr->operators);
+
+            for(unsigned i(0); i < length(); ++i) {
+                if(*a != *b) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        bool operator!=(const operator_string_type &that) const throw() {
+            return !(*this == that);
+        }
+        bool operator<(const operator_string_type &that) const throw() {
+
+            // same operator string
+            if(that.arr == arr) {
+                return false;
+
+            // that is the empty operator string
+            } else if(0 == that.arr) {
+                return false;
+
+            // this is the empty operator string
+            } else if(0 == arr) {
+                return true;
+            }
+
+            const bool this_is_shorter(length() < that.length());
+            const unsigned len(this_is_shorter ? length() : that.length());
+
+            operator_type *a(arr->operators);
+            operator_type *b(that.arr->operators);
+
+            for(unsigned i(0); i < len; ++i) {
+                if(*a < *b) {
+                    return true;
+                } else if(*b < *a) {
+                    return false;
+                } else {
+                    ++a;
+                    ++b;
+                }
+            }
+
+            return this_is_shorter;
         }
 
         /// concatenation

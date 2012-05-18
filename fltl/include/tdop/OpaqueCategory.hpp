@@ -15,14 +15,20 @@ namespace fltl { namespace tdop {
     class OpaqueCategory : public Term<AlphaT> {
     private:
 
+        friend class TDOP<AlphaT>;
         friend class Term<AlphaT>;
         friend class Operator<AlphaT>;
+        friend class OpaqueRule<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
         /// construction from other places, e.g. OpaqueRule.
         OpaqueCategory(unsigned num) throw()
             : Term<AlphaT>(static_cast<int32_t>(num))
+        { }
+
+        OpaqueCategory(Category<AlphaT> *cat) throw()
+            : Term<AlphaT>(static_cast<int32_t>(cat->number))
         { }
 
     public:

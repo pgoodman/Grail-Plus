@@ -216,6 +216,7 @@ namespace fltl { namespace pattern {
                 tdop::Symbol<AlphaT> sym;
 
                 return symbols->match(sym)
+                    && !symbols->is_symbol_predicate()
                     && (sym == *(slots->as_symbol))
                     && Match<
                         AlphaT,
@@ -371,7 +372,9 @@ namespace fltl { namespace pattern {
     class Match<AlphaT,StringT,offset,tdop::unbound_symbol_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
-            if(len >= 1 && symbols->match(*(slots->as_symbol))) {
+            if(len >= 1
+            && symbols->match(*(slots->as_symbol))
+            && !symbols->is_symbol_predicate()) {
 
                 return Match<
                     AlphaT,
@@ -586,7 +589,8 @@ namespace fltl { namespace pattern {
             }
 
             tdop::Term<AlphaT> sym;
-            if(!symbols->match(sym)) {
+            if(!symbols->match(sym)
+            || symbols->is_symbol_predicate()) {
                 return false;
             }
 
@@ -684,7 +688,8 @@ namespace fltl { namespace pattern {
                 return false;
             }
 
-            return symbols->match(*(slots->as_symbol));
+            return symbols->match(*(slots->as_symbol))
+                && !symbols->is_symbol_predicate();
         }
     };
 
@@ -873,10 +878,11 @@ namespace fltl { namespace pattern {
         }
     },
     {
-        tdop::OpaqueCategory<AlphaT> cat;
+        tdop::OpaqueCategory<AlphaT> cat(rule.category());
+        tdop::OperatorString<AlphaT> str;
         unsigned upper_bound(0);
 
-        if(!rule.match(upper_bound, cat)) {
+        if(!rule.match(upper_bound, str)) {
             return false;
         }
 
@@ -893,10 +899,11 @@ namespace fltl { namespace pattern {
         }
     },
     {
-        tdop::OpaqueCategory<AlphaT> cat;
+        tdop::OpaqueCategory<AlphaT> cat(rule.category());
+        tdop::OperatorString<AlphaT> str;
         unsigned upper_bound(0);
 
-        if(!rule.match(upper_bound, cat)) {
+        if(!rule.match(upper_bound, str)) {
             return false;
         }
 
@@ -917,10 +924,11 @@ namespace fltl { namespace pattern {
         }
     },
     {
-        tdop::OpaqueCategory<AlphaT> cat;
+        tdop::OpaqueCategory<AlphaT> cat(rule.category());
+        tdop::OperatorString<AlphaT> str;
         unsigned upper_bound(0);
 
-        if(!rule.match(upper_bound, cat)) {
+        if(!rule.match(upper_bound, str)) {
             return false;
         }
 
@@ -955,6 +963,7 @@ namespace fltl { namespace tdop { namespace detail {
         friend class Unbound<AlphaT,category_tag>;
         friend class Unbound<AlphaT,category_lb_tag>;
         friend class Bound<AlphaT,category_lb_tag>;
+        friend class OpaquePattern<AlphaT>;
 
         template <typename, typename, typename, const bool>
         friend class PatternBuilder;
@@ -970,13 +979,13 @@ namespace fltl { namespace tdop { namespace detail {
             PatternData<AlphaT>::incref(pattern);
         }
 
+    public:
+
         PatternBuilder(const self_type &that)
             : pattern(that.pattern)
         {
             PatternData<AlphaT>::incref(pattern);
         }
-
-    public:
 
         ~PatternBuilder(void) throw() {
             PatternData<AlphaT>::decref(pattern);
@@ -1063,6 +1072,7 @@ namespace fltl { namespace tdop { namespace detail {
         friend class Unbound<AlphaT,category_tag>;
         friend class Unbound<AlphaT,category_lb_tag>;
         friend class Bound<AlphaT,category_lb_tag>;
+        friend class OpaquePattern<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
         typedef PatternBuilder<AlphaT,CatTagT,void,true> self_type;
@@ -1075,13 +1085,13 @@ namespace fltl { namespace tdop { namespace detail {
             PatternData<AlphaT>::incref(pattern);
         }
 
+    public:
+
         PatternBuilder(const self_type &that)
             : pattern(that.pattern)
         {
             PatternData<AlphaT>::incref(pattern);
         }
-
-    public:
 
         ~PatternBuilder(void) throw() {
             PatternData<AlphaT>::decref(pattern);
@@ -1140,6 +1150,7 @@ namespace fltl { namespace tdop { namespace detail {
         friend class helper::BlockAllocator<self_type, ALLOC_GROUP_SIZE>;
         friend class Pattern<AlphaT>;
         friend class Operator<AlphaT>;
+        friend class OpaquePattern<AlphaT>;
 
         friend class AnyOperator<AlphaT>;
         friend class AnyOperatorString<AlphaT>;
@@ -1150,6 +1161,9 @@ namespace fltl { namespace tdop { namespace detail {
 
         template <typename, typename, typename, const bool>
         friend class PatternBuilder;
+
+        template <typename, typename, typename>
+        friend class pattern::DestructuringBind;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -1249,13 +1263,17 @@ namespace fltl { namespace tdop { namespace detail {
         /// reference counting
 
         static void incref(self_type *self) throw() {
-            ++(self->ref_count);
+            if(0 != self) {
+                ++(self->ref_count);
+            }
         }
 
         static void decref(PatternData<AlphaT> *self) throw() {
-            self->ref_count -= 1U;
-            if(0 == self->ref_count) {
-                pattern_allocator.deallocate(self);
+            if(0 != self) {
+                self->ref_count -= 1U;
+                if(0 == self->ref_count) {
+                    pattern_allocator.deallocate(self);
+                }
             }
         }
 

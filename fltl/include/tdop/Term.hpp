@@ -16,6 +16,7 @@ namespace fltl { namespace tdop {
     class Term {
     protected:
 
+        friend class TDOP<AlphaT>;
         friend class Symbol<AlphaT>;
         friend class OpaqueCategory<AlphaT>;
         friend class Operator<AlphaT>;
