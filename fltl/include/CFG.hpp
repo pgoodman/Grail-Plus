@@ -472,7 +472,7 @@ namespace fltl {
                 &(auto_symbol_upper_bound[1]), 0, 10
             ));
 
-            char buffer[1024] = {'\0'};
+            char buffer[100] = {'\0'};
             sprintf(buffer, "$%lu", prev_ub + 1);
 
             terminal_type term(next_terminal_id);

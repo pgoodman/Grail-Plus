@@ -20,7 +20,7 @@ namespace fltl { namespace tdop {
         typedef OpaquePattern<AlphaT> self_type;
 
         data_type *pattern;
-        bool (*bind)(detail::PatternData<AlphaT> *, const OpaqueRule<AlphaT> &);
+        bool (*bind)(data_type *, const OpaqueRule<AlphaT> &);
 
     public:
 

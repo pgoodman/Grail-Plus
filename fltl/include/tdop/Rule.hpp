@@ -26,12 +26,18 @@ namespace fltl { namespace tdop {
         friend class OpaqueRule<AlphaT>;
         friend class helper::BlockAllocator<self_type>;
 
+        friend class detail::CategoryGenerator<AlphaT>;
+        friend class detail::SymbolGenerator<AlphaT>;
+        friend class detail::RuleGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT>;
+
         enum {
             INITIAL_RULE_UPPER_BOUND = -1,
             UNINITIALIZED = -2
         };
 
         uint32_t ref_count;
+        bool is_deleted;
 
         /// the category this rule belongs to
         Category<AlphaT> *category;
@@ -110,6 +116,7 @@ namespace fltl { namespace tdop {
         /// constructor
         Rule(void) throw()
             : ref_count(0U)
+            , is_deleted(false)
             , category(0)
             , prev(0)
             , next(0)

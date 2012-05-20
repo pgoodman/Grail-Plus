@@ -16,6 +16,8 @@ namespace fltl { namespace tdop {
     private:
 
         friend class TDOP<AlphaT>;
+        friend class detail::RuleGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -120,6 +122,12 @@ namespace fltl { namespace tdop {
         }
         bool is_valid(void) const throw() {
             return 0 != rule;
+        }
+
+        /// generators, pattern matching
+        const Unbound<AlphaT,rule_tag>
+        operator~(void) const throw() {
+            return Unbound<AlphaT,rule_tag>(this);
         }
     };
 

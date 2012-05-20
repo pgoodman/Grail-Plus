@@ -22,7 +22,14 @@ namespace fltl { namespace tdop {
         friend class OpaqueRule<AlphaT>;
         friend class Rule<AlphaT>;
 
+        friend class detail::CategoryGenerator<AlphaT>;
+        friend class detail::SymbolGenerator<AlphaT>;
+        friend class detail::RuleGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT>;
+
         typedef Category<AlphaT> self_type;
+
+        unsigned ref_count;
 
         /// the "number"/id of this parsercategory
         uint32_t number;
@@ -40,7 +47,32 @@ namespace fltl { namespace tdop {
 
         const char *name;
 
+        static helper::BlockAllocator<self_type> allocator;
+
+        static self_type *allocate(void) throw() {
+            return allocator.allocate();
+        }
+
+        static void incref(self_type *ptr) throw() {
+            if(0 != ptr) {
+                ++(ptr->ref_count);
+            }
+        }
+
+        static void decref(self_type *ptr) throw() {
+            if(0 != ptr) {
+                ptr->ref_count -= 1;
+                if(0 == ptr->ref_count) {
+                    allocator.deallocate(ptr);
+                }
+            }
+        }
+
     public:
+
+        Category(void) throw()
+            : ref_count(1U)
+        { }
 
         ~Category(void) throw() {
             if(0 != name) {
@@ -53,6 +85,9 @@ namespace fltl { namespace tdop {
         }
     };
 
+    // static initialization
+    template <typename AlphaT>
+    helper::BlockAllocator<Category<AlphaT> > Category<AlphaT>::allocator;
 }}
 
 #endif /* Grail_Plus_TDOP_CATEGORY_HPP_ */

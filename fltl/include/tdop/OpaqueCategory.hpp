@@ -20,6 +20,8 @@ namespace fltl { namespace tdop {
         friend class Operator<AlphaT>;
         friend class OpaqueRule<AlphaT>;
 
+        friend class detail::CategoryGenerator<AlphaT>;
+
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
         /// construction from other places, e.g. OpaqueRule.
@@ -87,6 +89,11 @@ namespace fltl { namespace tdop {
 
         // an initial rule, with a definite category
         FLTL_TDOP_RULE_PATTERN(category_tag)
+
+        /// properties
+        unsigned number(void) const throw() {
+            return static_cast<unsigned>(this->val);
+        }
     };
 
 }}

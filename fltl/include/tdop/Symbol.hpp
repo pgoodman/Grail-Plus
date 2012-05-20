@@ -20,6 +20,7 @@ namespace fltl { namespace tdop {
         friend class TDOP<AlphaT>;
         friend class Term<AlphaT>;
         friend class Operator<AlphaT>;
+        friend class detail::SymbolGenerator<AlphaT>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -69,6 +70,11 @@ namespace fltl { namespace tdop {
         const Unbound<AlphaT, symbol_tag>
         operator~(void) const throw() {
             return Unbound<AlphaT, symbol_tag>(this);
+        }
+
+        /// properties
+        unsigned number(void) const throw() {
+            return static_cast<unsigned>(this->val * -1);
         }
     };
 

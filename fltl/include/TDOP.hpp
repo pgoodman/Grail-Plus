@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 #include <stdint.h>
 #include <new>
 #include <map>
@@ -36,6 +37,7 @@
     typedef typename type::operator_type func(prefix, operator_type); \
     typedef typename type::operator_string_type func(prefix, operator_string_type); \
     typedef typename type::pattern_type func(prefix, pattern_type); \
+    typedef typename type::generator_type func(prefix, generator_type); \
     typedef type func(prefix, tdop_type)
 
 #define FLTL_TDOP_NO_PREFIX(prefix, str) str
@@ -95,6 +97,11 @@ namespace fltl {
             class PatternBuilder;
 
             template <typename> class PatternData;
+
+            template <typename> class CategoryGenerator;
+            template <typename> class SymbolGenerator;
+            template <typename> class RuleGenerator;
+            template <typename> class PatternGenerator;
         }
 
         // forward eclaractions
@@ -139,6 +146,8 @@ namespace fltl {
 
 #include "fltl/include/tdop/OpaquePattern.hpp"
 
+#include "fltl/include/tdop/Generator.hpp"
+
 namespace fltl {
 
     namespace detail {
@@ -155,6 +164,11 @@ namespace fltl {
     class TDOP : protected trait::Uncopyable {
     public:
 
+        friend class tdop::detail::CategoryGenerator<AlphaT>;
+        friend class tdop::detail::SymbolGenerator<AlphaT>;
+        friend class tdop::detail::RuleGenerator<AlphaT>;
+        friend class tdop::detail::PatternGenerator<AlphaT>;
+
         /// extract the traits
         typedef trait::Alphabet<AlphaT> traits_type;
         typedef typename traits_type::alphabet_type alphabet_type;
@@ -167,6 +181,7 @@ namespace fltl {
         typedef tdop::Operator<AlphaT> operator_type;
         typedef tdop::OperatorString<AlphaT> operator_string_type;
         typedef tdop::OpaquePattern<AlphaT> pattern_type;
+        typedef tdop::Generator<AlphaT> generator_type;
 
     private:
 
@@ -179,7 +194,7 @@ namespace fltl {
         internal_category_type *unused_categories;
         uint32_t next_category_id;
         helper::Array<internal_category_type *> category_map;
-        detail::AlphaMap<const char *, category_type> named_category_map;
+        mutable detail::AlphaMap<const char *, category_type> named_category_map;
         internal_category_type *start_category;
         unsigned num_categories_;
 
@@ -252,7 +267,6 @@ namespace fltl {
         mutable const char *auto_symbol_upper_bound;
 
         /// allocators
-        static helper::BlockAllocator<internal_category_type> category_allocator;
         static helper::BlockAllocator<internal_rule_type> rule_allocator;
 
     public:
@@ -299,7 +313,7 @@ namespace fltl {
             for(uint32_t i(0U); i < next_category_id; ++i) {
                 internal_category_type *&cat(category_map[i]);
                 if(0 != cat) {
-                    category_allocator.deallocate(cat);
+                    internal_category_type::decref(cat);
                     cat = 0;
                 }
             }
@@ -323,6 +337,20 @@ namespace fltl {
                 category_type cat(start_category);
                 return cat;
             }
+        }
+
+        /// get a category's name
+        const char *get_name(category_type cat_) const throw() {
+            internal_category_type *cat(find_category(cat_));
+
+            assert(0 != cat);
+
+            if(0 == cat->name) {
+                cat->name = next_symbol_upper_bound();
+                named_category_map[cat->name] = cat;
+            }
+
+            return cat->name;
         }
 
         /// get a parser category by name. If no such parser category exists
@@ -372,7 +400,7 @@ namespace fltl {
 
             // need to allocate new one
             if(0 == cat) {
-                cat = category_allocator.allocate();
+                cat = internal_category_type::allocate();
                 cat_id = next_category_id++;
                 category_map.append(cat);
 
@@ -455,6 +483,22 @@ namespace fltl {
             return rule_type(add_rule(&rule_, &(cat->first_extension_rule)));
         }
 
+        /// remove a rule
+        void remove_rule(rule_type &rule) const throw() {
+            if(0 != rule.rule) {
+                rule.rule->is_deleted = true;
+            }
+
+            // TODO
+        }
+
+        /// get the alphabetic representation of a symbol
+        const alphabet_type get_alpha(symbol_type sym) const throw() {
+            const symbol_rep_type &rep(symbol_map.get(sym.number()));
+            assert(symbol_rep_type::SYMBOL == rep.kind);
+            return rep.u.as_symbol;
+        }
+
         /// get the representation of a symbol, given its alphabetic
         /// representation, or return
         const symbol_type get_symbol(const alphabet_type sym_alpha_) throw() {
@@ -494,18 +538,36 @@ namespace fltl {
         unsigned num_extension_rules(category_type cat) const throw();
 
         /// pattern matching for basics (all of some type of thing)
-        void search(tdop::Unbound<AlphaT,tdop::category_tag>) throw();
-        void search(tdop::Unbound<AlphaT,tdop::symbol_tag>) throw();
-
-        /// pattern matching for initial vs. specific
-        void search(tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
-        void search(unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
-
-        /// pattern matching for initial vs. specific
-        void search(tdop::Unbound<AlphaT, tdop::category_tag>, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
-        void search(tdop::Unbound<AlphaT, tdop::category_tag>, unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
-        void search(category_type &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
-        void search(category_type &, unsigned &, tdop::Unbound<AlphaT,tdop::rule_tag>) throw();
+        generator_type search(tdop::Unbound<AlphaT,tdop::category_tag> cat) throw() {
+            typedef tdop::detail::CategoryGenerator<AlphaT> category_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.binder.category = cat.expr;
+            gen.match_ = category_generator::match;
+            gen.reset_ = category_generator::reset;
+            gen.free_ = category_generator::free;
+            return gen;
+        }
+        generator_type search(tdop::Unbound<AlphaT,tdop::symbol_tag> sym) throw() {
+            typedef tdop::detail::SymbolGenerator<AlphaT> symbol_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.binder.symbol = sym.expr;
+            gen.match_ = symbol_generator::match;
+            gen.reset_ = symbol_generator::reset;
+            gen.free_ = symbol_generator::free;
+            return gen;
+        }
+        generator_type search(tdop::Unbound<AlphaT,tdop::rule_tag> rule) throw() {
+            typedef tdop::detail::RuleGenerator<AlphaT> rule_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.binder.rule = rule.expr;
+            gen.match_ = rule_generator::match;
+            gen.reset_ = rule_generator::reset;
+            gen.free_ = rule_generator::free;
+            return gen;
+        }
 
     private:
 
@@ -608,14 +670,32 @@ namespace fltl {
 
         done:
 
+            rule->is_deleted = false;
+
             return rule;
         }
-    };
 
-    /// static initialization of category allocator
-    template <typename AlphaT>
-    helper::BlockAllocator<typename TDOP<AlphaT>::internal_category_type>
-    TDOP<AlphaT>::category_allocator;
+        /// get the next automatic symbol/category name
+        const char *next_symbol_upper_bound(void) const throw() {
+            const unsigned long prev_ub(strtoul(
+               &(auto_symbol_upper_bound[1]), 0, 10
+           ));
+
+           char buffer[100] = {'\0'};
+           sprintf(buffer, "$%lu", prev_ub + 1);
+
+           const char *next(trait::Alphabet<const char *>::copy(buffer));
+
+           auto_symbol_upper_bound = next;
+
+           return next;
+        }
+
+        /// return the first category
+        inline internal_category_type *first_category(void) throw() {
+            return find_category(0, 1);
+        }
+    };
 
     /// static initialization of rule allocator
     template <typename AlphaT>

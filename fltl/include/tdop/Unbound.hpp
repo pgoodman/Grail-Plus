@@ -14,6 +14,27 @@ namespace fltl { namespace tdop {
     template <typename, typename> class Unbound;
     template <typename, typename> class Bound;
 
+    /// unbound rules
+    template <typename AlphaT>
+    class Unbound<AlphaT, rule_tag> {
+    private:
+
+        friend class OpaqueRule<AlphaT>;
+        friend class TDOP<AlphaT>;
+
+        OpaqueRule<AlphaT> *expr;
+
+        Unbound(const OpaqueRule<AlphaT> *expr_) throw()
+            : expr(const_cast<OpaqueRule<AlphaT> *>(expr_))
+        { }
+
+    public:
+
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
+    };
+
     /// unbound symbol
     template <typename AlphaT>
     class Unbound<AlphaT, symbol_tag> {
@@ -21,6 +42,7 @@ namespace fltl { namespace tdop {
 
         friend class detail::PatternData<AlphaT>;
         friend class Symbol<AlphaT>;
+        friend class TDOP<AlphaT>;
 
         Symbol<AlphaT> *expr;
 
@@ -33,13 +55,15 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, symbol_tag> self_type;
         typedef unbound_symbol_tag tag_type;
 
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
+
         /// unbound predicate symbol, e.g. *(~s), where 's' is a symbol.
         const Unbound<AlphaT, ubound_symbol_predicate_tag>
         operator*(void) const throw() {
             return Unbound<AlphaT, ubound_symbol_predicate_tag>(expr);
         }
-
-        // TODO
     };
 
     /// unbound predicate symbol
@@ -61,7 +85,9 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, ubound_symbol_predicate_tag> self_type;
         typedef ubound_symbol_predicate_tag tag_type;
 
-        // TODO
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
     };
 
     /// unbound operator
@@ -83,7 +109,9 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, operator_tag> self_type;
         typedef unbound_operator_tag tag_type;
 
-        // TODO
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
     };
 
     /// unbound operator string
@@ -105,7 +133,9 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, operator_string_tag> self_type;
         typedef unbound_operator_string_tag tag_type;
 
-        // TODO
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
     };
 
     /// unbound term
@@ -127,7 +157,9 @@ namespace fltl { namespace tdop {
         typedef Unbound<AlphaT, term_tag> self_type;
         typedef unbound_term_tag tag_type;
 
-        // TODO
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
     };
 
     /// unbound category
@@ -137,6 +169,7 @@ namespace fltl { namespace tdop {
 
         friend class detail::PatternData<AlphaT>;
         friend class OpaqueCategory<AlphaT>;
+        friend class TDOP<AlphaT>;
 
         OpaqueCategory<AlphaT> *expr;
 
@@ -157,6 +190,10 @@ namespace fltl { namespace tdop {
 
         // an initial rule, with an unbound category
         FLTL_TDOP_RULE_PATTERN(unbound_category_tag)
+
+        ~Unbound(void) throw() {
+            expr = 0;
+        }
     };
 
     /// unbound category, unbound lower bound
@@ -182,6 +219,11 @@ namespace fltl { namespace tdop {
 
         // an extension rule, with an unbound category and upper bound
         FLTL_TDOP_RULE_PATTERN(unbound_category_lb_tag)
+
+        ~Unbound(void) throw() {
+            expr = 0;
+            lower_bound = 0;
+        }
     };
 
     /// bound category, unbound lower bound
@@ -208,6 +250,11 @@ namespace fltl { namespace tdop {
         // an extension rule, with an unbound upper bound, and a definite
         // category
         FLTL_TDOP_RULE_PATTERN(category_lb_tag)
+
+        ~Bound(void) throw() {
+            expr = 0;
+            lower_bound = 0;
+        }
     };
 }}
 
