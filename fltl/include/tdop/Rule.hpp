@@ -24,6 +24,7 @@ namespace fltl { namespace tdop {
 
         friend class TDOP<AlphaT>;
         friend class OpaqueRule<AlphaT>;
+        friend class Category<AlphaT>;
         friend class helper::BlockAllocator<self_type>;
 
         friend class detail::CategoryGenerator<AlphaT>;
@@ -127,6 +128,22 @@ namespace fltl { namespace tdop {
 
         /// destructor
         ~Rule(void) throw() {
+
+            if(category->first_initial_rule == this) {
+                category->first_initial_rule = next;
+
+            } else if(category->first_extension_rule == this) {
+                category->first_extension_rule = next;
+            }
+
+            if(0 != next) {
+                next->prev = prev;
+            }
+
+            if(0 != prev) {
+                prev->next = next;
+            }
+
             category = 0;
             prev = 0;
             next = 0;

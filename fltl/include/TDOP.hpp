@@ -149,7 +149,6 @@ namespace fltl {
 #include "fltl/include/tdop/Pattern.hpp"
 
 #include "fltl/include/tdop/OpaquePattern.hpp"
-
 #include "fltl/include/tdop/Generator.hpp"
 
 namespace fltl {
@@ -469,7 +468,11 @@ namespace fltl {
             rule_.category = cat;
             rule_.upper_bound = internal_rule_type::INITIAL_RULE_UPPER_BOUND;
             rule_.str = str;
-            rule_type ret(add_rule(&rule_, &(cat->first_initial_rule)));
+            rule_type ret(add_rule(
+                &rule_,
+                &(cat->first_initial_rule),
+                &(cat->num_initial_rules)
+            ));
             return ret;
         }
 
@@ -488,7 +491,11 @@ namespace fltl {
             rule_.category = cat;
             rule_.upper_bound = static_cast<int32_t>(upper_bound);
             rule_.str = str;
-            rule_type ret(add_rule(&rule_, &(cat->first_extension_rule)));
+            rule_type ret(add_rule(
+                &rule_,
+                &(cat->first_extension_rule),
+                &(cat->num_extension_rules)
+            ));
             return ret;
         }
 
@@ -498,7 +505,7 @@ namespace fltl {
                 rule.rule->is_deleted = true;
             }
 
-            // TODO
+            internal_rule_type::decref(rule.rule);
         }
 
         /// get the alphabetic representation of a symbol
@@ -546,9 +553,21 @@ namespace fltl {
             return num_rules_;
         }
 
-        unsigned num_rules(category_type cat) const throw();
-        unsigned num_initial_rules(category_type cat) const throw();
-        unsigned num_extension_rules(category_type cat) const throw();
+        unsigned num_rules(category_type cat_) const throw() {
+            internal_category_type *cat(find_category(cat_));
+            assert(0 != cat);
+            return cat->num_extension_rules + cat->num_initial_rules;
+        }
+        unsigned num_initial_rules(category_type cat_) const throw() {
+            internal_category_type *cat(find_category(cat_));
+            assert(0 != cat);
+            return cat->num_initial_rules;
+        }
+        unsigned num_extension_rules(category_type cat_) const throw() {
+            internal_category_type *cat(find_category(cat_));
+            assert(0 != cat);
+            return cat->num_extension_rules;
+        }
 
         /// pattern matching for basics (all of some type of thing)
         generator_type search(tdop::Unbound<AlphaT,tdop::category_tag> cat) throw() {
@@ -730,7 +749,8 @@ namespace fltl {
         /// initial and extension rules.
         internal_rule_type *add_rule(
             internal_rule_type *rule_,
-            internal_rule_type **rule_list
+            internal_rule_type **rule_list,
+            unsigned *cat_num_rules
         ) throw() {
             internal_rule_type *rule(0);
             internal_rule_type *prev(0);
@@ -757,6 +777,7 @@ namespace fltl {
             }
 
             ++num_rules_;
+            ++(*cat_num_rules);
 
             // rule is either at the end, or there are no rules
             rule = rule_allocator.allocate();
@@ -775,8 +796,10 @@ namespace fltl {
                 next->prev = rule;
             }
 
-            // initialize this rule list
-            if(0 == *rule_list) {
+            // (re)initialize this rule list
+            // if list is empty, then *rule_list == 0 and next == 0
+            // if rule is the new head, then next == *rule_list
+            if(next == *rule_list) {
                 *rule_list = rule;
             }
 

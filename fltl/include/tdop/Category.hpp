@@ -81,8 +81,30 @@ namespace fltl { namespace tdop {
                 name = 0;
             }
 
-            num_initial_rules = 0;
-            num_extension_rules = 0;
+            // clear out the initial rules
+            for(Rule<AlphaT> *rule(first_initial_rule), *next_rule(0);
+                0 != rule;
+                rule = next_rule) {
+
+                next_rule = rule->next;
+                rule->is_deleted = true;
+                Rule<AlphaT>::decref(rule);
+            }
+
+            // clear out the extension rules
+            for(Rule<AlphaT> *rule(first_extension_rule), *next_rule(0);
+                0 != rule;
+                rule = next_rule) {
+
+                next_rule = rule->next;
+                rule->is_deleted = true;
+                Rule<AlphaT>::decref(rule);
+            }
+
+            first_initial_rule = 0;
+            first_extension_rule = 0;
+            num_initial_rules = 0U;
+            num_extension_rules = 0U;
         }
     };
 

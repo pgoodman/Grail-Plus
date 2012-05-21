@@ -476,7 +476,7 @@ namespace fltl { namespace pattern {
 
             // unbind it
             tdop::OperatorString<AlphaT> epsilon;
-            *(slots->as_symbol_string) = epsilon;
+            *(slots->as_operator_string) = epsilon;
 
             return false;
         }
