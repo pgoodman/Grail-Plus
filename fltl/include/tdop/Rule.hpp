@@ -129,6 +129,11 @@ namespace fltl { namespace tdop {
         /// destructor
         ~Rule(void) throw() {
 
+            printf("category = %p, &category = %p\n",
+                static_cast<void *>(category),
+                static_cast<void *>(&category)
+            );
+
             if(category->first_initial_rule == this) {
                 category->first_initial_rule = next;
 

@@ -105,6 +105,12 @@ namespace grail { namespace cli {
                     need_null = true;
                 }
 
+                // TODO
+                (void) opt_lead;
+                (void) opt_stats;
+                (void) need_first;
+                (void) need_follow;
+                (void) need_null;
 
             } else {
                 ret = 1;

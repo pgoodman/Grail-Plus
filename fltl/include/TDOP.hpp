@@ -755,6 +755,7 @@ namespace fltl {
             internal_rule_type *rule(0);
             internal_rule_type *prev(0);
             internal_rule_type *next(0);
+            internal_category_type *cat(rule_->category);
 
             for(next = *rule_list;
                 0 != next;
@@ -806,6 +807,7 @@ namespace fltl {
         done:
 
             rule->is_deleted = false;
+            rule->category = cat;
 
             return rule;
         }
