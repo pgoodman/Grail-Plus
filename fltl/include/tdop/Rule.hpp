@@ -29,7 +29,8 @@ namespace fltl { namespace tdop {
         friend class detail::CategoryGenerator<AlphaT>;
         friend class detail::SymbolGenerator<AlphaT>;
         friend class detail::RuleGenerator<AlphaT>;
-        friend class detail::PatternGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT,true>;
+        friend class detail::PatternGenerator<AlphaT,false>;
 
         enum {
             INITIAL_RULE_UPPER_BOUND = -1,
@@ -115,7 +116,7 @@ namespace fltl { namespace tdop {
 
         /// constructor
         Rule(void) throw()
-            : ref_count(0U)
+            : ref_count(1U)
             , is_deleted(false)
             , category(0)
             , prev(0)

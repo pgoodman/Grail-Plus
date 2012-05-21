@@ -74,7 +74,7 @@ namespace grail { namespace io {
 
     /// implements printing of various types of CFG objects
     template <typename AlphaT>
-    class fprint_impl {
+    class fprint_cfg_impl {
     public:
 
         typedef fltl::CFG<AlphaT> cfg_type;
@@ -146,7 +146,7 @@ namespace grail { namespace io {
     /// print something out of a grammar
     template <typename AlphaT, typename ThingT>
     int fprint(FILE *ff, const fltl::CFG<AlphaT> &cfg, const ThingT thing) throw() {
-        return fprint_impl<AlphaT>::do_print(ff, cfg, thing);
+        return fprint_cfg_impl<AlphaT>::do_print(ff, cfg, thing);
     }
 
     /// print out a context-free grammar

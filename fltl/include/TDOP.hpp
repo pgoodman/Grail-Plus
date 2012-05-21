@@ -24,6 +24,8 @@
 #include "fltl/include/helper/UnsafeCast.hpp"
 #include "fltl/include/helper/Array.hpp"
 
+#include "fltl/include/mpl/If.hpp"
+
 #include "fltl/include/preprocessor/FORCE_INLINE.hpp"
 #include "fltl/include/preprocessor/STATIC_ASSERT.hpp"
 
@@ -101,7 +103,7 @@ namespace fltl {
             template <typename> class CategoryGenerator;
             template <typename> class SymbolGenerator;
             template <typename> class RuleGenerator;
-            template <typename> class PatternGenerator;
+            template <typename,const bool> class PatternGenerator;
         }
 
         // forward eclaractions
@@ -121,9 +123,11 @@ namespace fltl {
         template <typename> class AnyOperator;
         template <typename> class AnyOperatorString;
         template <typename> class AnyOperatorStringOfLength;
-        template <typename> class Pattern;
 
+        template <typename> class Pattern;
         template <typename> class OpaquePattern;
+
+        template <typename> class Generator;
     }
 }
 
@@ -167,7 +171,8 @@ namespace fltl {
         friend class tdop::detail::CategoryGenerator<AlphaT>;
         friend class tdop::detail::SymbolGenerator<AlphaT>;
         friend class tdop::detail::RuleGenerator<AlphaT>;
-        friend class tdop::detail::PatternGenerator<AlphaT>;
+        friend class tdop::detail::PatternGenerator<AlphaT, true>;
+        friend class tdop::detail::PatternGenerator<AlphaT, false>;
 
         /// extract the traits
         typedef trait::Alphabet<AlphaT> traits_type;
@@ -263,6 +268,9 @@ namespace fltl {
         detail::AlphaMap<AlphaT, symbol_type> symbol_map_inv;
         unsigned num_symbols_;
 
+        /// related to rules
+        unsigned num_rules_;
+
         /// related to all symbols, categories, and variable symbols
         mutable const char *auto_symbol_upper_bound;
 
@@ -291,6 +299,9 @@ namespace fltl {
             , symbol_map(256U)
             , symbol_map_inv()
             , num_symbols_(0U)
+
+            // related to rules
+            , num_rules_(0U)
 
             // related to all symbols
             , auto_symbol_upper_bound("$0")
@@ -456,11 +467,10 @@ namespace fltl {
 
             internal_rule_type rule_;
             rule_.category = cat;
-            rule_.prev = 0;
-            rule_.next = 0;
             rule_.upper_bound = internal_rule_type::INITIAL_RULE_UPPER_BOUND;
             rule_.str = str;
-            return rule_type(add_rule(&rule_, &(cat->first_initial_rule)));
+            rule_type ret(add_rule(&rule_, &(cat->first_initial_rule)));
+            return ret;
         }
 
         /// add an extension rule into a TDOP category
@@ -476,11 +486,10 @@ namespace fltl {
 
             internal_rule_type rule_;
             rule_.category = cat;
-            rule_.prev = 0;
-            rule_.next = 0;
             rule_.upper_bound = static_cast<int32_t>(upper_bound);
             rule_.str = str;
-            return rule_type(add_rule(&rule_, &(cat->first_extension_rule)));
+            rule_type ret(add_rule(&rule_, &(cat->first_extension_rule)));
+            return ret;
         }
 
         /// remove a rule
@@ -533,6 +542,10 @@ namespace fltl {
             return num_symbols_;
         }
 
+        unsigned num_rules(void) const throw() {
+            return num_rules_;
+        }
+
         unsigned num_rules(category_type cat) const throw();
         unsigned num_initial_rules(category_type cat) const throw();
         unsigned num_extension_rules(category_type cat) const throw();
@@ -566,6 +579,103 @@ namespace fltl {
             gen.match_ = rule_generator::match;
             gen.reset_ = rule_generator::reset;
             gen.free_ = rule_generator::free;
+            return gen;
+        }
+
+        /// pattern-based generators
+        generator_type search(
+            tdop::Unbound<AlphaT,tdop::rule_tag> rule,
+            pattern_type &pattern
+        ) throw() {
+            typedef tdop::detail::PatternGenerator<AlphaT,false> pattern_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.binder.rule = rule.expr;
+            gen.bind = pattern.bind;
+            gen.pattern = pattern.pattern;
+
+            tdop::detail::PatternData<AlphaT>::incref(gen.pattern);
+
+            gen.match_ = pattern_generator::match;
+            gen.reset_ = pattern_generator::reset;
+            gen.free_ = pattern_generator::free;
+            return gen;
+        }
+
+        /// pattern-based generators
+        generator_type search(
+            pattern_type &pattern
+        ) throw() {
+            typedef tdop::detail::PatternGenerator<AlphaT,false> pattern_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.bind = pattern.bind;
+            gen.pattern = pattern.pattern;
+
+            tdop::detail::PatternData<AlphaT>::incref(gen.pattern);
+
+            gen.match_ = pattern_generator::match;
+            gen.reset_ = pattern_generator::reset;
+            gen.free_ = pattern_generator::free;
+            return gen;
+        }
+
+        /// pattern-based generators
+        template <
+            typename A,
+            typename B, // category tag
+            typename C,
+            const bool D
+        >
+        generator_type search(
+            tdop::Unbound<AlphaT,tdop::rule_tag> rule,
+            const tdop::detail::PatternBuilder<A,B,C,D> pattern
+        ) throw() {
+            typedef tdop::detail::PatternGenerator<
+                AlphaT,
+                mpl::IfTypesEqual<B,tdop::category_tag>::RESULT ||
+                mpl::IfTypesEqual<B,tdop::category_lb_tag>::RESULT
+            > pattern_generator;
+
+            generator_type gen;
+            gen.machine = this;
+            gen.binder.rule = rule.expr;
+            gen.bind = pattern::DestructuringBind<A,B,C>::bind;
+            gen.pattern = pattern.pattern;
+
+            tdop::detail::PatternData<AlphaT>::incref(gen.pattern);
+
+            gen.match_ = pattern_generator::match;
+            gen.reset_ = pattern_generator::reset;
+            gen.free_ = pattern_generator::free;
+            return gen;
+        }
+
+        /// pattern-based generators
+        template <
+            typename A,
+            typename B, // category tag
+            typename C,
+            const bool D
+        >
+        generator_type search(
+            const tdop::detail::PatternBuilder<A,B,C,D> pattern
+        ) throw() {
+            typedef tdop::detail::PatternGenerator<
+                AlphaT,
+                mpl::IfTypesEqual<B,tdop::category_tag>::RESULT ||
+                mpl::IfTypesEqual<B,tdop::category_lb_tag>::RESULT
+            > pattern_generator;
+            generator_type gen;
+            gen.machine = this;
+            gen.bind = pattern::DestructuringBind<A,B,C>::bind;
+            gen.pattern = pattern.pattern;
+
+            tdop::detail::PatternData<AlphaT>::incref(gen.pattern);
+
+            gen.match_ = pattern_generator::match;
+            gen.reset_ = pattern_generator::reset;
+            gen.free_ = pattern_generator::free;
             return gen;
         }
 
@@ -618,7 +728,7 @@ namespace fltl {
 
         /// add a parser rule into a TDOP cateogory. this is used for both
         /// initial and extension rules.
-        static internal_rule_type *add_rule(
+        internal_rule_type *add_rule(
             internal_rule_type *rule_,
             internal_rule_type **rule_list
         ) throw() {
@@ -645,6 +755,8 @@ namespace fltl {
                     goto done;
                 }
             }
+
+            ++num_rules_;
 
             // rule is either at the end, or there are no rules
             rule = rule_allocator.allocate();

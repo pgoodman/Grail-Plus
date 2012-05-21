@@ -899,6 +899,7 @@ namespace fltl { namespace pattern {
         }
     },
     {
+
         tdop::OpaqueCategory<AlphaT> cat(rule.category());
         tdop::OperatorString<AlphaT> str;
         unsigned upper_bound(0);
@@ -957,6 +958,7 @@ namespace fltl { namespace tdop { namespace detail {
     class PatternBuilder {
     private:
 
+        friend class TDOP<AlphaT>;
         friend class AnyOperator<AlphaT>;
         friend class AnyOperatorString<AlphaT>;
         friend class OpaqueCategory<AlphaT>;
@@ -1151,6 +1153,8 @@ namespace fltl { namespace tdop { namespace detail {
         friend class Pattern<AlphaT>;
         friend class Operator<AlphaT>;
         friend class OpaquePattern<AlphaT>;
+        friend class Generator<AlphaT>;
+        friend class TDOP<AlphaT>;
 
         friend class AnyOperator<AlphaT>;
         friend class AnyOperatorString<AlphaT>;
@@ -1158,6 +1162,9 @@ namespace fltl { namespace tdop { namespace detail {
         friend class Unbound<AlphaT,category_tag>;
         friend class Unbound<AlphaT,category_lb_tag>;
         friend class Bound<AlphaT,category_lb_tag>;
+
+        friend class detail::PatternGenerator<AlphaT,true>;
+        friend class detail::PatternGenerator<AlphaT,false>;
 
         template <typename, typename, typename, const bool>
         friend class PatternBuilder;

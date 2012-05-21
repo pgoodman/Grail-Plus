@@ -16,6 +16,8 @@ namespace fltl { namespace tdop {
     class OpaquePattern {
     private:
 
+        friend class TDOP<AlphaT>;
+
         typedef detail::PatternData<AlphaT> data_type;
         typedef OpaquePattern<AlphaT> self_type;
 

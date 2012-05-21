@@ -17,7 +17,8 @@ namespace fltl { namespace tdop {
 
         friend class TDOP<AlphaT>;
         friend class detail::RuleGenerator<AlphaT>;
-        friend class detail::PatternGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT,true>;
+        friend class detail::PatternGenerator<AlphaT,false>;
 
         FLTL_TDOP_USE_TYPES(TDOP<AlphaT>);
 
@@ -51,13 +52,13 @@ namespace fltl { namespace tdop {
 
         /// assignment
         rule_type &operator=(const rule_type &that) throw() {
-            if(&that == this) {
+            if(rule == that.rule) {
                 return *this;
             }
 
+            Rule<AlphaT>::incref(that.rule);
             Rule<AlphaT>::decref(rule);
             rule = that.rule;
-            Rule<AlphaT>::incref(rule);
             return *this;
         }
 

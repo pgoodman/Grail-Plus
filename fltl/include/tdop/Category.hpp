@@ -25,7 +25,8 @@ namespace fltl { namespace tdop {
         friend class detail::CategoryGenerator<AlphaT>;
         friend class detail::SymbolGenerator<AlphaT>;
         friend class detail::RuleGenerator<AlphaT>;
-        friend class detail::PatternGenerator<AlphaT>;
+        friend class detail::PatternGenerator<AlphaT,true>;
+        friend class detail::PatternGenerator<AlphaT,false>;
 
         typedef Category<AlphaT> self_type;
 

@@ -125,7 +125,7 @@ namespace fltl { namespace tdop {
                 return false;
             }
 
-            cat = term.val;
+            cat.val = term.val;
 
             return true;
         }

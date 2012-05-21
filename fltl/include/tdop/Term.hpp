@@ -77,6 +77,23 @@ namespace fltl { namespace tdop {
             return *this;
         }
 
+        /// extractiong/matching
+        bool match(category_type &that) const throw() {
+            if(is_category()) {
+                that.val = val;
+                return true;
+            }
+            return false;
+        }
+
+        bool match(symbol_type &that) const throw() {
+            if(is_symbol()) {
+                that.val = val;
+                return true;
+            }
+            return false;
+        }
+
         /// type checking
         bool is_category(void) const throw() {
             return 0 < val;
