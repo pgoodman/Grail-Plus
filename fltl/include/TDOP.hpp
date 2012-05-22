@@ -319,7 +319,7 @@ namespace fltl {
         /// destructor
         ~TDOP(void) throw() {
 
-            // clear out all categories
+            // remove all categories
             for(uint32_t i(0U); i < next_category_id; ++i) {
                 internal_category_type *&cat(category_map[i]);
                 if(0 != cat) {
@@ -328,6 +328,16 @@ namespace fltl {
                 }
             }
 
+            // remove all deleted categories
+            for(internal_category_type *cat(unused_categories), *next(0);
+                0 != cat;
+                cat = next) {
+
+                next = helper::unsafe_cast<internal_category_type *>(cat->name);
+                internal_category_type::decref(cat);
+            }
+
+            unused_categories = 0;
             auto_symbol_upper_bound = 0;
         }
 
@@ -416,7 +426,10 @@ namespace fltl {
 
             // free list is non-empty
             } else {
-                unused_categories = cat->next;
+                unused_categories = helper::unsafe_cast<
+                    internal_category_type *
+                >(cat->name);
+
                 cat_id = cat->number;
                 category_map.set(cat_id, cat);
             }
@@ -451,8 +464,37 @@ namespace fltl {
             return cat_;
         }
 
-        void remove_category(category_type cat) throw(); // TODO
-        void unsafe_remove_category(category_type cat) throw(); // TODO
+        void remove_category(category_type cat_) throw() {
+            // TODO
+
+            unsafe_remove_category(cat_);
+        }
+        void unsafe_remove_category(category_type cat_) throw() {
+            internal_category_type *cat(find_category(cat_));
+            assert(0 != cat);
+
+            // remove this category's name
+            if(0 != cat->name) {
+                named_category_map.erase(cat->name);
+                trait::Alphabet<const char *>::destroy(cat->name);
+                cat->name = 0;
+            }
+
+            // remove from category map
+            internal_category_type *null(0);
+            category_map.set(cat->number, null);
+
+            // mark as deleted
+            cat->is_deleted = true;
+            cat->delete_rules();
+
+            // move into unused categories list; where the category name is
+            // overloaded to be a next pointer
+            *(helper::unsafe_cast<
+                internal_category_type **
+            >(&(cat->name))) = unused_categories;
+            unused_categories = cat;
+        }
 
         /// add an initial rule into a TDOP category
         const rule_type add_initial_rule(

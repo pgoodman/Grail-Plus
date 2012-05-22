@@ -155,9 +155,19 @@ namespace fltl { namespace tdop { namespace detail {
                 gen->category = next;
             }
 
-            if(0 == gen->category) {
-                gen->cursor.symbol = 0; // signal that we're at the end
-                return false;
+            // skip over deleted categories
+            for(;;) {
+                if(0 == gen->category) {
+                    gen->cursor.symbol = 0; // signal that we're at the end
+                    return false;
+                }
+
+                if(gen->category->is_deleted) {
+                    gen->category = gen->category->next;
+                    continue;
+                }
+
+                break;
             }
 
             OpaqueCategory<AlphaT> cat(gen->category);
@@ -284,16 +294,20 @@ namespace fltl { namespace tdop { namespace detail {
 
             for(; 0 != cat; cat = next_cat) {
                 G( printf("curr::cat = %s\n", cat->name); )
+
                 next_cat = cat->next;
-                for(; 0 != rule; rule = next_rule) {
-                    next_rule = next_cat_rule(cat, rule);
 
-                    if(rule->is_deleted) {
-                        continue;
+                if(!cat->is_deleted) {
+                    for(; 0 != rule; rule = next_rule) {
+                        next_rule = next_cat_rule(cat, rule);
 
-                    // we found a rule
-                    } else {
-                        goto found_rule;
+                        if(rule->is_deleted) {
+                            continue;
+
+                        // we found a rule
+                        } else {
+                            goto found_rule;
+                        }
                     }
                 }
 
@@ -323,50 +337,6 @@ namespace fltl { namespace tdop { namespace detail {
             }
 
             return true;
-
-            /*
-            category_type *next_cat(0);
-            rule_type *next_rule(0);
-
-            for(; 0 != cat; cat = next_cat) {
-
-                next_cat = cat->next;
-
-                for(; 0 != rule; rule = next_rule) {
-                    next_rule = next_cat_rule(cat, rule);
-
-                    if(rule->is_deleted) {
-                        rule_type::decref(rule);
-
-                        // try the next rule
-                        if(0 != next_rule) {
-                            rule_type::incref(next_rule);
-
-                        // try the next category
-                        } else {
-                            break;
-                        }
-                    } else {
-                        return true;
-                    }
-                }
-
-                category_type::decref(cat);
-
-                if(0 != next_cat) {
-                    category_type::incref(next_cat);
-                    rule = first_rule(next_cat);
-                    continue;
-                }
-
-                // can't generate any further
-                signal_end(cat, rule);
-                return false;
-            }
-
-            // there are no categories in the machine
-            signal_end(cat, rule);
-            return false;*/
         }
 
         /// move to any next rule; might not be a valid rule. Assumes that cat

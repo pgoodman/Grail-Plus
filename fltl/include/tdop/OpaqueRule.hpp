@@ -105,13 +105,17 @@ namespace fltl { namespace tdop {
             return false;
         }
 
-        /// check for equality
+        /// comparison
         bool operator==(const rule_type &that) const throw() {
             return rule == that.rule;
         }
 
         bool operator!=(const rule_type &that) const throw() {
             return rule != that.rule;
+        }
+
+        bool operator<(const rule_type &that) const throw() {
+            return rule < that.rule;
         }
 
         /// status checking

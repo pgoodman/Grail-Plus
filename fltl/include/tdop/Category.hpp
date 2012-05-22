@@ -46,7 +46,16 @@ namespace fltl { namespace tdop {
         unsigned num_initial_rules;
         unsigned num_extension_rules;
 
+        /// name of the category, might be undefined until it is asked
+        /// for
+        ///
+        /// !!! when deleted, this is used for chaining together categories
+        ///     in the unused category list so that category numbers can be
+        ///     reused.
         const char *name;
+
+        /// is this category deleted?
+        bool is_deleted;
 
         static helper::BlockAllocator<self_type> allocator;
 
@@ -69,17 +78,9 @@ namespace fltl { namespace tdop {
             }
         }
 
-    public:
-
-        Category(void) throw()
-            : ref_count(1U)
-        { }
-
-        ~Category(void) throw() {
-            if(0 != name) {
-                trait::Alphabet<const char *>::destroy(name);
-                name = 0;
-            }
+        /// delete the rules of a TDOP machine
+        /// !!! this deletes the rules, but does not unlink them.
+        void delete_rules(void) throw() {
 
             // clear out the initial rules
             for(Rule<AlphaT> *rule(first_initial_rule), *next_rule(0);
@@ -100,6 +101,36 @@ namespace fltl { namespace tdop {
                 rule->is_deleted = true;
                 Rule<AlphaT>::decref(rule);
             }
+        }
+
+        /// relink the TDOP machine's category list
+        void relink(void) throw() {
+
+            // re-link the category chains
+            if(0 != prev) {
+                prev->next = next;
+            }
+
+            if(0 != next) {
+                next->prev = prev;
+            }
+        }
+
+    public:
+
+        Category(void) throw()
+            : ref_count(1U)
+            , is_deleted(false)
+        { }
+
+        ~Category(void) throw() {
+            if(0 != name) {
+                trait::Alphabet<const char *>::destroy(name);
+                name = 0;
+            }
+
+            relink();
+            delete_rules();
 
             first_initial_rule = 0;
             first_extension_rule = 0;

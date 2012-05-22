@@ -678,6 +678,9 @@ namespace grail { namespace cli {
             io::fprint(stdout, cfg);
             fprintf(stdout, "----------------------------------------\n");
 
+            io::fprint(stdout, tdop);
+            fprintf(stdout, "----------------------------------------\n");
+
             determinize(tdop);
 
             io::fprint(ff, tdop);
@@ -739,10 +742,13 @@ namespace grail { namespace cli {
                 (~C) --->* (~prefix) + (*(~pred)) + (~sym) + (~suffix)
             ));
             for(; initial_rules.match_next(); ) {
-                tdop.remove_rule(R);
+                /*tdop.remove_rule(R);
                 if(sym == pred) {
                     changed = true;
                     tdop.add_initial_rule(C, prefix + sym + suffix);
+                }*/
+                if(sym != pred) {
+                    tdop.remove_rule(R);
                 }
             }
 
@@ -752,10 +758,13 @@ namespace grail { namespace cli {
                 (~C)[upper_bound] --->* (~prefix) + (*(~pred)) + (~sym) + (~suffix)
             ));
             for(; extension_rules.match_next(); ) {
-                tdop.remove_rule(R);
+                /*tdop.remove_rule(R);
                 if(sym == pred) {
                     changed = true;
                     tdop.add_extension_rule(C, upper_bound, prefix + sym + suffix);
+                }*/
+                if(sym != pred) {
+                    tdop.remove_rule(R);
                 }
             }
 
@@ -769,11 +778,12 @@ namespace grail { namespace cli {
             tdop_operator_string_type prefix;
 
             for(unsigned i(0); i < ops.length(); ++i) {
-                if(ops[i].is_category()) {
+                tdop_symbol_type sym;
+                if(!ops[i].match(sym)) {
                     break;
                 }
 
-                prefix = prefix + ops[i];
+                prefix = prefix + *sym;
             }
 
             return prefix;
@@ -788,7 +798,7 @@ namespace grail { namespace cli {
             tdop_category_type C;
             tdop_category_type D;
 
-            tdop_operator_type first;
+            tdop_operator_type leading_cat;
 
             tdop_operator_string_type suffix;
             tdop_operator_string_type prefix;
@@ -798,7 +808,7 @@ namespace grail { namespace cli {
 
             tdop_generator_type extension_rules(tdop.search(
                 ~R,
-                (~C)[upper_bound] --->* (~first) + (~suffix)
+                (~C)[upper_bound] --->* (~leading_cat) + (~suffix)
             ));
 
             tdop_generator_type related_initial_rules(tdop.search(
@@ -806,7 +816,7 @@ namespace grail { namespace cli {
             ));
 
             for(extension_rules.rewind(); extension_rules.match_next(); ) {
-                if(!first.match(D)) {
+                if(!leading_cat.match(D)) {
                     continue;
                 }
 
@@ -814,7 +824,47 @@ namespace grail { namespace cli {
                 tdop.remove_rule(R);
 
                 for(related_initial_rules.rewind(); related_initial_rules.match_next(); ) {
-                    tdop.add_initial_rule(C, longest_predicate_prefix(prefix) + suffix);
+                    tdop.add_extension_rule(C, upper_bound, longest_predicate_prefix(prefix) + leading_cat + suffix);
+                }
+            }
+
+            return changed;
+        }
+
+        /// split common prefixes of initial rules by using a single predicate
+        static bool split_initial_common_prefixes(tdop_tdop_type &tdop) throw() {
+            bool changed(false);
+            char name[256] = {'\0'};
+
+            tdop_rule_type R;
+            tdop_symbol_type S;
+            tdop_category_type C;
+            tdop_operator_string_type suffix;
+
+            tdop_generator_type categories(tdop.search(~C));
+            tdop_generator_type symbols(tdop.search(~S));
+            tdop_generator_type initials(tdop.search(~R, C --->* S + (~suffix)));
+            tdop_generator_type initial_predicates(tdop.search(~R, C --->* (*S) + (~suffix)));
+
+            for(; categories.match_next(); ) {
+                for(symbols.rewind(); symbols.match_next(); ) {
+                    std::set<tdop_rule_type> rules;
+
+                    for(initials.rewind(); initials.match_next(); ) {
+                        rules.insert(R);
+                    }
+
+                    for(initial_predicates.rewind(); initial_predicates.match_next(); ) {
+                        rules.insert(R);
+                    }
+
+                    if(1 >= rules.size()) {
+                        continue;
+                    }
+
+                    // make a new category that extends this one by a symbol
+                    sprintf(name, "%s$%u", tdop.get_name(C), S.number());
+                    tdop_category_type split(tdop.get_category(name));
                 }
             }
 
@@ -826,7 +876,12 @@ namespace grail { namespace cli {
                 changed = false;
                 changed = determinize_initial_pivots(tdop) || changed;
 
+                // canonicalize the TDOP machine
                 while(remove_bad_symbol_predicates(tdop)) {
+                    changed = true;
+                }
+
+                while(split_initial_common_prefixes(tdop)) {
                     changed = true;
                 }
             }
