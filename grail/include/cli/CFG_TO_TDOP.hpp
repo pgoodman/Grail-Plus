@@ -19,13 +19,16 @@
 
 #include "fltl/include/TDOP.hpp"
 
+#include "grail/include/io/CommandLineOptions.hpp"
+#include "grail/include/io/fread_cfg.hpp"
+#include "grail/include/io/fprint_tdop.hpp"
+
 #include "grail/include/algorithm/CFG_REMOVE_EPSILON.hpp"
 #include "grail/include/algorithm/CFG_REMOVE_UNITS.hpp"
 #include "grail/include/algorithm/CFG_REMOVE_USELESS.hpp"
 
-#include "grail/include/io/CommandLineOptions.hpp"
-#include "grail/include/io/fread_cfg.hpp"
-#include "grail/include/io/fprint_tdop.hpp"
+#include "grail/include/algorithm/TDOP_RENUMBER.hpp"
+#include "grail/include/algorithm/TDOP_MINIMIZE_WEAK.hpp"
 
 namespace grail { namespace cli {
 
@@ -535,112 +538,6 @@ namespace grail { namespace cli {
                 }
             }
 
-            /*
-
-            // look for productions P of the form V --> __ U W __, and convert
-            // them to V --> __ U c W __ where c is a terminal representing a
-            // followed-by constraint, i.e. c is a terminal left corner of W.
-            //
-            // without adding a constraint (right now, lookahead is limited to
-            // 1 terminal), this type of rule could never be matched as there
-            // is nothing (i.e. no terminal) to use as an anchoring point for
-            // the
-            std::map<cfg_terminal_type, cfg_terminal_type> followed_by_constraint;
-            std::map<cfg_terminal_type, cfg_terminal_type> reverse_followed_by_constraint;
-            remove_non_terminal_pairs(cfg,
-                followed_by_constraint,
-                reverse_followed_by_constraint
-            );
-
-            io::fprint(stdout, cfg);
-            fprintf(stdout, "----------------------------------------\n");
-
-            // for each variable, generate a variable terminal. then replace the
-            // left corners of each production which have the variable with the
-            // variable terminal.
-            std::map<unsigned, cfg_terminal_type> order_reps;
-            std::map<cfg_variable_type, bool> is_left_recursive;
-
-            for(lc_vars.rewind(); lc_vars.match_next(); ) {
-
-                cfg_terminal_type U_rep;
-
-                if(V == U) {
-                    is_left_recursive[V] = true;
-                }
-
-                const unsigned ord(order[U]);
-                if(order_reps.count(ord)) {
-                    U_rep = order_reps[ord];
-                } else {
-                    U_rep = cfg.add_variable_terminal();
-                    order[U_rep] = ord;
-                    order_reps[ord] = U_rep;
-                }
-
-                cfg.remove_production(P);
-                cfg.add_production(V, U_rep + P.symbols().substring(1));
-            }
-
-            // remove now unreachable variables
-            algorithm::CFG_REMOVE_USELESS<AlphaT>::run(cfg);
-
-            cfg_generator_type prods(cfg.search(V --->* (~symbols)));
-            */
-            /*
-            // print out the TDOP machine
-            for(vars.rewind(); vars.match_next(); ) {
-                io::fprint(ff, cfg, V);
-                fprintf(ff, "(n) {\n");
-
-                const unsigned increment(is_left_recursive[V] ? 1U : 0U);
-
-                for(prods.rewind(); prods.match_next(); ) {
-                    fprintf(ff, "    ");
-
-                    for(unsigned i(0); i < symbols.length(); ++i) {
-
-                        if(0 < i) {
-                            fprintf(ff, " ");
-
-                        // left denotation
-                        } else if(order.count(symbols[0])) {
-                            fprintf(ff, "%u", order[symbols[i]] + increment);
-                            continue;
-                        }
-
-                        // variable
-                        if(symbols[i].is_variable()) {
-                            io::fprint(ff, cfg, symbols[i]);
-
-                            // this variable is a left corner of V
-                            if(order.count(symbols[i])) {
-                                fprintf(ff, "(%u)", order[symbols[i]]);
-
-                            // not a left corner, thus no LC info.
-                            } else {
-                                fprintf(ff, "(n)");
-                            }
-
-                        // terminal, variable terminal. might be a followed-by
-                        // constraint
-                        } else {
-                            cfg_terminal_type c(symbols[i]);
-                            if(reverse_followed_by_constraint.count(c)) {
-                                fprintf(ff, "?");
-                                io::fprint(ff, cfg, reverse_followed_by_constraint[c]);
-                            } else {
-                                io::fprint(ff, cfg, c);
-                            }
-                        }
-                    }
-                    fprintf(ff, ";\n");
-                }
-
-                fprintf(ff, "}\n");
-            }
-            */
-
             // find left recursive variables; this affects the ordering
             std::map<cfg_variable_type, bool> is_left_recursive;
             for(lc_vars.rewind(); lc_vars.match_next(); ) {
@@ -681,7 +578,12 @@ namespace grail { namespace cli {
             io::fprint(stdout, tdop);
             fprintf(stdout, "----------------------------------------\n");
 
-            determinize(tdop);
+            algorithm::TDOP_RENUMBER<AlphaT>::run(tdop);
+
+            io::fprint(stdout, tdop);
+            fprintf(stdout, "----------------------------------------\n");
+
+            algorithm::TDOP_MINIMIZE_WEAK<AlphaT>::run(tdop);
 
             io::fprint(ff, tdop);
         }
@@ -722,6 +624,8 @@ namespace grail { namespace cli {
             }
             return ops;
         }
+
+#if 0
 
         /// remove unnecessary symbol predicates and rules containing symbol
         /// predicates that could never be matched.
@@ -871,6 +775,7 @@ namespace grail { namespace cli {
             return changed;
         }
 
+
         static void determinize(tdop_tdop_type &tdop) throw() {
             for(bool changed(true); changed; ) {
                 changed = false;
@@ -886,6 +791,208 @@ namespace grail { namespace cli {
                 }
             }
         }
+
+#endif
+#if 0
+        /// an instance of a category
+        struct category_instance {
+        public:
+
+            typedef std::set<
+                std::pair<unsigned, tdop_operator_string_type>
+            > extension_rule_set_type;
+
+            tdop_category_type category;
+            unsigned lower_bound;
+
+            std::set<tdop_operator_string_type> initial_rules;
+            extension_rule_set_type extension_rules;
+
+            /// refine a set of extension rules by a lower bound, and update a set
+            /// of operator strings to contain all operator strings of those rules.
+            void refine_extension_rules(
+                std::set<tdop_operator_string_type> &out,
+                unsigned max_lower_bound
+            ) const throw() {
+                typename extension_rule_set_type::iterator it(extension_rules.begin());
+                for(; it != extension_rules.end(); ++it) {
+                    if(max_lower_bound < it->first) {
+                        out.insert(it->second);
+                    }
+                }
+            }
+
+            /// equivalence of two parser categories is based on strict
+            /// equivalence of their initial rules, and weak equivalence of their
+            /// extension rules.
+            bool operator==(const category_instance &that) const throw() {
+
+                // take the most restricted lower bound
+                unsigned max_lower_bound(lower_bound < that.lower_bound ? that.lower_bound : lower_bound);
+
+                // initial rules must be equivalent
+                if(initial_rules != that.initial_rules) {
+                    return false;
+                }
+
+                std::set<tdop_operator_string_type> e_rules;
+                std::set<tdop_operator_string_type> that_e_rules;
+
+                // extract out all operator strings of the extension rules. at
+                // this point, their left binding power is not important.
+                refine_extension_rules(e_rules, max_lower_bound);
+                that.refine_extension_rules(that_e_rules, max_lower_bound);
+
+                return e_rules == that_e_rules;
+            }
+        };
+
+        /// instantiate all reachable categories within an operator string, and
+        /// return the fully instantiated operator string
+        static tdop_operator_string_type instantiate_ops(
+            tdop_tdop_type &tdop,
+            std::map<std::pair<tdop_category_type, unsigned>, category_instance *> &instances,
+            unsigned inherited_lower_bound,
+            const tdop_operator_string_type &ops_
+        ) throw() {
+            tdop_operator_string_type ops;
+            tdop_category_type C;
+
+            for(unsigned i(0); i < ops_.length(); ++i) {
+                unsigned lower_bound(0);
+                if(ops_[i].is_symbol()) {
+                    ops = ops + ops_[i];
+                } else if(ops_[i].match(C, lower_bound)) {
+                    instantiate(tdop, instances, C, lower_bound);
+                    ops = ops + ops_[i];
+                } else if(ops_[i].match(C)) {
+                    instantiate(tdop, instances, C, inherited_lower_bound);
+                    ops = ops + C(inherited_lower_bound);
+                } else {
+                    assert(false);
+                }
+            }
+
+            return ops;
+        }
+
+        /// recursively instantiate all (reachable) categories
+        static category_instance *instantiate(
+            tdop_tdop_type &tdop,
+            std::map<std::pair<tdop_category_type, unsigned>, category_instance *> &instances,
+            tdop_category_type C,
+            unsigned lower_bound
+        ) throw() {
+            category_instance *&inst(instances[std::make_pair(C, lower_bound)]);;
+            if(0 != inst) {
+                return inst;
+            }
+
+            printf("instantiating %s(%u)\n", tdop.get_name(C), lower_bound);
+
+            inst = new category_instance;
+            inst->category = C;
+            inst->lower_bound = lower_bound;
+
+            unsigned upper_bound(0U);
+            tdop_operator_string_type ops;
+            tdop_generator_type initial_rules(tdop.search(C --->* (~ops)));
+            tdop_generator_type extension_rules(tdop.search(C[upper_bound] --->* (~ops)));
+
+            for(; initial_rules.match_next(); ) {
+                inst->initial_rules.insert(
+                    instantiate_ops(tdop, instances, lower_bound, ops)
+                );
+            }
+
+            for(; extension_rules.match_next(); ) {
+                if(lower_bound < upper_bound) {
+                    inst->extension_rules.insert(std::make_pair(
+                        upper_bound,
+                        instantiate_ops(tdop, instances, lower_bound, ops)
+                    ));
+                }
+            }
+
+            return inst;
+        }
+
+        /// refine an equivalence relation
+        static bool refine_equiv_relation(tdop_tdop_type &tdop) throw() {
+
+            typedef std::map<
+                std::pair<tdop_category_type, unsigned>,
+                category_instance *
+            > instance_map_type;
+            typedef std::list<category_instance *> instance_list_type;
+
+            instance_map_type instance_map;
+
+            category_instance *root(instantiate(
+                tdop, instance_map, tdop.get_initial_category(), 0
+            ));
+
+
+
+            instance_list_type instances;
+            typename instance_map_type::iterator instance_map_it(instance_map.begin());
+            for(; instance_map_it != instance_map.end(); ++instance_map_it) {
+                if(root != instance_map_it->second) {
+                    instances.push_back(instance_map_it->second);
+                }
+            }
+
+            bool changed(false);
+
+            //std::map<category_instance *, instance_list_type > equivalences;
+            std::map<tdop_category_type, tdop_category_type> renaming;
+
+            instances.push_front(root);
+
+            for(; !instances.empty(); ) {
+                category_instance *curr(instances.front());
+                instances.pop_front();
+
+                if(0 == curr) {
+                    continue;
+                }
+
+                instance_list_type eq_list;
+                eq_list.push_back(curr);
+
+                printf("%s:\n", tdop.get_name(curr->category));
+
+                typename instance_list_type::iterator next_inst(instances.begin());
+                for(; next_inst != instances.end(); ++next_inst) {
+                    if(0 == *next_inst) {
+                        continue;
+                    } else if(*curr == *(*next_inst)) {
+                        changed = true;
+                        printf("%s == %s\n", tdop.get_name(curr->category), tdop.get_name((*next_inst)->category));
+                        eq_list.push_back(*next_inst);
+                        *next_inst = 0;
+                    } else {
+                        continue;
+                    }
+                }
+                printf("\n");
+
+                if(1U == eq_list.size()) {
+                    renaming[curr->category] = curr->category;
+                    continue;
+                }
+
+                // need to find the "maximal" equivalent category, i.e. the one
+                // with the most extension rules.
+                //
+                // for each extension rule, we need to find the maximal upper
+                // bound, and use it.
+            }
+
+
+            return changed;
+        }
+#endif
     };
 
     template <typename AlphaT>

@@ -137,6 +137,8 @@ namespace fltl { namespace tdop {
                 } else if(category->first_extension_rule == this) {
                     category->first_extension_rule = next;
                 }
+
+                Category<AlphaT>::decref(category);
             }
 
             if(0 != next) {

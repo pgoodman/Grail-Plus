@@ -170,6 +170,8 @@ namespace fltl { namespace tdop { namespace detail {
                 break;
             }
 
+            assert(!gen->category->is_deleted);
+
             OpaqueCategory<AlphaT> cat(gen->category);
             *(gen->binder.category) = cat;
 

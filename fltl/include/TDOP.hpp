@@ -195,7 +195,7 @@ namespace fltl {
         typedef TDOP<AlphaT> self_type;
 
         /// related to categories
-        internal_category_type *unused_categories;
+        std::vector<unsigned> unused_category_ids;
         uint32_t next_category_id;
         helper::Array<internal_category_type *> category_map;
         mutable detail::AlphaMap<const char *, category_type> named_category_map;
@@ -287,7 +287,7 @@ namespace fltl {
             : trait::Uncopyable()
 
             // related to categories
-            , unused_categories(0)
+            , unused_category_ids()
             , next_category_id(1U)
             , category_map(256U)
             , named_category_map()
@@ -319,25 +319,20 @@ namespace fltl {
         /// destructor
         ~TDOP(void) throw() {
 
+            internal_category_type *cat(find_category(0, 1));
+            internal_category_type *null(0);
+            resolve_links(cat, null);
+
             // remove all categories
-            for(uint32_t i(0U); i < next_category_id; ++i) {
-                internal_category_type *&cat(category_map[i]);
-                if(0 != cat) {
-                    internal_category_type::decref(cat);
-                    cat = 0;
-                }
-            }
+            for(internal_category_type *next(0); 0 != cat; cat = next) {
+                next = cat->next;
+                cat->prev = 0;
+                cat->next = 0;
 
-            // remove all deleted categories
-            for(internal_category_type *cat(unused_categories), *next(0);
-                0 != cat;
-                cat = next) {
-
-                next = helper::unsafe_cast<internal_category_type *>(cat->name);
                 internal_category_type::decref(cat);
             }
 
-            unused_categories = 0;
+            unused_category_ids.clear();
             auto_symbol_upper_bound = 0;
         }
 
@@ -346,6 +341,7 @@ namespace fltl {
         /// always zero.
         void set_initial_category(const category_type cat) throw() {
             start_category = find_category(cat);
+            assert(0 != start_category);
         }
 
         /// get the initial category
@@ -415,27 +411,25 @@ namespace fltl {
 
         /// add a new parser category to the TDOP machine.
         const category_type add_category(void) throw() {
-            internal_category_type *cat(unused_categories);
+            internal_category_type *cat(internal_category_type::allocate());
             uint32_t cat_id(0);
 
-            // need to allocate new one
-            if(0 == cat) {
-                cat = internal_category_type::allocate();
+            // need to allocate new one "id"
+            if(unused_category_ids.empty()) {
                 cat_id = next_category_id++;
                 category_map.append(cat);
 
-            // free list is non-empty
+            // we can re-use an old id
             } else {
-                unused_categories = helper::unsafe_cast<
-                    internal_category_type *
-                >(cat->name);
-
-                cat_id = cat->number;
+                cat_id = unused_category_ids.back();
+                unused_category_ids.pop_back();
                 category_map.set(cat_id, cat);
             }
 
             internal_category_type *prev(find_category(cat_id, -1));
             internal_category_type *next(find_category(cat_id, 1));
+
+            resolve_links(prev, next);
 
             cat->number = cat_id;
             cat->prev = prev;
@@ -447,10 +441,12 @@ namespace fltl {
             cat->name = 0;
 
             if(0 != prev) {
+                assert(prev->next == next);
                 prev->next = cat;
             }
 
             if(0 != next) {
+                assert(next->prev = prev);
                 next->prev = cat;
             }
 
@@ -483,17 +479,14 @@ namespace fltl {
             // remove from category map
             internal_category_type *null(0);
             category_map.set(cat->number, null);
+            unused_category_ids.push_back(cat->number);
 
             // mark as deleted
             cat->is_deleted = true;
             cat->delete_rules();
 
-            // move into unused categories list; where the category name is
-            // overloaded to be a next pointer
-            *(helper::unsafe_cast<
-                internal_category_type **
-            >(&(cat->name))) = unused_categories;
-            unused_categories = cat;
+            // "forget" the category
+            internal_category_type::decref(cat);
         }
 
         /// add an initial rule into a TDOP category
@@ -742,6 +735,45 @@ namespace fltl {
 
     private:
 
+        /// resolve unusual category links where deleted categories don't appear
+        /// when using find_category
+        void resolve_links(
+            internal_category_type *&prev,
+            internal_category_type *&next
+        ) throw() {
+
+            internal_category_type *cursor(0);
+
+            // both non-null, there might be deleted categories between them,
+            // so shift prev forward
+            if(0 != prev && 0 != next) {
+                for(cursor = prev->next; 0 != cursor && cursor->is_deleted; ) {
+                    prev = cursor;
+                    cursor = prev->next;
+                }
+
+                assert(prev->next == next);
+                assert(prev == next->prev);
+
+            // only next is non-null, there might be deleted categories after
+            // it, so move next forward
+            } else if(0 == prev && 0 != next) {
+                for(cursor = next->next; 0 != cursor && cursor->is_deleted; ) {
+                    next = cursor;
+                    cursor = prev->next;
+                }
+
+            // only prev is non-null, there might be deleted categories before
+            // it, so move prev backward
+            } else if(0 != prev && 0 == next) {
+                for(cursor = prev->prev; 0 != cursor && cursor->is_deleted; ) {
+                    prev = cursor;
+                    cursor = prev->prev;
+                }
+            }
+
+        }
+
         /// go find the next parser category in some direction (within the
         /// category map)
         internal_category_type *find_category(
@@ -845,6 +877,8 @@ namespace fltl {
             if(next == *rule_list) {
                 *rule_list = rule;
             }
+
+            internal_category_type::incref(rule->category);
 
         done:
 

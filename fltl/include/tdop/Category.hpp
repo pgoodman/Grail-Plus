@@ -47,11 +47,7 @@ namespace fltl { namespace tdop {
         unsigned num_extension_rules;
 
         /// name of the category, might be undefined until it is asked
-        /// for
-        ///
-        /// !!! when deleted, this is used for chaining together categories
-        ///     in the unused category list so that category numbers can be
-        ///     reused.
+        /// for.
         const char *name;
 
         /// is this category deleted?
@@ -74,6 +70,13 @@ namespace fltl { namespace tdop {
                 ptr->ref_count -= 1;
                 if(0 == ptr->ref_count) {
                     allocator.deallocate(ptr);
+
+                // if this category is deleted, and its refcount is 1, then
+                // no generator is currently using it and it's in the TDOP
+                // machine's unusued category list
+                } else if(ptr->is_deleted
+                       && 1 == ptr->ref_count) {
+                    ptr->relink();
                 }
             }
         }
@@ -124,13 +127,20 @@ namespace fltl { namespace tdop {
         { }
 
         ~Category(void) throw() {
+
+            assert(0 == ref_count);
+
             if(0 != name) {
                 trait::Alphabet<const char *>::destroy(name);
                 name = 0;
             }
 
-            relink();
+            //relink();
+
+            // ensure no recursive destruction
+            ++ref_count;
             delete_rules();
+            --ref_count;
 
             first_initial_rule = 0;
             first_extension_rule = 0;
