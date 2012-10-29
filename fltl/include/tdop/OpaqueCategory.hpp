@@ -72,6 +72,7 @@ namespace fltl { namespace tdop {
 
         const operator_type
         operator()(void) const throw() {
+            assert(this->is_valid());
             return operator_type(*this);
         }
 

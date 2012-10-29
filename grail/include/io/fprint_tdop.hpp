@@ -117,6 +117,30 @@ namespace grail { namespace io {
 
             return num;
         }
+
+        /// print out an operator string
+        static int do_print(
+            FILE *ff,
+            const tdop_type &tdop,
+            const rule_type rule
+        ) throw() {
+            int num(0);
+            if(!rule.is_valid()) {
+                return num;
+            }
+            num += do_print(ff, tdop, rule.category());
+            num += fprintf(ff, " :: ");
+            operator_string_type ops;
+            unsigned upper_bound(0U);
+
+            if(rule.match(upper_bound, ops)) {
+                num += fprintf(ff, "%u ", upper_bound);
+            } else {
+                rule.match(ops);
+            }
+
+            return num + do_print(ff, tdop, ops);
+        }
     };
 
     /// print something out of a TDOP machine

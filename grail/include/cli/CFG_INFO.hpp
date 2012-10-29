@@ -15,9 +15,10 @@
 
 #include "grail/include/io/CommandLineOptions.hpp"
 #include "grail/include/io/fread_cfg.hpp"
+#include "grail/include/io/fprint_cfg.hpp"
 
-#include "grail/include/cfg/compute_first_set.hpp"
 #include "grail/include/cfg/compute_null_set.hpp"
+#include "grail/include/cfg/compute_first_set.hpp"
 #include "grail/include/cfg/compute_follow_set.hpp"
 
 namespace grail { namespace cli {
@@ -68,6 +69,7 @@ namespace grail { namespace cli {
             io::option_type file(options[0U]);
             const char *file_name(file.value());
             FILE *fp(fopen(file_name, "r"));
+            FILE *out(stdout);
 
             if(0 == fp) {
                 options.error(
@@ -89,20 +91,83 @@ namespace grail { namespace cli {
                 io::option_type opt_null(options["null"]);
                 io::option_type opt_lead(options["lead"]);
 
-                bool need_first(false);
-                bool need_follow(false);
-                bool need_null(false);
+                bool need_first(false), print_first(false);
+                bool need_follow(false), print_follow(false);
+                bool need_null(false), print_null(false);
+
+                std::vector<bool> null_set;
+                std::vector<std::vector<bool> *> first_sets;
+                std::vector<std::vector<bool> *> follow_sets;
 
                 if(opt_first.is_valid()) {
                     need_first = need_null = true;
+                    print_first = true;
                 }
 
                 if(opt_follow.is_valid()) {
                     need_first = need_follow = need_null = true;
+                    print_follow = true;
                 }
 
                 if(opt_null.is_valid()) {
                     need_null = true;
+                    print_null = true;
+                }
+
+                if(need_null) {
+                    cfg::compute_null_set(cfg, null_set);
+                }
+
+                if(need_first) {
+                    cfg::compute_first_terminals(cfg, null_set, first_sets);
+                }
+
+                if(need_follow) {
+                    cfg::compute_follow_set(cfg, null_set, first_sets, follow_sets);
+                }
+
+                variable_type V;
+                terminal_type T;
+                generator_type V_gen(cfg.search(~V));
+                generator_type T_gen(cfg.search(~T));
+
+                if(print_null) {
+                    fprintf(out, "NULL Set:\n");
+                    for(; V_gen.match_next(); ) {
+                        if(null_set[V.number()]) {
+                            fprintf(out, "\t");
+                            io::fprint(out, cfg, V);
+                            fprintf(out, "\n");
+                        }
+                    }
+                    fprintf(out, "\n");
+                }
+
+                const char *set_names[] = {"FIRST", "FOLLOW"};
+                std::vector<std::vector<bool> *> *sets[] = {
+                    print_first ? &first_sets : 0,
+                    print_follow ? &follow_sets : 0
+                };
+
+                for(int i = 0; i < 2; ++i) {
+                    if(!sets[i]) {
+                        continue;
+                    }
+                    fprintf(out, "%s Sets:\n", set_names[i]);
+                    for(V_gen.rewind(); V_gen.match_next(); ) {
+                        std::vector<bool> &set(*((*(sets[i]))[V.number()]));
+                        fprintf(out, "\t%s(", set_names[i]);
+                        io::fprint(out, cfg, V);
+                        fprintf(out, ")\n");
+                        for(T_gen.rewind(); T_gen.match_next(); ) {
+                            if(set[T.number()]) {
+                                fprintf(out, "\t\t");
+                                io::fprint(out, cfg, T);
+                                fprintf(out, "\n");
+                            }
+                        }
+                    }
+                    fprintf(out, "\n");
                 }
 
                 // TODO

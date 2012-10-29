@@ -256,7 +256,7 @@ namespace fltl { namespace pattern {
     class Match<AlphaT,StringT,offset,tdop::operator_tag, T> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
-
+            printf("internal operator\n");
             if((1 <= len) && (*symbols == *(slots->as_operator))) {
                 return Match<
                     AlphaT,
@@ -457,6 +457,7 @@ namespace fltl { namespace pattern {
 
             const unsigned max(len - GetMinNumSymbolsAfter<StringT,offset>::RESULT);
             for(unsigned i(0); i <= max; ++i) {
+                printf("string(%u)\n", i);
 
                 tdop::OperatorString<AlphaT> str(symbols, i);
                 *(slots->as_operator_string) = str;
@@ -612,6 +613,7 @@ namespace fltl { namespace pattern {
     class Match<AlphaT,StringT,offset,tdop::operator_tag, void> {
     public:
         inline static bool bind(tdop::detail::Slot<AlphaT> *slots, const tdop::Operator<AlphaT> *symbols, const unsigned len) throw() {
+            printf("trailing operator\n");
             return (1 == len) && (*symbols == *(slots->as_operator));
         }
     };
@@ -865,8 +867,7 @@ namespace fltl { namespace pattern {
         }
     },
     {
-        pattern->category = 0;
-        pattern->upper_bound = 0;
+
     })
 
     /// destructuring extension rules related to a category, where the category
@@ -925,16 +926,7 @@ namespace fltl { namespace pattern {
         }
     },
     {
-        tdop::OpaqueCategory<AlphaT> cat(rule.category());
-        tdop::OperatorString<AlphaT> str;
-        unsigned upper_bound(0);
 
-        if(!rule.match(upper_bound, str)) {
-            return false;
-        }
-
-        *(pattern->category) = cat;
-        *(pattern->upper_bound) = upper_bound;
     })
 
 #undef FLTL_TDOP_DESTRUCTURE

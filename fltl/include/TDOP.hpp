@@ -23,6 +23,7 @@
 #include "fltl/include/helper/StorageChain.hpp"
 #include "fltl/include/helper/UnsafeCast.hpp"
 #include "fltl/include/helper/Array.hpp"
+#include "fltl/include/helper/StdContainer.hpp"
 
 #include "fltl/include/mpl/If.hpp"
 
@@ -129,6 +130,13 @@ namespace fltl {
 
         template <typename> class Generator;
     }
+
+    class TrueCondition {
+    public:
+        bool operator()(void) throw() {
+            return true;
+        }
+    };
 }
 
 #include "fltl/include/tdop/Any.hpp"
@@ -535,12 +543,25 @@ namespace fltl {
         }
 
         /// remove a rule
-        void remove_rule(rule_type &rule) const throw() {
-            if(0 != rule.rule) {
+        void remove_rule(rule_type &rule) throw() {
+            bool do_delete(false);
+
+            if(0 != rule.rule && !rule.rule->is_deleted) {
+                do_delete = true;
                 rule.rule->is_deleted = true;
             }
 
-            internal_rule_type::decref(rule.rule);
+            if(do_delete) {
+
+                if(rule.is_extension_rule()) {
+                    --(rule.rule->category->num_extension_rules);
+                } else {
+                    --(rule.rule->category->num_initial_rules);
+                }
+
+                internal_rule_type::decref(rule.rule);
+                --num_rules_;
+            }
         }
 
         /// get the alphabetic representation of a symbol
@@ -731,6 +752,106 @@ namespace fltl {
             gen.reset_ = pattern_generator::reset;
             gen.free_ = pattern_generator::free;
             return gen;
+        }
+
+        /// generic container collection mechanism
+        template <
+            typename PatternT,
+            typename VarT,
+            typename ContainerT
+        >
+        bool collect(
+            PatternT pattern_to_match,
+            VarT &what_to_collect,
+            ContainerT &where_to_collect
+        ) throw() {
+            TrueCondition cond;
+            helper::not_a_container rule_cont;
+            return collect_if<PatternT,VarT,ContainerT,helper::not_a_container,TrueCondition>(
+                pattern_to_match,
+                what_to_collect,
+                where_to_collect,
+                rule_cont,
+                cond
+            );
+        }
+        /// generic container collection mechanism
+        template <
+            typename PatternT,
+            typename VarT,
+            typename ContainerT,
+            typename RuleContainerT
+        >
+        bool collect(
+            PatternT pattern_to_match,
+            VarT &what_to_collect,
+            ContainerT &where_to_collect,
+            RuleContainerT &where_to_collect_rules
+        ) throw() {
+            TrueCondition cond;
+            return collect_if<PatternT,VarT,ContainerT,RuleContainerT,TrueCondition>(
+                pattern_to_match,
+                what_to_collect,
+                where_to_collect,
+                where_to_collect_rules,
+                cond
+            );
+        }
+
+        template <
+            typename PatternT,
+            typename VarT,
+            typename ContainerT,
+            typename ConditionT
+        >
+        bool collect_if(
+            PatternT pattern_to_match,
+            VarT &what_to_collect,
+            ContainerT &where_to_collect,
+            ConditionT condition
+        ) throw() {
+            helper::not_a_container rule_cont;
+            return collect_if<PatternT,VarT,ContainerT,helper::not_a_container,TrueCondition>(
+                pattern_to_match,
+                what_to_collect,
+                where_to_collect,
+                rule_cont,
+                condition
+            );
+        }
+
+        template <
+            typename PatternT,
+            typename VarT,
+            typename ContainerT,
+            typename RuleContainerT,
+            typename ConditionT
+        >
+        bool collect_if(
+            PatternT pattern_to_match,
+            VarT &what_to_collect,
+            ContainerT &where_to_collect,
+            RuleContainerT &where_to_collect_rules,
+            ConditionT condition
+        ) throw() {
+            bool collected(false);
+            rule_type R;
+            generator_type gen(search(~R, pattern_to_match));
+            for(; gen.match_next(); ) {
+                if(condition()) {
+                    collected = true;
+                    helper::add_to_container(where_to_collect_rules, R);
+                    helper::add_to_container(where_to_collect, what_to_collect);
+                }
+            }
+            return collected;
+        }
+
+        /// check if the TDOP machine contains any rule matching a specific
+        /// pattern
+        template <typename PatternT>
+        bool contains_rule(PatternT pattern_to_match) throw() {
+            return search(pattern_to_match).match_next();
         }
 
     private:
