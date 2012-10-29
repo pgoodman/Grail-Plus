@@ -46,7 +46,10 @@ namespace grail { namespace cfg {
 
             for(variables.rewind(); variables.match_next(); ) {
 
+                // for each variable, look at the symbols that follow instances
+                // of that variable
                 for(syms_following_V.rewind(); syms_following_V.match_next(); ) {
+
                     for(unsigned i(0); i < s.length(); ++i) {
                         if(s.at(i).is_terminal()) {
                             terminal_type u(s.at(i));
@@ -67,8 +70,9 @@ namespace grail { namespace cfg {
                         }
                     }
 
-                    // reached the end of the production
-                    updated = detail::union_into(follow[V.number()], first[A.number()]) || updated;
+                    // reached the end of the production; i.e. there is a suffix
+                    // in 's', prefixed by 'V', such that the suffix is nullable.
+                    updated = detail::union_into(follow[V.number()], follow[A.number()]) || updated;
 
                 next_production:
                     continue;
