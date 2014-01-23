@@ -47,7 +47,7 @@ endif
 
 # are we compiling with clang++?
 ifneq (,$(findstring clang++,${CXX}))
-	CXX_FEATURES += -fcatch-undefined-behavior -finline-functions
+	CXX_FEATURES += -finline-functions
 	CXX_WARN_FLAGS += -Winline
 endif
 

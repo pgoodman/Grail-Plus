@@ -38,7 +38,7 @@ namespace grail { namespace io {
     namespace opt {
 
         // static array for holding short command line options
-        CommandLineOption *short_options[52] = {'\0'};
+        CommandLineOption *short_options[52] = {0};
 
         helper::CStringMap<CommandLineOption *> long_options;
 
