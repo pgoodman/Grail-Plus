@@ -34,9 +34,9 @@
 #elif defined(_MSC_VER) && (_MSC_VER >= 1200)
 #define FLTL_FORCE_INLINE __forceinline
 #elif defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 2)))
-#define FLTL_FORCE_INLINE __attribute__((always_inline))
+#define FLTL_FORCE_INLINE inline
 #elif defined(__clang__)
-#define FLTL_FORCE_INLINE __attribute__((always_inline))
+#define FLTL_FORCE_INLINE inline
 #else
 #define FLTL_FORCE_INLINE inline
 #endif

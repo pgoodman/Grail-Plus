@@ -4,9 +4,9 @@
 
 ROOT_DIR = ./
 
-DEFAULT_CXX = clang++
+DEFAULT_CXX = clang++-3.8
 CXX = ${DEFAULT_CXX}
-CXX_FEATURES = -fno-rtti -fno-exceptions -fstrict-aliasing
+CXX_FEATURES = -fno-rtti -fno-exceptions -fstrict-aliasing -fno-stack-protector
 CXX_WARN_FLAGS += -Wall -Werror -Wno-unused-function 
 CXX_WARN_FLAGS += -Wcast-qual
 OPTIMIZATION_LEVEL = -O0
@@ -17,12 +17,12 @@ OUT2 =
 FINALIZE = echo
 
 GNU_COMPATIBLE_FLAGS = -pedantic -pedantic-errors -Wextra -Wcast-align -Wno-long-long 
+GNU_COMPATIBLE_FLAGS += -Wno-unused-local-typedefs 
 
 # are we compiling with the g++?
 ifneq (,$(findstring g++,${CXX}))
 	#CXX_FEATURES += -flto
 	CXX_FLAGS += -std=gnu++98
-	CXX_FEATURES += -fno-stack-protector
 	CXX_WARN_FLAGS += -Wshadow -Wpointer-arith \
 				      -Wwrite-strings \
 				      -Wfloat-equal -Wconversion -Wredundant-decls \
@@ -36,31 +36,9 @@ ifneq (,$(findstring g++,${CXX}))
 	endif
 endif
 
-# are we compiling with icc?
-ifneq (,$(findstring icpc,${CXX}))
-	GNU_COMPATIBLE_FLAGS = 
-	CXX_FEATURES += -fno-stack-protector
-	CXX_WARN_FLAGS = -diag-disable 279
-	CXX_FLAGS += -Kc++ -Wall -Werror -wd981 -ansi-alias
-	LD_FLAGS += -lstdc++
-endif
-
 # are we compiling with clang++?
 ifneq (,$(findstring clang++,${CXX}))
-	CXX_FEATURES += -finline-functions
 	CXX_WARN_FLAGS += -Winline
-endif
-
-# are we compiling with emscripten?
-ifneq (,$(findstring emcc,${CXX}))
-	GNU_COMPATIBLE_FLAGS =
-	CXX_FEATURES =
-	CXX_WARN_FLAGS =
-	CXX_FLAGS += -DGRAIL_USE_JS
-	LD_FLAGS =
-	OUT = bin/grail.bc
-	OUT2 = bin/grail.js
-	FINALIZE = ${CXX} -O2 ${OUT} -o ${OUT2}
 endif
 
 CXX_FLAGS += ${CXX_WARN_FLAGS} ${CXX_FEATURES} ${GNU_COMPATIBLE_FLAGS}

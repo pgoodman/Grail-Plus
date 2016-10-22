@@ -1,5 +1,4 @@
 
-#include "grail/include/cli/CFG_INFO.hpp"
 #include "grail/include/cli/CFG_PARSE.hpp"
 #include "grail/include/cli/CFG_REMOVE_LR.hpp"
 #include "grail/include/cli/CFG_STACK_LANG.hpp"
@@ -15,7 +14,6 @@
 
 #include "grail/include/cli/PDA_INTERSECT_NFA.hpp"
 
-GRAIL_DECLARE_TOOL(CFG_INFO)
 GRAIL_DECLARE_TOOL(CFG_PARSE)
 GRAIL_DECLARE_TOOL(CFG_REMOVE_LR)
 GRAIL_DECLARE_TOOL(CFG_STACK_LANG)
